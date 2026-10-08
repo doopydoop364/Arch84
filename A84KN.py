@@ -1,6 +1,6 @@
 # A84KN: kernel (Arch84 module 4/11). Re-exports A84PE (parser, line editor).
 
-from A84FS import (DEFAULT_DIRS, ENVIRONMENT, HOME, PROFILE, StorageError, VERSION, VFS,
+from A84FS import (DEFAULT_DIRS, HOME, PROFILE, StorageError, VERSION, VFS,
     VFSError, ms_since, now_ms)
 from A84CZ import decode_stream, fs_stream, same_tree
 
@@ -199,9 +199,6 @@ class Kernel:
             n += 1
         if not v.isfile("/etc/profile"):
             v.write("/etc/profile", PROFILE)
-            n += 1
-        if not v.isfile("/etc/environment"):
-            v.write("/etc/environment", ENVIRONMENT)
             n += 1
         if not v.isfile("/etc/version") or v.read("/etc/version") != VERSION + "\n":
             v.write("/etc/version", VERSION + "\n")

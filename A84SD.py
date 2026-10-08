@@ -4,6 +4,8 @@ from A84FS import ERR, HOME, StorageError, VFSError
 from A84PE import isname
 
 NOSTARTUP = ("exit", "reboot", "poweroff")
+# the factory /etc/profile exports the defaults that /etc/environment now owns
+LEGACY = ("export PATH=/usr/local/bin:/usr/bin:/bin", "export SHELL=/bin/ash")
 
 
 class Lifecycle:
@@ -44,6 +46,8 @@ class Lifecycle:
             for line in self.vfs.read(path).split("\n"):
                 line = line.strip()
                 if line == "" or line[:1] == "#":
+                    continue
+                if line in LEGACY:
                     continue
                 if line.split(" ")[0] in NOSTARTUP:
                     errs += 1

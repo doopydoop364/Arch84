@@ -5,14 +5,15 @@
 #   name <name>              lowercase letters, digits . _ + -   (<= 24 chars)
 #   version <version>        letters, digits . _ +               (<= 16 chars, no '-')
 #   desc <escaped text>      optional
-#   depends <name> ...       optional
+#   depends <dep> ...        optional; dep = name or name>=ver (also <= = > <)
 #   D<TAB><path>             a directory
 #   F<TAB><path><TAB><size><TAB><sum>   a file, followed by its data lines:
 #   +<TAB><escaped chunk>    <= 256 chars of the file (file = the chunks in order)
 #   END<TAB><entries><TAB><sum>         <entries> = D and F records; <sum> covers every
 #                                       line above it. File sums cover the file text.
 # sum = "%x-%x" % (b, a) of an Adler-32 style checksum over the characters.
-# Installed packages live in /var/lib/pacman/local/<name>/ (desc, files).
+# Installed packages live in /var/lib/pacman/local/<name>/ (desc, files); desc also has
+# "reason dep" when the package was only installed to satisfy a dependency.
 # The repository index is /var/lib/pacman/sync/repo.db (one line per package:
 # name, version, file, depends, desc; rebuilt by pacman -Sy and when stale).
 # Changing operations hold /var/lib/pacman/pacman.lock while they run.
@@ -95,6 +96,40 @@ def ok_path(p):
         if p == t or p.startswith(t + "/"):
             return False
     return True
+
+
+def split_dep(d):
+    # "lib>=1.2" -> ("lib", ">=", "1.2"); "lib" -> ("lib", "", "")
+    for i in range(len(d)):
+        if d[i] in "<>=":
+            op = d[i]
+            if d[i] != "=" and d[i + 1:i + 2] == "=":
+                op += "="
+            return d[:i], op, d[i + len(op):]
+    return d, "", ""
+
+
+def ok_dep(d):
+    n, op, v = split_dep(d)
+    return ok_name(n) and (op == "" or ok_ver(v))
+
+
+def dep_ok(d, have):
+    # does installed version `have` satisfy the dependency token d?
+    n, op, v = split_dep(d)
+    if op == "":
+        return True
+    a = vkey(have)
+    b = vkey(v)
+    if op == ">=":
+        return a >= b
+    if op == "<=":
+        return a <= b
+    if op == ">":
+        return a > b
+    if op == "<":
+        return a < b
+    return a == b
 
 
 def vkey(v):
@@ -228,8 +263,8 @@ def scan(vfs, path):
     for p in meta["files"]:
         paths[p[0]] = "F"
     for d in meta["depends"]:
-        if not ok_name(d):
-            raise PkgError("bad dependency name")
+        if not ok_dep(d):
+            raise PkgError("bad dependency: " + d[:30])
     if meta["name"] is None:
         raise PkgError("missing name/version")
     return meta

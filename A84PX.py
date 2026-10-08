@@ -8,14 +8,14 @@
 #   pacman -Q [NAME]    list installed    -Qi NAME info    -Ql [NAME] files
 #   pacman -Qk [NAME]   verify files      -Qo PATH owner   -Qp FILE  inspect a file
 #   makepkg [-d DEP]... DIR NAME VERSION [DESCRIPTION...]
-from A84FS import VFSError, dpieces
+from A84FS import VFSError, dlen, dpieces
 from A84CD import COMMANDS
-from A84PM import DBDIR, HOMEDIR, LOCK, PkgError, Sum, scan
-from A84PD import db_names, db_read, mkdirs, owner
-from A84PI import install, remove
+from A84PM import DBDIR, HOMEDIR, LOCK, REPO, SYNCDB, PkgError, Sum, ok_name, scan, split_dep
+from A84PD import db_names, db_read, db_reason, mkdirs, owner, requirers
+from A84PI import install, remove, remove_order, removal_set
 from A84PB import build, newest, plan, repo, sync, upgrades
 
-USAGE = ("usage: pacman -U FILE | -R NAME | -S[yu] [NAME] | -Sl|-Ss|-Si | -Q[ilkopu] [ARG]\n"
+USAGE = ("usage: pacman -U FILE | -R[s] NAME | -S[yu] [NAME] | -Sc[c] | -Sl|-Ss|-Si | -Q[ilkopuedt] [ARG]\n"
          "       makepkg [-d DEP]... DIR NAME VERSION [DESC]\n")
 
 
@@ -33,6 +33,9 @@ def info(sh, m):
     sh.out("Name        : " + m["name"] + "\nVersion     : " + m["version"] + "\n")
     sh.out("Description : " + m["desc"] + "\n")
     sh.out("Depends On  : " + (" ".join(m["depends"]) or "None") + "\n")
+    if "reason" in m:
+        sh.out("Reason      : " + ("Installed as a dependency" if m["reason"] == "dep" else "Explicitly installed") + "\n")
+        sh.out("Required By : " + (" ".join(requirers(sh.vfs, m["name"])) or "None") + "\n")
     n = 0
     for p, size, s in m["files"]:
         n += size
@@ -95,6 +98,9 @@ def query(sh, mods, args):
     st = 0
     for n in names:
         m = db_read(vfs, n)
+        if m is not None and (("e" in mods and m["reason"] == "dep") or ("d" in mods and m["reason"] != "dep")
+                              or ("t" in mods and requirers(vfs, n))):
+            continue
         if m is None:
             sh.err("error: package '" + n + "' was not found")
             st = 1
@@ -149,14 +155,44 @@ def search(sh, mods, rest):
     return 0
 
 
+def clean(sh, everything):
+    # the cache is the repository: -Sc drops every package file except the installed
+    # versions, -Scc drops them all
+    vfs = sh.vfs
+    n = 0
+    chars = 0
+    if vfs.isdir(REPO):
+        for f in list(vfs.listdir(REPO)):
+            if not f.endswith(".ar84"):
+                continue
+            k = f.rfind("-")
+            if not everything and k > 0 and ok_name(f[:k]):
+                m = db_read(vfs, f[:k], False)
+                if m is not None and m["version"] == f[k + 1:-5]:
+                    continue
+            p = REPO + "/" + f
+            chars += sh.fsize(p)
+            vfs.remove(p)
+            n += 1
+            sh.out("removed " + f + "\n")
+    if vfs.isfile(SYNCDB):
+        vfs.remove(SYNCDB)
+    sh.out("cache cleaned: " + str(n) + " packages, " + str(chars) + " chars\n")
+    return 0
+
+
 def change(sh, op, mods, rest):
     vfs = sh.vfs
     if op == "R":
-        for n in rest:
+        metas = removal_set(vfs, rest, "s" in mods)
+        for n in remove_order(metas):
             m = remove(vfs, n)
             sh.out("removed " + n + " " + m["version"] + "\n")
         return 0
+    if op == "S" and "c" in mods:
+        return clean(sh, "cc" in mods)
     files = []
+    asdep = []
     if op == "U":
         for a in rest:
             files.append(sh.resolve(a))
@@ -168,10 +204,13 @@ def change(sh, op, mods, rest):
             for n, o, v, p in upgrades(vfs):
                 files.append(p)
         for n in rest:
-            plan(vfs, n, files, [])
+            plan(vfs, n, files, [], 0, asdep)
     for f in files:
-        meta, old = install(vfs, f)
+        meta, old = install(vfs, f, "dep" if f in asdep else None)
         show(sh, meta, old)
+    if op == "S":
+        for n in rest:
+            db_reason(vfs, split_dep(n)[0], "explicit")      # naming a package makes it explicit
     if not files and "y" not in mods:
         sh.out("nothing to do\n")
     return 0
@@ -196,7 +235,7 @@ def cmd_pacman(sh, args):
         if op == "S" and ("l" in mods or "s" in mods or "i" in mods):
             return search(sh, mods, rest)
         if op == "U" or op == "S" or op == "R":
-            if op == "S" and "y" not in mods and "u" not in mods and not rest:
+            if op == "S" and "y" not in mods and "u" not in mods and "c" not in mods and not rest:
                 sh.err("error: no targets specified")
                 return 1
             if op != "S" and not rest:

@@ -552,6 +552,183 @@ class RepoTests(unittest.TestCase):
         self.assertFalse(self.v.exists("/var/lib/pacman/pacman.lock"))
 
 
+class DependencyTests(unittest.TestCase):
+    def setUp(self):
+        self.sh, self.t = mk()
+        self.v = self.sh.vfs
+
+    def r(self, line):
+        return run(self.sh, self.t, line)
+
+    def make(self, name, ver, deps=(), desc="d"):
+        base = "/tmp/%s%s" % (name, ver)
+        for d in (base, base + "/usr", base + "/usr/bin"):
+            if not self.v.exists(d):
+                self.v.mkdir(d)
+        self.v.write(base + "/usr/bin/" + name, "echo %s %s\n" % (name, ver))
+        flags = " ".join("-d '" + d + "'" for d in deps)
+        self.assertIn("built", self.r("makepkg %s %s %s %s %s" % (flags, base, name, ver, desc)))
+
+    def chain(self):
+        # app -> lib -> core ; tool is standalone
+        self.make("core", "1")
+        self.make("lib", "1", ["core"])
+        self.make("app", "1", ["lib"])
+        self.make("tool", "1")
+
+    def test_dependencies_are_marked_and_listed(self):
+        self.chain()
+        out = self.r("pacman -S app")
+        self.assertEqual(out.count("installed"), 3)
+        self.assertEqual(self.r("pacman -Qe"), "app 1\n")
+        self.assertEqual(self.r("pacman -Qd"), "core 1\nlib 1\n")
+        self.assertEqual(self.r("pacman -Qt"), "app 1\n")
+        self.assertEqual(self.r("pacman -Qdt"), "")
+        info = self.r("pacman -Qi lib")
+        self.assertIn("Reason      : Installed as a dependency", info)
+        self.assertIn("Required By : app", info)
+        self.assertIn("Reason      : Explicitly installed", self.r("pacman -Qi app"))
+
+    def test_remove_refuses_needed_and_removes_set(self):
+        self.chain()
+        self.r("pacman -S app")
+        self.assertIn("lib is required by app", self.r("pacman -R lib"))
+        self.assertIn("core is required by lib", self.r("pacman -R core"))
+        self.assertEqual(self.r("pacman -Q"), "app 1\ncore 1\nlib 1\n")
+        self.assertEqual(self.r("pacman -R app lib"), "removed app 1\nremoved lib 1\n")     # dependents first
+        self.assertEqual(self.r("pacman -Qdt"), "core 1\n")                                 # now an orphan
+        self.assertEqual(self.r("pacman -R core"), "removed core 1\n")
+
+    def test_rns_removes_unneeded_dependencies_only(self):
+        self.chain()
+        self.make("shared", "1")
+        self.make("app2", "1", ["lib", "shared"])
+        self.r("pacman -S app app2 tool")
+        out = self.r("pacman -Rns app")
+        self.assertEqual(out, "removed app 1\n")                  # lib is still needed by app2
+        out = self.r("pacman -Rns app2")
+        self.assertEqual(out, "removed app2 1\nremoved lib 1\nremoved core 1\nremoved shared 1\n")
+        self.assertEqual(self.r("pacman -Q"), "tool 1\n")
+        self.assertFalse(self.v.exists("/usr/bin/core"))
+
+    def test_rns_keeps_explicit_dependencies(self):
+        self.chain()
+        self.r("pacman -S lib")
+        self.r("pacman -S app")                                  # lib is explicit (named first)
+        self.assertEqual(self.r("pacman -Rns app"), "removed app 1\n")
+        self.assertEqual(self.r("pacman -Qe"), "lib 1\n")
+        self.assertEqual(self.r("pacman -Qd"), "core 1\n")
+
+    def test_naming_a_dependency_makes_it_explicit(self):
+        self.chain()
+        self.r("pacman -S app")
+        self.assertEqual(self.r("pacman -S lib"), "nothing to do\n")
+        self.assertEqual(self.r("pacman -Qe"), "app 1\nlib 1\n")
+        self.assertEqual(self.r("pacman -Rns app"), "removed app 1\n")
+        self.assertEqual(self.r("pacman -Q"), "core 1\nlib 1\n")
+
+    def test_rn_flag_alone_is_accepted(self):
+        self.chain()
+        self.r("pacman -S lib")
+        self.assertEqual(self.r("pacman -Rn lib"), "removed lib 1\n")
+        self.assertEqual(self.r("pacman -Q"), "core 1\n")        # -Rn does not take dependencies along
+
+    def test_missing_dependencies_are_all_reported(self):
+        self.chain()
+        self.make("multi", "1", ["core", "lib", "tool"])
+        self.make("multi", "2", ["core", "lib", "tool"])
+        out = self.r("pacman -U /var/cache/pacman/pkg/multi-1.ar84")
+        self.assertIn("missing dependency: core, lib, tool", out)
+        self.assertEqual(self.r("pacman -Q"), "")
+        self.assertEqual(self.r("pacman -S multi").count("installed"), 4)
+
+    def test_version_constraints(self):
+        self.make("lib", "1.0")
+        self.make("lib", "2.0")
+        self.make("app", "1", ["lib>=2.0"])
+        self.make("old", "1", ["lib<2.0"])
+        self.make("eq", "1", ["lib=2.0"])
+        self.assertEqual(self.r("pacman -S 'lib>=1.5'").count("installed lib 2.0"), 1)   # newest satisfies
+        self.assertIn("installed app 1", self.r("pacman -S app"))
+        self.assertIn("missing dependency: lib<2.0 (installed 2.0)", self.r("pacman -U /var/cache/pacman/pkg/old-1.ar84"))
+        self.assertIn("installed eq 1", self.r("pacman -S eq"))
+        self.assertIn("cannot satisfy lib>3", self.r("pacman -S 'lib>3'"))
+        self.assertIn("lib is required by app eq", self.r("pacman -R lib"))
+
+    def test_constraint_triggers_upgrade_of_installed_dependency(self):
+        self.make("lib", "1.0")
+        self.r("pacman -S lib")
+        self.make("lib", "2.0")
+        self.make("app", "1", ["lib>=2.0"])
+        out = self.r("pacman -S app")
+        self.assertIn("upgraded lib 1.0 -> 2.0", out)
+        self.assertIn("installed app 1", out)
+        self.assertEqual(self.r("pacman -Qe"), "app 1\nlib 2.0\n")     # lib stayed explicit
+
+    def test_bad_dependency_syntax_is_rejected(self):
+        self.make("ok", "1")
+        base = "/tmp/ok1"
+        for dep in ("a>=", "a>=1-2", ">=1", "A", "a==1"):
+            self.assertIn("bad dependency", self.r("makepkg -d '%s' %s x 1" % (dep, base)), dep)
+
+    def test_cycle_is_reported(self):
+        self.make("aa", "1", ["bb"])
+        self.make("bb", "1", ["aa"])
+        self.assertIn("dependency loop", self.r("pacman -S aa"))
+        self.assertEqual(self.r("pacman -Q"), "")
+        self.assertFalse(self.v.exists("/var/lib/pacman/pacman.lock"))
+
+
+class CleanTests(unittest.TestCase):
+    def setUp(self):
+        self.sh, self.t = mk()
+        self.v = self.sh.vfs
+
+    def r(self, line):
+        return run(self.sh, self.t, line)
+
+    def make(self, name, ver):
+        base = "/tmp/%s%s" % (name, ver)
+        for d in (base, base + "/usr", base + "/usr/bin"):
+            if not self.v.exists(d):
+                self.v.mkdir(d)
+        self.v.write(base + "/usr/bin/" + name, "echo %s %s\n" % (name, ver))
+        self.assertIn("built", self.r("makepkg %s %s %s d" % (base, name, ver)))
+
+    def cache(self):
+        return self.v.listdir("/var/cache/pacman/pkg")
+
+    def test_sc_keeps_only_installed_versions(self):
+        self.make("aa", "1")
+        self.make("aa", "2")
+        self.make("bb", "1")
+        self.r("pacman -S aa")                                   # installs aa 2
+        self.v.write("/var/cache/pacman/pkg/notes.txt", "keep me")
+        out = self.r("pacman -Sc")
+        self.assertIn("removed aa-1.ar84", out)
+        self.assertIn("removed bb-1.ar84", out)
+        self.assertNotIn("aa-2", out)
+        self.assertIn("cache cleaned: 2 packages", out)
+        self.assertEqual(sorted(self.cache()), ["aa-2.ar84", "notes.txt"])
+        self.assertEqual(self.r("pacman -Sl"), "aa 2\n")
+        self.assertFalse(self.v.exists("/var/lib/pacman/pacman.lock"))
+
+    def test_scc_removes_everything_and_installed_stay_installed(self):
+        self.make("aa", "1")
+        self.r("pacman -S aa")
+        self.assertIn("cache cleaned: 1 packages", self.r("pacman -Scc"))
+        self.assertEqual(self.cache(), [])
+        self.assertEqual(self.r("pacman -Q"), "aa 1\n")
+        self.assertEqual(self.r("aa"), "aa 1\n")
+        self.assertEqual(self.r("pacman -Sc"), "cache cleaned: 0 packages, 0 chars\n")
+
+    def test_sc_without_a_cache_and_lock(self):
+        self.assertEqual(self.r("pacman -Sc"), "cache cleaned: 0 packages, 0 chars\n")
+        self.v.write("/var/lib/pacman/pacman.lock", "x") if self.v.isdir("/var/lib/pacman") else None
+        if self.v.isfile("/var/lib/pacman/pacman.lock"):
+            self.assertIn("unable to lock", self.r("pacman -Sc"))
+
+
 class TabAndHelpTests(unittest.TestCase):
     def test_commands_are_lazy_and_listed(self):
         from A84CD import LAZY, all_commands

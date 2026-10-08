@@ -44,11 +44,13 @@ class EnvironmentTests(unittest.TestCase):
         sh.execute(line)
         return t.text
 
-    def test_default_file_matches_builtin_defaults(self):
+    def test_builtin_defaults_without_a_file(self):
         sh, t = boot(MemStorage())
-        self.assertTrue(sh.vfs.isfile("/etc/environment"))
-        self.assertEqual(self.r(sh, t, "echo $USER $HOME $PATH $SHELL $HISTSIZE"),
-                         "evo /home/evo /usr/local/bin:/usr/bin:/bin /bin/ash 40\n")
+        self.assertFalse(sh.vfs.exists("/etc/environment"))      # not part of the factory tree
+        self.assertEqual(self.r(sh, t, "echo $USER $HOME $PATH $SHELL [$HISTSIZE]"),
+                         "evo /home/evo /usr/local/bin:/usr/bin:/bin /bin/ash []\n")
+        self.assertEqual(sh.k.hist_max(), 40)
+        self.assertEqual(self.r(sh, t, "echo $HOME; cat /etc/profile | head -n 1"), "/home/evo\n# /etc/profile\n")
 
     def test_file_overrides_and_bad_lines_are_ignored(self):
         sh, t = boot(MemStorage(), "# c\nUSER=bob\nPATH=/opt/bin:/bin\n1X=no\nBAD NAME=no\n=no\nnoequals\nFOO = spaced \n")
@@ -91,10 +93,17 @@ class EnvironmentTests(unittest.TestCase):
 
     def test_missing_file_keeps_defaults(self):
         sh, t = boot(MemStorage())
-        sh.vfs.remove("/etc/environment")
         sh.k.env["USER"] = "zed"
         sh.startup()
         self.assertEqual(sh.k.env["USER"], "zed")
+
+    def test_legacy_profile_exports_do_not_override_the_file(self):
+        sh, t = boot(MemStorage(), "PATH=/opt/bin\nSHELL=/bin/sh\n")
+        sh.startup()
+        self.assertEqual(self.r(sh, t, "echo $PATH $SHELL"), "/opt/bin /bin/sh\n")
+        sh.vfs.write("/etc/profile", "export PATH=/usr/local/bin:/usr/bin:/bin\nexport PATH=/mine\n")
+        sh.startup()
+        self.assertEqual(self.r(sh, t, "echo $PATH"), "/mine\n")        # other exports still apply
 
     def test_setenv_unsetenv_persist(self):
         ms = MemStorage()
@@ -102,9 +111,7 @@ class EnvironmentTests(unittest.TestCase):
         self.assertEqual(self.r(sh, t, "setenv USER=bob FOO=a=b"), "")
         self.assertEqual(self.r(sh, t, "printenv USER FOO"), "bob\na=b\n")
         data = sh.vfs.read("/etc/environment")
-        self.assertIn("# /etc/environment", data)
         self.assertIn("USER=bob\n", data)
-        self.assertNotIn("USER=evo", data)
         self.assertIn("FOO=a=b\n", data)
         self.r(sh, t, "unsetenv FOO")
         self.assertNotIn("FOO", sh.vfs.read("/etc/environment"))
@@ -115,16 +122,17 @@ class EnvironmentTests(unittest.TestCase):
 
     def test_setenv_rejects_bad_input(self):
         sh, t = boot(MemStorage())
-        before = sh.vfs.read("/etc/environment")
+        before = sh.vfs.exists("/etc/environment")
         for line in ("setenv", "setenv 1A=x", "setenv A-B=x", "setenv NOEQ", "setenv HOME=rel", "unsetenv 1A", "unsetenv"):
             self.assertIn("E:", self.r(sh, t, line), line)
-        self.assertEqual(sh.vfs.read("/etc/environment"), before)
+        self.assertEqual(sh.vfs.exists("/etc/environment"), before)
 
     def test_unset_is_session_only(self):
         sh, t = boot(MemStorage())
+        self.r(sh, t, "setenv USER=bob")
         self.r(sh, t, "unset USER")
         self.assertEqual(self.r(sh, t, "echo [$USER]"), "[]\n")
-        self.assertIn("USER=evo", sh.vfs.read("/etc/environment"))
+        self.assertIn("USER=bob", sh.vfs.read("/etc/environment"))
 
     def test_pacman_protects_the_configured_home(self):
         sh, t = boot(MemStorage())

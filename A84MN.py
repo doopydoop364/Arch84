@@ -49,7 +49,7 @@ PAGES = (
         'nl\tnl [FILE...]\tnumber lines\n'
     ),
     (
-        'pacman\tpacman -U FILE | -S[yu] [NAME] | -R NAME | -Sl|-Ss W|-Si N | -Q[ilkopu] [ARG]\t.ar84 packages. -U file, -S repo (+deps), -Sy index, -Su upgrade, -R remove, -Sl/-Ss/-Si repo list/search/info, -Qi/-Ql/-Qk/-Qo/-Qp query, -Qu upgradable. Holds /var/lib/pacman/pacman.lock; rm it if stale\n'
+        "pacman\tpacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]\t.ar84 packages. -U file, -S repo (+deps), -Sy index, -Su upgrade, -Sc drop cached files not installed (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'\n"
         'poweroff\tpoweroff\tsave and leave Arch84\n'
         'printenv\tprintenv [NAME...]\tprint all environment variables, or the values of NAME\n'
         'pwd\tpwd\tprint the current directory\n'
@@ -57,19 +57,19 @@ PAGES = (
         'rev\trev [FILE...]\treverse each line\n'
         'rm\trm [-rf] PATH...\tremove files; -r directories too, -f ignores missing names\n'
         'rmdir\trmdir DIR...\tremove empty directories\n'
-        "sed\tsed [-n] 'COMMAND[;COMMAND...]' [FILE...]\tedit lines of standard input or files. Addresses: N, N,M, N,$, $ (last line), /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands\n"
     ),
     (
+        "sed\tsed [-n] 'COMMAND[;COMMAND...]' [FILE...]\tedit lines of standard input or files. Addresses: N, N,M, N,$, $ (last line), /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands\n"
         'selftest\tselftest\trun the built-in tests in a sandbox (needs free memory; reboot first)\n'
         'seq\tseq [FIRST [STEP]] LAST\tprint numbers (at most 2000)\n'
         'setenv\tsetenv NAME=VALUE...\tset variables system-wide: updates /etc/environment (read at every startup) and this session\n'
         'sort\tsort [-rnu] [FILE...]\tsort lines; -r reverse, -n numeric, -u drop duplicates\n'
         'sync\tsync [-f]\tsave the filesystem now; -f overwrites a save that failed to load\n'
+    ),
+    (
         'tail\ttail [-n N] [FILE...]\tlast N lines (default 10)\n'
         'tee\ttee [-a] FILE...\tcopy standard input to the output and to the files; -a appends\n'
         'test\ttest EXPR   or   [ EXPR ]\tconditions for scripts: -e -f -d PATH, -z -n STRING, A = B, A != B, A -eq|-ne|-lt|-le|-gt|-ge B, ! EXPR. Status 0 = true\n'
-    ),
-    (
         'touch\ttouch FILE...\tcreate empty files\n'
         'tr\ttr SET1 SET2   or   tr -d SET\ttranslate or delete characters read from standard input; sets may use ranges a-z and \\n\n'
         'true\ttrue\tdo nothing, successfully\n'
@@ -77,12 +77,12 @@ PAGES = (
         'unalias\tunalias NAME...\tremove aliases\n'
         'uname\tuname [-a|-s|-n|-r]\tsystem name, host, version\n'
         'uniq\tuniq [-cd] [FILE]\tcollapse repeated neighbouring lines; -c counts, -d only repeated ones\n'
+    ),
+    (
         'unset\tunset NAME...\tremove variables from this session only\n'
         'unsetenv\tunsetenv NAME...\tremove variables from /etc/environment and this session\n'
         'uptime\tuptime\ttime since Arch84 started and the calculator tick counter\n'
         'wc\twc [-lwc] [FILE...]\tlines, words, characters\n'
-    ),
-    (
         'which\twhich NAME...\twhat a command name refers to (alias, built-in, or a file on PATH)\n'
         'whoami\twhoami\tshow the user name\n'
     ),

@@ -2,7 +2,7 @@
 # /var/lib/pacman/local/<name>/desc  (name, version, desc, depends)
 #                              files (d<TAB>dir | f<TAB>path<TAB>size<TAB>sum)
 from A84FS import VFSError, unesc
-from A84PM import DBDIR, PkgError, esc
+from A84PM import DBDIR, PkgError, esc, split_dep
 
 
 def db_names(vfs):
@@ -11,12 +11,13 @@ def db_names(vfs):
     return vfs.listdir(DBDIR)
 
 
-def db_read(vfs, name):
+def db_read(vfs, name, full=True):
     # -> meta with dirs / files from /var/lib/pacman/local/<name>, or None
+    # (full=False skips the file list: much cheaper)
     base = DBDIR + "/" + name
     if not vfs.isdir(base):
         return None
-    meta = {"name": name, "version": "?", "desc": "", "depends": [], "dirs": [], "files": []}
+    meta = {"name": name, "version": "?", "desc": "", "depends": [], "dirs": [], "files": [], "reason": "explicit"}
     try:
         for line in vfs.lines(base + "/desc"):
             sp = line.find(" ")
@@ -29,6 +30,10 @@ def db_read(vfs, name):
                     meta["depends"] = v.split()
                 elif k == "version":
                     meta["version"] = v
+                elif k == "reason":
+                    meta["reason"] = v
+        if not full:
+            return meta
         for line in vfs.lines(base + "/files"):
             f = line.split("\t")
             if f[0] == "d" and len(f) == 2:
@@ -40,15 +45,28 @@ def db_read(vfs, name):
     return meta
 
 
-def db_write(vfs, meta):
-    base = DBDIR + "/" + meta["name"]
-    mkdirs(vfs, base, [])
+def desc_text(meta):
     d = "name " + meta["name"] + "\nversion " + meta["version"] + "\n"
     if meta["desc"] != "":
         d += "desc " + esc(meta["desc"]) + "\n"
     if meta["depends"]:
         d += "depends " + " ".join(meta["depends"]) + "\n"
-    vfs.write(base + "/desc", d)
+    if meta.get("reason") == "dep":
+        d += "reason dep\n"
+    return d
+
+
+def db_reason(vfs, name, reason):
+    m = db_read(vfs, name, False)
+    if m is not None and m["reason"] != reason:
+        m["reason"] = reason
+        vfs.write(DBDIR + "/" + name + "/desc", desc_text(m))
+
+
+def db_write(vfs, meta):
+    base = DBDIR + "/" + meta["name"]
+    mkdirs(vfs, base, [])
+    vfs.write(base + "/desc", desc_text(meta))
     vfs.write(base + "/files", "")
     buf = ""
     for p in meta["dirs"]:
@@ -69,6 +87,21 @@ def db_remove(vfs, name):
             vfs.remove(base + "/" + f)
     if vfs.isdir(base):
         vfs.remove(base)
+
+
+def requirers(vfs, name, skip=()):
+    # installed packages (not in skip) that depend on `name`
+    out = []
+    for other in db_names(vfs):
+        if other == name or other in skip:
+            continue
+        o = db_read(vfs, other, False)
+        if o is not None:
+            for d in o["depends"]:
+                if split_dep(d)[0] == name:
+                    out.append(other)
+                    break
+    return out
 
 
 def owner(vfs, path):

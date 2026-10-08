@@ -640,11 +640,24 @@ run on the calculator yet.
   `exit` evicts lazy modules and retries once when out of memory.
 
 ## Global environment: /etc/environment
-- `/etc/environment` (seeded on new filesystems and by the boot repair) holds NAME=value lines read at every
+- `/etc/environment` (created by the first `setenv`; it is not part of the factory tree, which the storage
+  format uses as its baseline, so without it the built-in defaults apply) holds NAME=value lines read at every
   startup (not in safe mode) over the built-in defaults: USER, HOME, PATH, SHELL, HISTSIZE (1..500),
   HISTFILE, HOSTNAME (used when /etc/hostname is empty). Invalid lines are ignored.
 - Replaced hardcoded values: history file/size now follow $HISTFILE/$HOME/$HISTSIZE, the startup cwd and `~`
-  follow $HOME, pacman protects `$HOME/.profile .ashrc .ash_history`, /etc/profile no longer exports PATH/SHELL
-  for new filesystems (old ones keep their profile, which still wins).
+  follow $HOME, pacman protects `$HOME/.profile .ashrc .ash_history`, the factory /etc/profile exports of PATH/SHELL are ignored
+  (that file is part of the storage baseline, so it stays unchanged; other exports in it still apply).
 - New: `unset` (session), lazy `printenv setenv unsetenv` (setenv/unsetenv rewrite /etc/environment, keeping
   comments, and change the running session). Cost: ~1.1 KB of resident heap.
+
+## pacman: dependency handling, -Sc, -Rns
+- Dependencies are `name` or `name OP version` (>= <= = > <, compared with the package version order). `-S`
+  plans them (installs or upgrades what is missing/too old, reports `cannot satisfy`), `-U` reports every
+  missing/unsatisfied dependency at once.
+- Install reason: packages pulled in only to satisfy a dependency get `reason dep` in their database entry;
+  naming a package with `-S` makes it explicit. `-Qe/-Qd/-Qt/-Qdt` list explicit/dependency/unrequired/orphans,
+  `-Qi` shows Reason and Required By.
+- `-R` now works on a set (dependents first; refuses if something that stays still needs a target);
+  `-Rs`/`-Rns` also remove dependency-only packages nothing else needs (`n` is accepted: there are no .pacsave files).
+- `-Sc` removes cached package files that are not the installed version, `-Scc` all of them. The cache is also
+  the repository here, so packages built with makepkg but not installed are removed too.

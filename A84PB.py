@@ -1,8 +1,8 @@
 # A84PB: building packages (makepkg) and the local repository (pacman -S) for
 # pacman (Arch84 module, lazily loaded). No output here: A84PX prints.
 from A84FS import VFSError, dlen, dpieces, unesc
-from A84PM import (CHUNK, DBDIR, MAGIC, REPO, SYNCDB, PkgError, Sum, esc, ok_name, ok_path,
-                   ok_ver, scan, vkey)
+from A84PM import (CHUNK, DBDIR, MAGIC, REPO, SYNCDB, PkgError, Sum, esc, dep_ok, ok_dep, ok_name, ok_path,
+                   ok_ver, scan, split_dep, vkey)
 from A84PD import db_names, db_read, mkdirs
 
 
@@ -12,8 +12,8 @@ def build(vfs, src, name, version, desc, depends):
     if not ok_name(name) or not ok_ver(version):
         raise PkgError("bad package name or version")
     for d in depends:
-        if not ok_name(d):
-            raise PkgError("bad dependency name: " + d)
+        if not ok_dep(d):
+            raise PkgError("bad dependency: " + d)
     dirs = []
     files = []
     stack = [src]
@@ -153,18 +153,27 @@ def upgrades(vfs):
     return out
 
 
-def plan(vfs, name, order, seen, depth=0):
-    # package files to install for `name`, dependencies first
+def plan(vfs, token, order, seen, depth=0, deps=None):
+    # package files to install for `token` (name or name>=ver), dependencies first;
+    # paths added only as dependencies are also appended to `deps`
+    if deps is None:
+        deps = []
+    name = split_dep(token)[0]
     if depth > 8 or name in seen:
         raise PkgError("dependency loop at " + name)
-    if vfs.isdir(DBDIR + "/" + name):
+    have = db_read(vfs, name, False)
+    if have is not None and dep_ok(token, have["version"]):
         return
     best = newest(vfs, name)
     if best is None:
         raise PkgError("target not found: " + name)
+    if not dep_ok(token, best[0]):
+        raise PkgError("cannot satisfy " + token + " (repository has " + best[0] + ")")
     seen.append(name)
     for dep in best[2]:
-        plan(vfs, dep, order, seen, depth + 1)
+        plan(vfs, dep, order, seen, depth + 1, deps)
     seen.pop()
     if best[1] not in order:
         order.append(best[1])
+        if depth > 0 and have is None:
+            deps.append(best[1])

@@ -37,7 +37,9 @@ def rewrite(sh, changes):
     # changes: name -> value, or None to delete; keeps comments and other lines
     out = []
     left = dict(changes)
-    if sh.vfs.isfile(PATH):
+    if not sh.vfs.isfile(PATH):
+        out.append("# /etc/environment: system-wide variables (NAME=value)")
+    else:
         for line in sh.vfs.lines(PATH):
             i = line.find("=")
             n = line[:i].strip() if i > 0 else ""

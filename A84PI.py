@@ -1,8 +1,8 @@
 # A84PI: install / remove operations for pacman (Arch84
 # module, lazily loaded). No output here: A84PX prints.
 from A84FS import VFSError, unesc
-from A84PM import DBDIR, PkgError, Sum, records, scan
-from A84PD import db_names, db_read, db_remove, db_write, mkdirs, owner
+from A84PM import DBDIR, PkgError, Sum, dep_ok, records, scan, split_dep
+from A84PD import db_names, db_read, db_remove, db_write, mkdirs, owner, requirers
 
 
 def check(vfs, meta):
@@ -20,9 +20,18 @@ def check(vfs, meta):
     for d in meta["dirs"]:
         if vfs.exists(d) and not vfs.isdir(d):
             raise PkgError("file in the way: " + d)
+    bad = []
     for dep in meta["depends"]:
-        if dep != name and not vfs.isdir(DBDIR + "/" + dep):
-            raise PkgError("missing dependency: " + dep)
+        n = split_dep(dep)[0]
+        if n == name:
+            continue
+        have = db_read(vfs, n, False)
+        if have is None:
+            bad.append(dep)
+        elif not dep_ok(dep, have["version"]):
+            bad.append(dep + " (installed " + have["version"] + ")")
+    if bad:
+        raise PkgError("missing dependency: " + ", ".join(bad))
 
 
 def rollback(vfs, undo, created):
@@ -85,11 +94,13 @@ def apply(vfs, path):
     return undo, created
 
 
-def install(vfs, path):
-    # -> (meta, old version or None)
+def install(vfs, path, reason=None):
+    # -> (meta, old version or None); reason "dep" marks a package installed only as
+    # a dependency (a reinstall keeps the old reason unless one is given)
     meta = scan(vfs, path)
     old = db_read(vfs, meta["name"])
     check(vfs, meta)
+    meta["reason"] = reason or (old["reason"] if old is not None else "explicit")
     undo, created = apply(vfs, path)
     keep = []
     if old is not None:
@@ -117,15 +128,62 @@ def install(vfs, path):
     return meta, old["version"]
 
 
+def removal_set(vfs, names, recurse):
+    # {name: meta} of everything `pacman -R[s]` would remove; raises if something
+    # that stays still needs one of them
+    out = {}
+    for n in names:
+        m = db_read(vfs, n)
+        if m is None:
+            raise PkgError("target not found: " + n)
+        out[n] = m
+    if recurse:
+        more = True
+        while more:
+            more = False
+            for n in list(out.keys()):
+                for d in out[n]["depends"]:
+                    dn = split_dep(d)[0]
+                    if dn in out:
+                        continue
+                    m = db_read(vfs, dn)
+                    if m is not None and m["reason"] == "dep" and not requirers(vfs, dn, out):
+                        out[dn] = m
+                        more = True
+    for n in out:
+        need = requirers(vfs, n, out)
+        if need:
+            raise PkgError(n + " is required by " + " ".join(need))
+    return out
+
+
+def remove_order(metas):
+    # dependents first
+    left = list(metas.keys())
+    left.sort()
+    order = []
+    while left:
+        for n in left:
+            blocked = False
+            for o in left:
+                if o != n:
+                    for d in metas[o]["depends"]:
+                        if split_dep(d)[0] == n:
+                            blocked = True
+            if not blocked:
+                order.append(n)
+                left.remove(n)
+                break
+        else:
+            order += left           # a dependency cycle: any order will do
+            break
+    return order
+
+
 def remove(vfs, name):
     meta = db_read(vfs, name)
     if meta is None:
         raise PkgError("target not found: " + name)
-    for other in db_names(vfs):
-        if other != name:
-            o = db_read(vfs, other)
-            if o is not None and name in o["depends"]:
-                raise PkgError(name + " is required by " + other)
     for p, size, s in meta["files"]:
         if vfs.isfile(p):
             vfs.remove(p)
