@@ -283,5 +283,41 @@ class VerifyMemoryTests(unittest.TestCase):
         self.assertEqual(walk(Kernel(ms).vfs)["/tmp/x"], "kept")
 
 
+class PropertyTests(unittest.TestCase):
+    def test_glob_matches_fnmatch(self):
+        import fnmatch
+        from A84C2 import glob_match
+        rng = random.Random(3)
+        for _ in range(20000):
+            p = "".join(rng.choice("ab*?") for _ in range(rng.randrange(0, 7)))
+            s = "".join(rng.choice("abc") for _ in range(rng.randrange(0, 8)))
+            self.assertEqual(glob_match(p, s), fnmatch.fnmatchcase(s, p), (p, s))
+
+    def test_dates_match_datetime(self):
+        import datetime
+        from A84C5 import days_from_civil, civil_from_days
+        d0 = datetime.date(1970, 1, 1)
+        for i in range(0, 60000, 5):
+            d = d0 + datetime.timedelta(days=i)
+            self.assertEqual(days_from_civil(d.year, d.month, d.day), i)
+            self.assertEqual(civil_from_days(i), (d.year, d.month, d.day))
+
+    def test_line_editor_invariants_under_random_actions(self):
+        k = Kernel(MemStorage())
+        sh = Shell(k, type("T", (), {"write": lambda s, x: None,
+                                      "post": lambda s, x, p=False: None})())
+        sh.vfs.write("/home/evo/my file", "x")
+        k.history.extend(["ls -a", "echo hi", "cat my\\ file"])
+        acts = ["left", "right", "home", "end", "bs", "del", "clear", "up", "down", "tab",
+                "pgup", "pgdn"] + list("ab c/\"'$~.") * 3
+        rng = random.Random(11)
+        for _ in range(300):
+            ed = sh.new_editor()
+            for _ in range(rng.randrange(1, 60)):
+                ed.feed(rng.choice(acts))
+                self.assertTrue(0 <= ed.pos <= len(ed.buf), (ed.buf, ed.pos))
+                self.assertIsInstance(ed.hint, str)
+
+
 if __name__ == "__main__":
     unittest.main()
