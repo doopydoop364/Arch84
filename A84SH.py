@@ -17,6 +17,7 @@ class Shell(Completer, Lifecycle):
         if kernel.log is None:
             kernel.log = term.post       # progress/pending lines go to this terminal
         self.vfs = kernel.vfs
+        kernel.reclaim = evict
         self.term = term
         self.cwd = HOME
         self.running = True

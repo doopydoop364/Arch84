@@ -33,7 +33,7 @@ mkdir	mkdir [-p] DIR...	make directories; -p makes parents too and accepts exist
 mount	mount	show the root filesystem and where it is stored
 mv	mv SRC... DEST	move or rename
 nl	nl [FILE...]	number lines
-pacman	pacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]	.ar84 packages. -U file, -S repo (+deps), -Sy index, -Su upgrade, -Sc drop cached files not installed (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'
+pacman	pacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]	.ar84 packages. -U file, -S repo (+deps), -Sy index+flash repos, -Su upgrade, -Sc drop cached files not installed (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'
 poweroff	poweroff	save and leave Arch84
 pwd	pwd	print the current directory
 reboot	reboot	save and restart Arch84

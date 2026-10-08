@@ -17,7 +17,7 @@ def sh(name, cmd, **kw):
         print((r.stdout + r.stderr)[-600:])
     return r
 
-for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor", "test_pacman", "test_archive", "test_proc", "test_environ", "test_cmds", "test_manpages") + (() if quick else ("test_bigfiles",)):
+for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor", "test_pacman", "test_archive", "test_proc", "test_environ", "test_flashrepo", "test_cmds", "test_manpages") + (() if quick else ("test_bigfiles",)):
     sh(t, [sys.executable, t + ".py"])
 n = 15 if quick else 60
 bad = 0
@@ -48,6 +48,7 @@ if not (a == b and "bad 0" in a):
 sh("keyfuzz", [sys.executable, "emu/keyfuzz.py", "1", "5" if quick else "20", "1500"])
 sh("keyfuzz low memory (103 KB heap)", [sys.executable, "emu/keyfuzz.py", "200", "4" if quick else "12", "2500", "--heap=103000"])
 sh("cmdfuzz", [sys.executable, "emu/cmdfuzz.py", "1", "3" if quick else "8", "100"])
+sh("flash repositories on device", [sys.executable, "emu/flashtest.py"])
 sh("editor on emulated device", [sys.executable, "emu/edtest.py"])
 sh("archive on emulated device", [sys.executable, "emu/archtest.py"])
 sh("powercut (40 files)", [sys.executable, "emu/powercut.py", "40"])

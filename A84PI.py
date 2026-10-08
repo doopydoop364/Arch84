@@ -1,8 +1,9 @@
 # A84PI: install / remove operations for pacman (Arch84
 # module, lazily loaded). No output here: A84PX prints.
 from A84FS import VFSError, unesc
-from A84PM import DBDIR, PkgError, Sum, dep_ok, records, scan, split_dep
-from A84PD import db_names, db_read, db_remove, db_write, mkdirs, owner, requirers
+from A84PM import PkgError, Sum, dep_ok, split_dep
+from A84PS import records, scan
+from A84PD import db_read, db_remove, db_write, mkdirs, owner, requirers
 
 
 def check(vfs, meta):

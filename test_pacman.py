@@ -6,8 +6,9 @@ from testutil import *
 from A84SH import Shell
 from A84KN import Kernel
 from A84ST import MemStorage
-from A84PM import PkgError, Sum, esc, ok_path, ok_name, ok_ver, vkey, MAGIC, scan
+from A84PM import PkgError, Sum, esc, ok_path, ok_name, ok_ver, vkey, MAGIC
 import A84PI
+from A84PS import scan
 
 
 class T:

@@ -8,12 +8,12 @@
 #   pacman -Q [NAME]    list installed    -Qi NAME info    -Ql [NAME] files
 #   pacman -Qk [NAME]   verify files      -Qo PATH owner   -Qp FILE  inspect a file
 #   makepkg [-d DEP]... DIR NAME VERSION [DESCRIPTION...]
-from A84FS import VFSError, dlen, dpieces
+import gc
+import sys
+from A84FS import VFSError
 from A84CD import COMMANDS
-from A84PM import DBDIR, HOMEDIR, LOCK, REPO, SYNCDB, PkgError, Sum, ok_name, scan, split_dep
-from A84PD import db_names, db_read, db_reason, mkdirs, owner, requirers
-from A84PI import install, remove, remove_order, removal_set
-from A84PB import build, newest, plan, repo, sync, upgrades
+from A84PM import HOMEDIR, LOCK, REPO, SYNCDB, PkgError, ok_name, split_dep
+from A84PD import db_read, db_reason, mkdirs
 
 USAGE = ("usage: pacman -U FILE | -R[s] NAME | -S[yu] [NAME] | -Sc[c] | -Sl|-Ss|-Si | -Q[ilkopuedt] [ARG]\n"
          "       makepkg [-d DEP]... DIR NAME VERSION [DESC]\n")
@@ -29,94 +29,10 @@ def show(sh, meta, old):
         sh.out("upgraded " + meta["name"] + " " + old + " -> " + meta["version"] + "\n")
 
 
-def info(sh, m):
-    sh.out("Name        : " + m["name"] + "\nVersion     : " + m["version"] + "\n")
-    sh.out("Description : " + m["desc"] + "\n")
-    sh.out("Depends On  : " + (" ".join(m["depends"]) or "None") + "\n")
-    if "reason" in m:
-        sh.out("Reason      : " + ("Installed as a dependency" if m["reason"] == "dep" else "Explicitly installed") + "\n")
-        sh.out("Required By : " + (" ".join(requirers(sh.vfs, m["name"])) or "None") + "\n")
-    n = 0
-    for p, size, s in m["files"]:
-        n += size
-    sh.out("Size        : " + str(n) + " chars in " + str(len(m["files"])) + " files\n")
-
-
-def altered(sh, m):
-    bad = 0
-    for p, size, s in m["files"]:
-        node = sh.vfs.get(p)
-        why = None
-        if node is None or node.is_dir:
-            why = "missing"
-        else:
-            t = Sum()
-            n = 0
-            for piece in dpieces(node.data):
-                t.add(piece)
-                n += len(piece)
-            if n != size:
-                why = "size changed"
-            elif t.hex() != s:
-                why = "modified"
-        if why:
-            bad += 1
-            sh.out(m["name"] + ": " + p + " (" + why + ")\n")
-    return bad
-
-
-def query(sh, mods, args):
-    vfs = sh.vfs
-    if "o" in mods:
-        if not args:
-            sh.err("pacman: no path given")
-            return 1
-        st = 0
-        for a in args:
-            p = sh.resolve(a)
-            o = owner(vfs, p)
-            if o is None:
-                sh.err("error: No package owns " + a)
-                st = 1
-            else:
-                sh.out(p + " is owned by " + o + " " + db_read(vfs, o)["version"] + "\n")
-        return st
-    if "p" in mods:
-        if not args:
-            sh.err("pacman: no file given")
-            return 1
-        meta = scan(vfs, sh.resolve(args[0]))
-        info(sh, meta)
-        for p, size, s in meta["files"]:
-            sh.out(p + "\n")
-        return 0
-    names = args
-    if not names:
-        names = db_names(vfs)
-        if not names and ("i" in mods or "l" in mods or "k" in mods):
-            return 0
-    st = 0
-    for n in names:
-        m = db_read(vfs, n)
-        if m is not None and (("e" in mods and m["reason"] == "dep") or ("d" in mods and m["reason"] != "dep")
-                              or ("t" in mods and requirers(vfs, n))):
-            continue
-        if m is None:
-            sh.err("error: package '" + n + "' was not found")
-            st = 1
-        elif "i" in mods:
-            info(sh, m)
-        elif "l" in mods:
-            for p, size, s in m["files"]:
-                sh.out(n + " " + p + "\n")
-        elif "k" in mods:
-            bad = altered(sh, m)
-            sh.out(n + ": " + str(len(m["files"])) + " total files, " + str(bad) + " altered files\n")
-            if bad:
-                st = 1
-        else:
-            sh.out(n + " " + m["version"] + "\n")
-    return st
+def mod(name):
+    # a lazily loaded helper module; collecting first gives the compiler a clean heap
+    gc.collect()
+    return __import__(name)
 
 
 def take_lock(vfs):
@@ -128,7 +44,9 @@ def take_lock(vfs):
 
 
 def search(sh, mods, rest):
-    rows = repo(sh.vfs)
+    pb = mod("A84PB")
+    newest = pb.newest
+    rows = pb.repo(sh.vfs)
     rows.sort()
     if "l" in mods:
         for n, v, p, d, ds in rows:
@@ -146,7 +64,8 @@ def search(sh, mods, rest):
                 st = 1
             else:
                 sh.out("Name        : " + t + "\nVersion     : " + b[0] + "\nDescription : " + b[3]
-                       + "\nDepends On  : " + (" ".join(b[2]) or "None") + "\nFile        : " + b[1] + "\n")
+                       + "\nDepends On  : " + (" ".join(b[2]) or "None") + "\nRepository  : "
+                       + (b[1].split(":")[1] if b[1][:4] == "mod:" else "local") + "\n")
         return st
     w = rest[0].lower()
     for n, v, p, d, ds in rows:
@@ -184,13 +103,20 @@ def clean(sh, everything):
 def change(sh, op, mods, rest):
     vfs = sh.vfs
     if op == "R":
-        metas = removal_set(vfs, rest, "s" in mods)
-        for n in remove_order(metas):
-            m = remove(vfs, n)
+        pi = mod("A84PI")
+        metas = pi.removal_set(vfs, rest, "s" in mods)
+        for n in pi.remove_order(metas):
+            m = pi.remove(vfs, n)
             sh.out("removed " + n + " " + m["version"] + "\n")
         return 0
     if op == "S" and "c" in mods:
         return clean(sh, "cc" in mods)
+    pb = mod("A84PB")
+    plan = pb.plan
+    sync = pb.sync
+    upgrades = pb.upgrades
+    install = mod("A84PI").install
+    pb = None
     files = []
     asdep = []
     if op == "U":
@@ -205,9 +131,18 @@ def change(sh, op, mods, rest):
                 files.append(p)
         for n in rest:
             plan(vfs, n, files, [], 0, asdep)
-    for f in files:
-        meta, old = install(vfs, f, "dep" if f in asdep else None)
-        show(sh, meta, old)
+    plan = sync = upgrades = None
+    sys.modules.pop("A84PB", None)          # planning is done: its code is not needed while installing
+    if files:
+        sh.k.release_spare()                # the reserved block is the one contiguous piece of heap left
+    try:
+        for f in files:
+            gc.collect()
+            meta, old = install(vfs, f, "dep" if f in asdep else None)
+            show(sh, meta, old)
+    finally:
+        if files:
+            sh.k.hold_spare()
     if op == "S":
         for n in rest:
             db_reason(vfs, split_dep(n)[0], "explicit")      # naming a package makes it explicit
@@ -228,10 +163,10 @@ def cmd_pacman(sh, args):
     try:
         if op == "Q":
             if "u" in mods:
-                for n, o, v, p in upgrades(vfs):
+                for n, o, v, p in mod("A84PB").upgrades(vfs):
                     sh.out(n + " " + o + " -> " + v + "\n")
                 return 0
-            return query(sh, mods, rest)
+            return mod("A84PQ").query(sh, mods, rest)
         if op == "S" and ("l" in mods or "s" in mods or "i" in mods):
             return search(sh, mods, rest)
         if op == "U" or op == "S" or op == "R":
@@ -245,6 +180,9 @@ def cmd_pacman(sh, args):
             try:
                 return change(sh, op, mods, rest)
             finally:
+                pl = sys.modules.get("A84PL")
+                if pl is not None:
+                    pl.free_modules()
                 if vfs.isfile(LOCK):
                     vfs.remove(LOCK)
     except PkgError as e:
@@ -272,7 +210,7 @@ def cmd_makepkg(sh, args):
         sh.err("usage: makepkg [-d DEP]... DIR NAME VERSION [DESCRIPTION...]")
         return 1
     try:
-        out, nf, nb = build(sh.vfs, sh.resolve(rest[0]), rest[1], rest[2], " ".join(rest[3:]), deps)
+        out, nf, nb = mod("A84PB").build(sh.vfs, sh.resolve(rest[0]), rest[1], rest[2], " ".join(rest[3:]), deps)
     except (PkgError, VFSError) as e:
         sh.err("makepkg: " + str(e))
         return 1

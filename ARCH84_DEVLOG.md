@@ -661,3 +661,19 @@ run on the calculator yet.
   `-Rs`/`-Rns` also remove dependency-only packages nothing else needs (`n` is accepted: there are no .pacsave files).
 - `-Sc` removes cached package files that are not the installed version, `-Scc` all of them. The cache is also
   the repository here, so packages built with makepkg but not installed are removed too.
+
+## Flash repositories (packages as calculator modules)
+- Python on the calculator can only import modules, so packages from outside travel as modules (the calculator allows
+  8 capital letters/digits per program name, hence hashed ids): `K<6 hex><n>` = part n of one package (a LINES tuple of the
+  .ar84 text), `QR<NAME>` = a repository's index (ROWS), `R84REG` = the list of repositories. `tools/ar84pack.py` writes them
+  (it validates packages with the pacman parser; a repository is always rebuilt from its folder; with `--send` the registry
+  is rebuilt from the calculator's program list, so other repositories are never forgotten).
+- pacman: `-Sy` imports the registry and indexes (A84PL) and merges their rows into /var/lib/pacman/sync/repo.db; installs read
+  the package straight from its modules (`mod:<repo>:<id>:<parts>` path, one part in memory at a time, freed afterwards).
+  The local .ar84 repository still works and wins ties.
+- Memory: the package modules had grown past what loads at the stock heap (min heap for `pacman -Q` 124000 -> 125500).
+  Fixed by splitting A84PM (parser/validator -> A84PS), A84PX (queries -> A84PQ), flash code in A84PL, lazy helper imports
+  (with a gc.collect() first), dropping the planner before installing and releasing the reserved block during an install.
+  `Kernel.sync` now also evicts lazy modules before its retry (a save after `pacman -S` used to fail out of memory).
+- `emu/flashtest.py` runs the whole flow on the emulated device (sync, list, info, install with a dependency and a
+  multi-part package, verify, run, remove); `test_flashrepo.py` has 15 unit tests.

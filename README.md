@@ -32,6 +32,10 @@ folder (it is not part of this repository).
   list explicit / dependency / unrequired / orphan packages. Dependencies may carry versions (`makepkg -d 'lib>=1.2'`;
   quote them, `>` is a redirect). Changing operations hold `/var/lib/pacman/pacman.lock` (stale after a power cut: `fsck -r` or `rm`).
   Format and rules: header of `A84PM.py`.
+  Flash repositories: `python3 tools/ar84pack.py --repo NAME folder-or-files [--send]` turns `.ar84` packages into
+  calculator modules (`K<hex><n>` package parts, `QR<NAME>` index, `R84REG` repository list, rebuilt from the calculator's
+  program list with `--send`). `pacman -Sy` reads them (nothing is copied into the VFS), `-S`/`-Su`/`-Ss`/`-Si`/`-Sl` use them
+  alongside the local repository; an install imports one package part at a time and frees it.
 * `archive create NAME PATH...` packs files/dirs into compressed calculator lists and removes them from RAM
   (frees the Python heap, which is what limits the filesystem; Python cannot reach the flash Archive itself);
   `archive extract [-k] NAME`, `archive list`, `archive check`, `archive delete NAME`. Needs ~25 KB of free

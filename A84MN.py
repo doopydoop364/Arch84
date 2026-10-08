@@ -49,7 +49,7 @@ PAGES = (
         'nl\tnl [FILE...]\tnumber lines\n'
     ),
     (
-        "pacman\tpacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]\t.ar84 packages. -U file, -S repo (+deps), -Sy index, -Su upgrade, -Sc drop cached files not installed (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'\n"
+        "pacman\tpacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]\t.ar84 packages. -U file, -S repo (+deps), -Sy index+flash repos, -Su upgrade, -Sc drop cached files not installed (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'\n"
         'poweroff\tpoweroff\tsave and leave Arch84\n'
         'printenv\tprintenv [NAME...]\tprint all environment variables, or the values of NAME\n'
         'pwd\tpwd\tprint the current directory\n'

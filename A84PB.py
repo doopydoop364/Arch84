@@ -1,8 +1,9 @@
 # A84PB: building packages (makepkg) and the local repository (pacman -S) for
 # pacman (Arch84 module, lazily loaded). No output here: A84PX prints.
 from A84FS import VFSError, dlen, dpieces, unesc
-from A84PM import (CHUNK, DBDIR, MAGIC, REPO, SYNCDB, PkgError, Sum, esc, dep_ok, ok_dep, ok_name, ok_path,
-                   ok_ver, scan, split_dep, vkey)
+from A84PM import (CHUNK, MAGIC, REPO, SYNCDB, PkgError, Sum, esc, dep_ok, ok_dep, ok_name, ok_path,
+                   ok_ver, split_dep, vkey)
+from A84PS import scan
 from A84PD import db_names, db_read, mkdirs
 
 
@@ -82,29 +83,36 @@ def build(vfs, src, name, version, desc, depends):
 
 
 def repo(vfs):
-    # [(name, version, path, depends, desc)] for every NAME-VERSION.ar84 in the
-    # local repository, from the index when it matches the directory
+    # [(name, version, path, depends, desc)] for every package of the local repository
+    # (NAME-VERSION.ar84 files) and of the flash repositories, from the index when it
+    # still matches the directory
+    if not vfs.isfile(SYNCDB):
+        return sync(vfs)[0]
     files = []
     if vfs.isdir(REPO):
         for f in vfs.listdir(REPO):
             if f.endswith(".ar84"):
                 files.append(f)
     rows = []
-    if vfs.isfile(SYNCDB):
-        for line in vfs.lines(SYNCDB):
-            f = line.split("\t")
-            if len(f) == 5:
+    nloc = 0
+    for line in vfs.lines(SYNCDB):
+        f = line.split("\t")
+        if len(f) == 5:
+            if f[2][:4] == "mod:":
+                rows.append((f[0], f[1], f[2], f[3].split(), unesc(f[4])))
+            else:
+                if f[2] not in files:
+                    return sync(vfs)[0]
+                nloc += 1
                 rows.append((f[0], f[1], REPO + "/" + f[2], f[3].split(), unesc(f[4])))
-    if len(rows) != len(files):
+    if nloc != len(files):
         return sync(vfs)[0]
-    for r in rows:
-        if r[2][len(REPO) + 1:] not in files:
-            return sync(vfs)[0]
     return rows
 
 
 def sync(vfs):
-    # rescans the repository and rewrites the index -> (rows, number skipped)
+    # rescans the local repository, re-reads the flash repositories and rewrites the
+    # index -> (rows, number skipped)
     rows = []
     bad = 0
     if vfs.isdir(REPO):
@@ -120,11 +128,26 @@ def sync(vfs):
                 bad += 1
                 continue
             rows.append((m["name"], m["version"], REPO + "/" + f, m["depends"], m["desc"]))
+    frows = []
+    import gc
+    gc.collect()                             # importing needs a contiguous read buffer
+    try:
+        __import__("R84REG")                 # the registry exists: read the flash repositories
+        import sys
+        sys.modules.pop("R84REG", None)
+        from A84PL import flash_rows
+        frows, fbad = flash_rows()
+        bad += fbad
+    except ImportError:
+        pass
+    if not rows and not frows and not vfs.isfile(SYNCDB):
+        return rows, bad
+    rows += frows
     mkdirs(vfs, SYNCDB[:SYNCDB.rfind("/")], [])
     vfs.write(SYNCDB, "")
     buf = ""
     for n, v, p, d, ds in rows:
-        buf += n + "\t" + v + "\t" + p[len(REPO) + 1:] + "\t" + " ".join(d) + "\t" + esc(ds) + "\n"
+        buf += n + "\t" + v + "\t" + (p if p[:4] == "mod:" else p[len(REPO) + 1:]) + "\t" + " ".join(d) + "\t" + esc(ds) + "\n"
         if len(buf) > 400:
             vfs.append(SYNCDB, buf)
             buf = ""

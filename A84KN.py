@@ -34,6 +34,7 @@ SPARE = 3072    # contiguous block held back for sync/df (see hold_spare)
 class Kernel:
     def __init__(self, storage, log=None):
         self.spare = None
+        self.reclaim = None   # called to free loaded command modules when a save runs out of memory
         self.hold_spare()       # first thing: the heap is still unfragmented
         self.storage = storage
         self.log = log      # called with each boot line as its step finishes
@@ -299,6 +300,8 @@ class Kernel:
             # garbage / fragmented at that moment (the same save then works a
             # moment later). The inactive slot is simply rewritten.
             import gc
+            if self.reclaim is not None:
+                self.reclaim()
             gc.collect()
             stats[0] = 0
             stats[1] = 0
