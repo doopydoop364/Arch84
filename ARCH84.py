@@ -1,4 +1,4 @@
-# Arch84 0.0.6-dev launcher. The system is split over small modules so each
+# Arch84 0.0.7 launcher. The system is split over small modules so each
 # one compiles within the calculator's Python heap:
 #   A84FS (paths, VFS)  A84CZ (fs codec, LZSS)  A84ST (list storage)
 #   A84PE (parser, editor)  A84KN (kernel)

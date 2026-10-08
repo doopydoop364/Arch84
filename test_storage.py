@@ -178,7 +178,7 @@ class CodecTests(unittest.TestCase):
 
     def test_version_file_is_not_stored_and_follows_running_version(self):
         v = self.fresh()
-        self.assertNotIn(b"0.0.6", b"".join(fs_stream(v)))
+        self.assertNotIn(b"0.0.7", b"".join(fs_stream(v)))
         back = roundtrip(v)
         self.assertEqual(back.read("/etc/version"), VERSION + "\n")
 

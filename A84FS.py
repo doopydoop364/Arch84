@@ -2,7 +2,7 @@
 
 # Only storage code here touches ti_system (store_list/recall_list).
 
-VERSION = "0.0.6-dev"
+VERSION = "0.0.7"
 FS_VERSION = 1
 HOME = "/home/evo"
 ERR = "\x01"   # prefix of error lines sent to the terminal (drawn red)
