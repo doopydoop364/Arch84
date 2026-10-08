@@ -19,7 +19,8 @@
 # FACTORY1_* is FROZEN. Saves made with factory 1 rebuild their defaults from
 # it, so editing it would silently corrupt old saves. To change the shipped
 # defaults, add FACTORY2 and keep FACTORY1; test_arch84.py pins the hash.
-from A84FS import MAXNAME, Node, SPLIT, StorageError, VERSION, VFS, dchunks, dpieces
+from A84FS import (MAXNAME, Node, SPLIT, StorageError, VERSION, VFS, dchunks,
+    dnew, dpieces)
 
 CHUNK = 1024    # raw bytes per frame (readers accept up to 2 * CHUNK: older saves used 2048)
 FRAME_HDR = 5
@@ -119,11 +120,13 @@ def lz_compress(d):
     return bytes(out[:o])
 
 
-def lz_decompress(c, rawlen):
+def lz_decompress(c, rawlen, i=0, n=None):
+    # c[i:n] is the payload (offsets let a caller decompress straight out of a
+    # larger buffer without slicing a copy)
     out = bytearray(rawlen)     # pre-sized: no growth/realloc churn on a fragmented heap
     o = 0
-    i = 0
-    n = len(c)
+    if n is None:
+        n = len(c)
     while o < rawlen:
         if i >= n:
             raise ValueError("lz: truncated")
@@ -347,8 +350,14 @@ class Rd:
         self.rp = 0
 
     def _stored(self, n):
-        out = bytearray()
-        while len(out) < n:
+        sb = self.sb
+        sp = self.sp
+        if sp + n <= len(sb):
+            self.sp = sp + n
+            return sb[sp:sp + n]
+        out = bytearray(n)
+        got = 0
+        while got < n:
             if self.sp >= len(self.sb):
                 try:
                     self.sb = next(self.src)
@@ -356,10 +365,11 @@ class Rd:
                     raise ValueError("stream truncated")
                 self.sp = 0
                 continue
-            k = n - len(out)
+            k = n - got
             if k > len(self.sb) - self.sp:
                 k = len(self.sb) - self.sp
-            out.extend(self.sb[self.sp:self.sp + k])
+            out[got:got + k] = self.sb[self.sp:self.sp + k]
+            got += k
             self.sp += k
         return out
 
@@ -370,13 +380,19 @@ class Rd:
         paylen = (h[3] << 8) | h[4]
         if rawlen == 0 or rawlen > 2 * CHUNK:
             raise ValueError("bad frame length")
-        p = bytes(self._stored(paylen))
+        sb = self.sb
+        sp = self.sp
+        if sp + paylen <= len(sb):
+            self.sp = sp + paylen       # payload lies in the current block: no copy
+        else:
+            sb = self._stored(paylen)
+            sp = 0
         if mode == 0:
             if paylen != rawlen:
                 raise ValueError("bad raw frame")
-            self.raw = p
+            self.raw = bytes(sb[sp:sp + paylen])
         elif mode == 1:
-            self.raw = lz_decompress(p, rawlen)
+            self.raw = lz_decompress(sb, rawlen, sp, sp + paylen)
         else:
             raise ValueError("bad frame mode")
         self.rp = 0
@@ -426,6 +442,11 @@ class Rd:
     def take_data(self, n):
         # canonical file data (A84FS): small -> str, big -> list of 1 KB
         # pieces. A big file is never joined into one string.
+        raw = self.raw
+        rp = self.rp
+        if rp + n <= len(raw):      # all inside this frame: one decode, no generator
+            self.rp = rp + n
+            return dnew(raw[rp:rp + n].decode())
         return dchunks(self.text_pieces(n))
 
     def take(self, n):
@@ -445,7 +466,13 @@ def _name(rd):
     ln = rd.varint()
     if ln == 0 or ln > MAXNAME:
         raise ValueError("bad name length")
-    name = bytes(rd.take(ln)).decode()
+    raw = rd.raw
+    rp = rd.rp
+    if rp + ln <= len(raw):
+        rd.rp = rp + ln
+        name = raw[rp:rp + ln].decode()
+    else:
+        name = bytes(rd.take(ln)).decode()
     if name == "." or name == ".." or "/" in name:
         raise ValueError("bad name")
     return name

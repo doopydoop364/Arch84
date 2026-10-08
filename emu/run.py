@@ -15,15 +15,7 @@ import ti_draw
 
 kf, lf, rf = sys.argv[1], sys.argv[2], sys.argv[3]
 ti_system.KFILE = open(kf)
-try:
-    f = open(lf)
-    d = json.load(f)
-    f.close()
-    for k in d:
-        ti_system.LISTS[k] = d[k]
-except OSError:
-    pass
-
+ti_system.LISTDIR = lf
 rep = {"imports": []}
 gc.collect()
 rep["heap_total"] = gc.mem_free() + gc.mem_alloc()
@@ -93,9 +85,6 @@ rep["screen"] = screen()
 rep["stores"] = ti_system.STORES
 rep["recalls"] = ti_system.RECALLS
 rep["keys_used"] = ti_system.KPOS
-f = open(lf, "w")
-json.dump(ti_system.LISTS, f)
-f.close()
 f = open(rf, "w")
 json.dump(rep, f)
 f.close()

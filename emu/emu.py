@@ -74,10 +74,12 @@ class Emu:
         self.heap = heap
         self.cpu_s = cpu_s
         self.as_mb = as_mb
-        self.lists = None       # persisted calculator lists (json text)
+        self._tmp = tempfile.TemporaryDirectory()
+        self.listdir = os.path.join(self._tmp.name, "lists")
+        os.makedirs(self.listdir)
 
     def run(self, lines=None, keys=None, heap=None, fresh=False, shots=False,
-            lists=None, exit_at_end=True):
+            exit_at_end=True):
         """Boot Arch84 and type `lines` (+ `exit` unless exit_at_end False).
         Lists persist between calls on this Emu unless fresh=True."""
         ks = list(keys or [])
@@ -86,12 +88,12 @@ class Emu:
         if exit_at_end:
             ks += keys_for_lines(["exit"])
         with tempfile.TemporaryDirectory() as d:
-            kf, lf, rf = (os.path.join(d, n) for n in ("k", "l", "r"))
+            kf, rf = (os.path.join(d, n) for n in ("k", "r"))
             open(kf, "w").write("\n".join(map(str, ks)) + "\n")
-            if lists is not None:
-                open(lf, "w").write(lists)
-            elif self.lists is not None and not fresh:
-                open(lf, "w").write(self.lists)
+            if fresh:
+                for f in os.listdir(self.listdir):
+                    os.remove(os.path.join(self.listdir, f))
+            lf = self.listdir
             cmd = [self.mp, "-X", "heapsize=%d" % (heap or self.heap),
                    os.path.join(HERE, "run.py"), kf, lf, rf]
             if shots:
@@ -101,15 +103,13 @@ class Emu:
                 resource.setrlimit(resource.RLIMIT_CPU, (self.cpu_s, self.cpu_s))
                 m = self.as_mb << 20
                 resource.setrlimit(resource.RLIMIT_AS, (m, m))
-            p = subprocess.run(cmd, cwd=ROOT, preexec_fn=lim, capture_output=True,
+            p = subprocess.run(cmd, cwd=ROOT, preexec_fn=lim, capture_output=True, stdin=subprocess.DEVNULL,
                                text=True, timeout=self.cpu_s * 2)
             rep = {}
             if os.path.exists(rf):
                 rep = json.load(open(rf))
             else:
                 rep["crash"] = True
-            if os.path.exists(lf):
-                self.lists = open(lf).read()
             rep["stdout"] = p.stdout
             rep["stderr"] = p.stderr
             rep["rc"] = p.returncode

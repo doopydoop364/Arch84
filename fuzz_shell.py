@@ -112,8 +112,25 @@ def main():
         print(i, h(line), sh.status, h(t.t), len(t.t), t.t[:60].replace("\n", "|") if "internal" in t.t or "EXC" in t.t else "")
     k.sync()
     before = dump(k.vfs)
+    k = sh = t = r = None       # one kernel at a time, like the device
+    try:
+        import gc
+        gc.collect()
+    except ImportError:
+        pass
     k2 = Kernel(ms)
+    if "-v" in sys.argv:
+        print("BOOT", k2.boot_msgs)
     after = dump(k2.vfs)
+    if before != after:
+        a = before.split("\n")
+        b = after.split("\n")
+        for x in a:
+            if x not in b:
+                print("ONLY-LIVE", x[:100])
+        for x in b:
+            if x not in a:
+                print("ONLY-RELOADED", x[:100])
     print("tree", h(before), len(before), "reload", "SAME" if before == after else "DIFFERENT", "bad", bad)
 
 

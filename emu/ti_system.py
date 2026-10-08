@@ -7,9 +7,9 @@ back exactly 1 low (deterministic ~0.1%), half values are exact.
 The key queue is scripted; when it runs dry get_key(1) raises EOFError (the
 shell treats that as `exit`). Not the real firmware.
 """
+import os
 KFILE = None        # file of key codes, one per line (streamed: costs no heap)
 KPOS = 0
-LISTS = {}
 STORES = 0
 RECALLS = 0
 FLAKY = True
@@ -34,29 +34,55 @@ def get_key(mode=None):
 getKey = get_key
 
 
+LISTDIR = None      # lists live in files, NOT on the MicroPython heap: on the
+                    # device they are calculator (list) memory, not Python heap
+import struct
+_BUF = bytearray(1 + 100 + 800)   # n, n flag bytes (1 = int), n doubles
+_MV = memoryview(_BUF)
+
+
 def store_list(name, data):
     global STORES
-    if len(data) > 100:
+    n = len(data)
+    if n > 100:
         raise ValueError("List length > 100.")
-    out = []
+    _BUF[0] = n
+    i = 0
     for x in data:
         if isinstance(x, float) and x != int(x):
-            out.append(x)
+            _BUF[1 + i] = 0
+            struct.pack_into("<d", _BUF, 101 + 8 * i, x)
         else:
             v = int(x)
             if v >= 2 ** 29 and FLAKY and (v * 2654435761) % 997 == 0:
                 v -= 1
-            out.append(v)
+            _BUF[1 + i] = 1
+            struct.pack_into("<d", _BUF, 101 + 8 * i, float(v))
+        i += 1
+    f = open(LISTDIR + "/" + name, "wb")
+    f.write(_MV[:101 + 8 * n])
+    f.close()
     STORES += 1
-    LISTS[name] = out
 
 
 def recall_list(name):
     global RECALLS
-    if name not in LISTS:
+    # os.stat first: a failed open() leaves an object whose finalizer closes fd 0
+    # in the MicroPython 1.20 unix port, which breaks later opens
+    try:
+        os.stat(LISTDIR + "/" + name)
+    except OSError:
         raise NameError(name)
+    f = open(LISTDIR + "/" + name, "rb")
+    f.readinto(_BUF)
+    f.close()
+    n = _BUF[0]
+    out = []
+    for i in range(n):
+        x = struct.unpack_from("<d", _BUF, 101 + 8 * i)[0]
+        out.append(int(x) if _BUF[1 + i] else x)
     RECALLS += 1
-    return list(LISTS[name])
+    return out
 
 
 ROWS = {}

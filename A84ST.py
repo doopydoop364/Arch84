@@ -39,28 +39,34 @@ def adler(a, b, data):
 
 
 def pack5(bs):
-    # bytes (length a multiple of 5) -> list of 40-bit values + 0.5
+    # bytes (length a multiple of 5) -> list of 40-bit values + 0.5.
+    # Built from two 20-bit halves with float arithmetic (exact below 2^46):
+    # a 40-bit int is a big integer on a 32-bit MicroPython, and the old
+    # shift/multiply loop allocated dozens of them per element.
     out = []
     for i in range(0, len(bs), ELEM_BYTES):
-        v = bs[i]
-        for k in range(1, ELEM_BYTES):
-            v = v * 256 + bs[i + k]
-        out.append(v + 0.5)
+        hi = (bs[i] << 12) | (bs[i + 1] << 4) | (bs[i + 2] >> 4)
+        lo = ((bs[i + 2] & 15) << 16) | (bs[i + 3] << 8) | bs[i + 4]
+        out.append(hi * 1048576.0 + lo + 0.5)
     return out
 
 
 def unpack5(nums):
-    out = bytearray()
+    # presized output; the 40-bit value is split with float arithmetic into
+    # two 20-bit small ints (no big-integer temporaries, see pack5)
+    out = bytearray(len(nums) * ELEM_BYTES)
+    i = 0
     for x in nums:
-        v = int(x)
-        if v < 0 or v >= 1099511627776:
+        if x < 0 or x >= 1099511627776:
             raise StorageError("element out of range")
-        base = len(out)
-        for k in range(ELEM_BYTES):
-            out.append(0)
-        for k in range(ELEM_BYTES - 1, -1, -1):
-            out[base + k] = v % 256
-            v = v // 256
+        hi = int(x * 9.5367431640625e-07)       # x / 2^20, exact
+        lo = int(x - hi * 1048576.0)
+        out[i] = hi >> 12
+        out[i + 1] = (hi >> 4) & 255
+        out[i + 2] = ((hi & 15) << 4) | (lo >> 16)
+        out[i + 3] = (lo >> 8) & 255
+        out[i + 4] = lo & 255
+        i += ELEM_BYTES
     return out
 
 
@@ -230,7 +236,7 @@ class ListStore:
             a, b = adler(a, b, data)
             if self.progress is not None:
                 self.progress()
-            yield bytes(data)
+            yield data
         if got != nbytes:
             raise StorageError("length mismatch")
         if ((b << 16) | a) != cs:
