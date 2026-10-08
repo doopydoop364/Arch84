@@ -106,21 +106,35 @@ class Writer:
         self.b = 0
         self.nbytes = 0
         self.carry = bytearray()
-        self.elems = []
+        self.elems = [STORE_MAGIC + 0.5]    # the block being filled (magic first)
         self.nblocks = 0
         self.done = False
 
-    def _flush(self, block):
+    def _flush(self):
         if self.nblocks >= MAXNBLOCKS:
             raise StorageError("filesystem too large")
         name = self.st.bname(self.slot, self.nblocks)
         cur = self.st._recall(name)
         if cur is not None and int(cur[0]) != STORE_MAGIC:
             raise StorageError("list " + name + " is not ours")
-        self.st._put(name, [STORE_MAGIC + 0.5] + block)
+        cur = None
+        self.st._put(name, self.elems)
+        self.elems = [STORE_MAGIC + 0.5]
         self.nblocks += 1
         if self.st.progress is not None:
             self.st.progress()
+
+    def _pack(self, buf, n):
+        # buf[:n] (a multiple of 5 bytes) -> elements, flushing full blocks as
+        # they fill; no intermediate element lists
+        el = self.elems
+        for i in range(0, n, ELEM_BYTES):
+            hi = (buf[i] << 12) | (buf[i + 1] << 4) | (buf[i + 2] >> 4)
+            lo = ((buf[i + 2] & 15) << 16) | (buf[i + 3] << 8) | buf[i + 4]
+            el.append(hi * 1048576.0 + lo + 0.5)
+            if len(el) == BLOCK_ELEMS:
+                self._flush()
+                el = self.elems
 
     def feed(self, data):
         self.a, self.b = adler(self.a, self.b, data)
@@ -129,24 +143,17 @@ class Writer:
         buf.extend(data)
         n = len(buf) // ELEM_BYTES * ELEM_BYTES
         if n:
-            self.elems.extend(pack5(buf[:n]))
+            self._pack(buf, n)
             self.carry = buf[n:]
-        while len(self.elems) >= DATA_ELEMS:
-            self._flush(self.elems[:DATA_ELEMS])
-            self.elems = self.elems[DATA_ELEMS:]
 
     def finish(self):
         if self.carry:
             while len(self.carry) < ELEM_BYTES:
                 self.carry.append(0)
-            self.elems.extend(pack5(self.carry))
+            self._pack(self.carry, len(self.carry))
             self.carry = bytearray()
-        while len(self.elems) >= DATA_ELEMS:
-            self._flush(self.elems[:DATA_ELEMS])
-            self.elems = self.elems[DATA_ELEMS:]
-        if self.elems or self.nblocks == 0:
-            self._flush(self.elems)
-            self.elems = []
+        if len(self.elems) > 1 or self.nblocks == 0:
+            self._flush()
         self.done = True
 
     def checksum(self):

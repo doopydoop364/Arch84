@@ -69,8 +69,11 @@ def lz_compress(d):
     # fragmenting reallocations on incompressible frames.
     n = len(d)
     out = bytearray(n + (n >> 3) + 2)
-    tab = bytearray(LZ_HASH * 2)
-    mask = LZ_HASH - 1
+    hb = 64                     # table sized to the input: tiny frames stay tiny
+    while hb < n and hb < LZ_HASH:
+        hb <<= 1
+    tab = bytearray(hb * 2)
+    mask = hb - 1
     o = 0
     i = 0
     pos = 0
@@ -291,6 +294,12 @@ def fs_stream(vfs, stats=None):
                 pass
             elif fc is not None and not fc.is_dir and fc.data == ch.data:
                 pass
+            elif isinstance(ch.data, str) and len(ch.data) <= 256:
+                # small file (the common case): no generators, one encode
+                rec_head(out, 70, ix, name)
+                b = ch.data.encode()
+                put_varint(out.buf, len(b))
+                out.buf.extend(b)
             else:
                 for fr in rec_file(out, ix, name, ch.data):
                     yield fr

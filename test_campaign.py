@@ -101,5 +101,50 @@ class SortTieTests(unittest.TestCase):
         self.assertEqual(t.text, "a\nb\nc\n2 x\n2 y\n10 a\n10 z\n")
 
 
+class SyncRetryTests(unittest.TestCase):
+    def test_one_transient_memoryerror_is_retried(self):
+        ms = MemStorage()
+        k = Kernel(ms)
+        k.vfs.write("/tmp/x", "hello")
+        real = ms.writer
+        calls = []
+
+        def flaky():
+            w = real()
+            f = w.feed
+            def feed(data):
+                calls.append(1)
+                if len(calls) == 1:
+                    raise MemoryError()
+                return f(data)
+            w.feed = feed
+            return w
+        ms.writer = flaky
+        k.sync()
+        self.assertFalse(k.vfs.dirty)
+        self.assertEqual(walk(Kernel(ms).vfs)["/tmp/x"], "hello")
+
+    def test_persistent_memoryerror_still_reports_and_keeps_old_save(self):
+        ms = MemStorage()
+        k = Kernel(ms)
+        k.vfs.write("/tmp/x", "old")
+        k.sync()
+        k.vfs.write("/tmp/x", "new")
+        real = ms.writer
+
+        def always():
+            w = real()
+            def feed(data):
+                raise MemoryError()
+            w.feed = feed
+            return w
+        ms.writer = always
+        with self.assertRaises(StorageError) as c:
+            k.sync()
+        self.assertIn("out of memory", str(c.exception))
+        self.assertTrue(k.vfs.dirty)
+        self.assertEqual(walk(Kernel(ms).vfs)["/tmp/x"], "old")
+
+
 if __name__ == "__main__":
     unittest.main()

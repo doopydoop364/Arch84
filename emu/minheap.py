@@ -10,11 +10,15 @@ from bench import WORK
 BAD = ("out of memory", "low memory", "internal error", "MemoryError", "FAILED",
        "Traceback", "terminal error", "NOT synced", "Saving off")
 
-def ok(r):
+SOFT = ("low memory",)       # a save that skipped only its tree-compare check
+
+
+def ok(r, strict=True):
     if r.get("crash") or r.get("error"):
         return False
     txt = r["stdout"] + r["stderr"] + "\n".join(r.get("screen", []))
-    return not any(b in txt for b in BAD)
+    bad = [b for b in BAD if strict or b not in SOFT]
+    return not any(b in txt for b in bad)
 
 def minheap(e, lines, lo=60000, hi=200000):
     if not ok(e.run(lines, fresh=True, heap=hi)):

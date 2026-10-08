@@ -241,6 +241,18 @@ class Kernel:
         stats = [0, 0]
         self.release_spare()
         try:
+            try:
+                return self.sync_run(stats)
+            except StorageError as e:
+                if not str(e).startswith("out of memory"):
+                    raise
+            # A first attempt can fail only because the heap was full of
+            # garbage / fragmented at that moment (the same save then works a
+            # moment later). The inactive slot is simply rewritten.
+            import gc
+            gc.collect()
+            stats[0] = 0
+            stats[1] = 0
             return self.sync_run(stats)
         finally:
             self.hold_spare()
