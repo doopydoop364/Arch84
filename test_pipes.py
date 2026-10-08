@@ -191,6 +191,9 @@ class KeyTests(unittest.TestCase):
         self.assertEqual(term.translate(52), "|")
         self.assertEqual(term.translate(53), "<")
         self.assertEqual(term.translate(61), "\\")
+        self.assertEqual(term.translate(54), ";")
+        term.translate(21)
+        self.assertEqual(term.translate(52), "&")        # 2nd + x^-1
         term.translate(31)                  # alpha: letters, not symbols
         self.assertEqual(term.translate(52), "e")
 
@@ -247,5 +250,69 @@ class ScriptTests(unittest.TestCase):
         self.sh.vfs.mkdir("/usr/bin/adir")
         self.assertIn("command not found", self.r("adir"))
 
+
+class CommandListTests(unittest.TestCase):
+    def setUp(self):
+        self.sh, self.t = mk()
+
+    def r(self, line):
+        return run(self.sh, self.t, line)
+
+    def test_semicolon_runs_everything(self):
+        self.assertEqual(self.r("echo a; echo b ; echo c"), "a\nb\nc\n")
+        self.assertEqual(self.r("echo a;"), "a\n")
+        self.assertEqual(self.r("false; echo after"), "after\n")
+
+    def test_and_or(self):
+        self.assertEqual(self.r("true && echo yes"), "yes\n")
+        self.assertEqual(self.r("false && echo yes"), "")
+        self.assertEqual(self.r("false || echo no"), "no\n")
+        self.assertEqual(self.r("true || echo no"), "")
+        self.assertEqual(self.r("false && echo a || echo b"), "b\n")
+        self.assertEqual(self.r("true && echo a || echo b"), "a\n")
+        self.assertEqual(self.r("true && false || echo c; echo d"), "c\nd\n")
+
+    def test_status_is_the_last_one_that_ran(self):
+        self.r("true && false")
+        self.assertEqual(self.sh.status, 1)
+        self.r("false && true")
+        self.assertEqual(self.sh.status, 1)
+        self.r("false || true")
+        self.assertEqual(self.sh.status, 0)
+        self.assertEqual(self.r("false; echo $?"), "1\n")
+
+    def test_pipelines_inside_lists(self):
+        self.assertEqual(self.r("echo b | cat; echo a | sort && echo ok"), "b\na\nok\n")
+
+    def test_quotes_and_comments_protect_operators(self):
+        self.assertEqual(self.r("echo 'a;b' \"c&&d\" e\\;f"), "a;b c&&d e;f\n")
+        self.assertEqual(self.r("echo x # y; echo z"), "x\n")
+        self.assertEqual(self.r("echo a#b; echo c"), "a#b\nc\n")
+
+    def test_syntax_errors_run_nothing(self):
+        for bad in ("echo a;; echo b", "&& echo a", "echo a &&", "echo 'x; echo y", "|| echo a"):
+            out = self.r(bad)
+            self.assertIn("syntax error" if "'" not in bad else "unterminated", out, bad)
+            self.assertNotIn("a\n", out.replace("E:", "") if "error" not in out else "")
+            self.assertEqual(self.sh.status, 2)
+
+    def test_redirects_and_aliases_per_command(self):
+        self.r("alias hi='echo hello'")
+        self.assertEqual(self.r("hi; hi && hi > f; cat f"), "hello\nhello\nhello\n")
+
+    def test_scripts_and_startup_use_lists(self):
+        self.sh.vfs.write("/usr/bin/two", "echo one; echo two $1\n")
+        self.assertEqual(self.r("two x"), "one\ntwo x\n")
+
+    def test_exit_inside_a_list(self):
+        self.r("echo a; exit")
+        self.assertFalse(self.sh.running)
+
+    def test_pacman_install_script_style(self):
+        self.assertEqual(self.r("mkdir /tmp/d && cd /tmp/d && pwd"), "/tmp/d\n")
+        self.assertIn("No such file", self.r("cd /nope && echo unreachable"))
+
+
 if __name__ == "__main__":
     unittest.main()
+

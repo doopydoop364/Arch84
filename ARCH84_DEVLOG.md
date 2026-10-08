@@ -605,3 +605,8 @@ run on the calculator yet.
 * **Eviction**: `A84CD.evict()` drops every idle lazy module when loading the next one hits MemoryError, then retries.
   (MicroPython keeps interned names after a module is dropped, so the first use of a module still costs a few KB.)
 * Emulator: with 5 files of ~1.4 KB, `archive create` frees about 6.4 KB net of the heap; 6 files 10.9 KB.
+
+* **Command lists**: `;`, `&&`, `||` (`split_commands` in A84PE, run by `Shell.execute`; each piece is a pipeline;
+  a syntax error runs nothing). Typeable: `;` = cos key, `&` = 2nd + x^-1 (a single `&` is still unsupported).
+* **Resident memory**: uname/whoami/hostname/which/keys/selftest moved to lazy A84C7 (-1.5 KB resident);
+  free heap at the prompt is now 44.9 KB.

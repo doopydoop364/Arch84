@@ -154,5 +154,7 @@ CASES = [
     ("archive roundtrip", ["mkdir /tmp/d", "echo hi > /tmp/d/f", "archive create t /tmp/d", "archive extract t",
                            "cat /tmp/d/f"], "hi\n"),
     ("fsck", ["fsck"], "~no problems found"),
+    ("list ;", ["echo a; echo b"], "a\nb\n"),
+    ("list &&", ["false && echo no || echo yes"], "yes\n"),
     ("tee <", ["echo q > f", "tee g < f", "cat g"], "q\n"),
 ]

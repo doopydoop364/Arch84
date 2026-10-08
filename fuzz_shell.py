@@ -73,6 +73,8 @@ def mkline(r):
         line += " | " + r.pick(["sort", "wc -l", "head -n 2", "grep a", "uniq -c", "tail -n 1", "cat", "tee " + r.pick(NAMES), "sort -r | uniq"])
     elif p == 1:
         line += " < " + r.pick(NAMES)
+    elif p == 2:
+        line += r.pick([" ; ", " && ", " || "]) + r.pick(CMDS) + " " + r.pick(NAMES)
     k = r.n(8)
     if k == 0:
         line += " > " + r.pick(NAMES)

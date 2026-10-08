@@ -332,7 +332,8 @@ COMMANDS = {
 LAZY = {}
 for _m, _names in (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname"),
                    ("A84C4", "du df free mount umount uptime"),
-                   ("A84C5", "date reboot poweroff"), ("A84C6", "uniq tee"), ("A84EV", "edit"), ("A84PX", "pacman makepkg"), ("A84AX", "archive"), ("A84FK", "fsck")):
+                   ("A84C5", "date reboot poweroff"), ("A84C6", "uniq tee"), ("A84EV", "edit"), ("A84PX", "pacman makepkg"), ("A84AX", "archive"), ("A84FK", "fsck"),
+                   ("A84C7", "uname whoami hostname which keys selftest")):
     for _n in _names.split():
         LAZY[_n] = _m
 

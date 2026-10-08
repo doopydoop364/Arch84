@@ -1,7 +1,7 @@
 # A84SH: shell (Arch84 module 9/10)
 
 from A84FS import ERR, HOME, VFSError, dappend, dlen, iter_lines, normalize
-from A84PE import LineEditor, ParseError, parse
+from A84PE import LineEditor, ParseError, parse, split_commands
 from A84UI import PlainTerm
 from A84CD import COMMANDS, LAZY, evict, load_command
 from A84CP import Completer
@@ -109,6 +109,24 @@ class Shell(Completer, Lifecycle):
                 return line
 
     def execute(self, line):
+        # a line is commands joined by ; && || ; each one is a pipeline
+        try:
+            segs = split_commands(line)
+        except ParseError as e:
+            self.err("ash: " + str(e))
+            self.status = 2
+            return
+        if len(segs) == 1:
+            self.execute_one(segs[0][0])
+            return
+        for text, conn in segs:
+            if conn == "&&" and self.status != 0:
+                continue
+            if conn == "||" and self.status == 0:
+                continue
+            self.execute_one(text)
+
+    def execute_one(self, line):
         env = dict(self.k.env)
         env["?"] = str(self.status)
         try:

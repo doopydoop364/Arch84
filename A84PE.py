@@ -35,6 +35,66 @@ def expand(line, i, env):
     return env.get(line[j:k], ""), k
 
 
+def split_commands(line):
+    # [(text, connector)] cut at unquoted ";", "&&" and "||"; connector is None for
+    # the first piece, else what precedes it. Quotes/escapes/comments are respected.
+    out = []
+    cur = ""
+    conn = None
+    q = ""
+    start = True            # at the start of a word (a "#" there begins a comment)
+    i = 0
+    n = len(line)
+    while i < n:
+        c = line[i]
+        if q != "":
+            cur += c
+            if c == q:
+                q = ""
+            elif c == "\\" and q == '"' and i + 1 < n:
+                cur += line[i + 1]
+                i += 1
+            i += 1
+            continue
+        if c == "\\" and i + 1 < n:
+            cur += c + line[i + 1]
+            i += 2
+            start = False
+            continue
+        if c == "'" or c == '"':
+            q = c
+            cur += c
+            start = False
+        elif c == "#" and start:
+            cur += line[i:]
+            break
+        elif c == ";" or (c == "&" and line[i + 1:i + 2] == "&") or (c == "|" and line[i + 1:i + 2] == "|"):
+            op = c
+            if c != ";":
+                op = c + c
+                i += 1
+            if cur.strip() == "":
+                raise ParseError("syntax error near " + op)
+            out.append((cur, conn))
+            cur = ""
+            conn = op
+            start = True
+        else:
+            cur += c
+            start = c == " " or c == "\t"
+        i += 1
+    if q != "":
+        raise ParseError("unterminated quote")
+    if cur.strip() == "":
+        if conn is not None and conn != ";":
+            raise ParseError("syntax error near " + conn)
+        if not out:
+            out.append((cur, None))
+    else:
+        out.append((cur, conn))
+    return out
+
+
 def parse(line, env, home, pipes=False):
     # pipes False -> (words, redir); redir is None or (">" | ">>", target); "|" and "<" are errors.
     # pipes True  -> [(words, redir, infile), ...] one entry per pipeline stage.

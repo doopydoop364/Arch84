@@ -1482,7 +1482,7 @@ class Phase5Tests(unittest.TestCase):
         self.assertIn("only listing", self.r("mount x"))
 
     def test_commands_have_no_pipe_surprise(self):
-        self.assertIn("unsupported syntax", self.r("grep a f; sort"))
+        self.assertIn("unsupported syntax", self.r("grep a f & sort"))
 
     def test_new_commands_all_registered(self):
         for c in ("grep find sort wc basename dirname true false du df free "

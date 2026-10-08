@@ -29,7 +29,7 @@ def main():
     ok = bool(u_before and u_after and u_before - u_after > 2000)
     r1 = e.run(["archive list", "archive check", "ls", "sync"])
     t1 = r1["stdout"]
-    r2 = e.run(["archive extract big", "wc f0", "free"])
+    r2 = e.run(["archive extract big", "wc f0"])
     t2 = r2["stdout"]
     print("fresh boot, extract:", [l for l in t2.split("\n") if "restored" in l or " f0" in l])
     ok = ok and "restored 5 files" in t2 and "Traceback" not in t1 + t2
