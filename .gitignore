@@ -1,0 +1,5 @@
+__pycache__/
+.deploy_state.json
+fsbackup_*/
+.claude/
+evo_usb.py
