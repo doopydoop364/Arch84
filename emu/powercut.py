@@ -14,7 +14,7 @@ def state(e):
     boot_bad = [w for w in ("FAILED", "Corrupt", "Saving off", "out of memory") if w in txt]
     return r, boot_bad
 
-def main(n=40):
+def main(n=40, mode="cut"):
     base = [f"echo A{i} > f{i}" for i in range(n)] + ["sync"]
     change = [f"echo B{i} > f{i}" for i in range(0, n, 3)] + ["echo BB > g0", "sync"]
     e0 = Emu()
@@ -33,8 +33,12 @@ def main(n=40):
     k = 0
     while True:
         shutil.rmtree(e0.listdir); shutil.copytree(snap, e0.listdir)
-        r = e0.run(change, exit_at_end=False, cut=k)
-        cut_happened = r.get("error") and "SystemExit" in r["error"]
+        if mode == "cut":
+            r = e0.run(change, exit_at_end=False, cut=k)
+            cut_happened = r.get("error") and "SystemExit" in r["error"]
+        else:
+            r = e0.run(change, exit_at_end=False, fail=k)
+            cut_happened = k < r["stores"] + 1 and ("store_list failed" in r["stdout"] or "out of memory" in r["stdout"])
         r3, boot_bad = state(e0)
         sig = tuple(r3["screen"][:6])
         verdict = "OLD" if sig == old_sig else "NEW" if sig == new_sig else "MIXED/OTHER"
@@ -50,4 +54,5 @@ def main(n=40):
     return bad
 
 if __name__ == "__main__":
-    sys.exit(1 if main(int(sys.argv[1]) if len(sys.argv) > 1 else 40) else 0)
+    a = [x for x in sys.argv[1:] if not x.startswith("--")]
+    sys.exit(1 if main(int(a[0]) if a else 40, "fail" if "--fail" in sys.argv else "cut") else 0)

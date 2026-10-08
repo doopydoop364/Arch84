@@ -13,7 +13,17 @@ CYCLES = {
     "env": ["export v=1", "alias z=ls", "z", "unalias z", "history", "which ls", "env", "free"],
 }
 
+def reboot_cycles():
+    e = Emu()
+    e.run([f"echo {i} > f{i}" for i in range(20)] + ["sync"], fresh=True)
+    r = e.run(["reboot"] * 25 + ["echo done"])
+    re_ = r["run_entries"]
+    print("reboot x25: free at each shell start: first %d, then %d..%d, last %d | drift after 2nd boot: %d B"
+          % (re_[0], min(re_[1:]), max(re_[1:]), re_[-1], re_[-1] - re_[1]), flush=True)
+
+
 if __name__ == "__main__":
+    reboot_cycles()
     e = Emu()
     for name, cyc in CYCLES.items():
         res = []

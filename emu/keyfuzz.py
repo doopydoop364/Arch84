@@ -13,14 +13,14 @@ CODES = [11, 12, 13, 14, 15, 21, 22, 23, 24, 25, 26, 31, 33, 34, 41, 42, 43, 45,
 
 BAD = ("terminal error", "falling back", "Traceback", "internal error", "ash: low memory")
 
-def one(seed, n):
+def one(seed, n, nodraw=False):
     rng = random.Random(seed)
     ks = []
     for _ in range(n):
         r = rng.random()
         ks.append(105 if r < 0.08 else rng.choice(CODES))
     e = Emu()
-    r = e.run(keys=ks, shots=False)
+    r = e.run(keys=ks, shots=False, nodraw=nodraw)
     txt = r["stdout"] + r["stderr"]
     bad = [b for b in BAD if b in txt]
     if r.get("crash") or r.get("error") or bad or r["rc"] != 0:
@@ -28,11 +28,12 @@ def one(seed, n):
     return None
 
 if __name__ == "__main__":
-    a = [int(x) for x in sys.argv[1:]]
+    nodraw = "--nodraw" in sys.argv
+    a = [int(x) for x in sys.argv[1:] if x != "--nodraw"]
     first, count, n = (a + [1, 20, 1500][len(a):])[:3]
     fails = 0
     for s in range(first, first + count):
-        f = one(s, n)
+        f = one(s, n, nodraw)
         if f:
             fails += 1
             print("FAIL", f)

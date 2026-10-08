@@ -28,10 +28,21 @@ def boot_once(term):
     return sh.reboot
 
 
+def scrub(n=6):
+    # The GC is conservative: a stale pointer left in a register or a dead stack
+    # slot keeps the finished session (kernel + whole filesystem tree) alive.
+    # Running some calls with fresh locals overwrites those slots first.
+    a = b = c = d = e = f = g = h = 0
+    if n:
+        scrub(n - 1)
+    return a + b + c + d + e + f + g + h
+
+
 def main():
     banner = "Arch84 " + VERSION + " booting\n"
     term = pick_term(TI, TD, banner)
     while boot_once(term):
+        scrub()
         term.clear()
         gc.collect()
         term.post(banner)

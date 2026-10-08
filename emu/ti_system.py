@@ -34,6 +34,7 @@ def get_key(mode=None):
 getKey = get_key
 
 
+FAIL = None         # store_list raises (calculator out of list memory) at this store count
 CUT = None          # power cut: SystemExit when this many stores have happened
 LISTDIR = None      # lists live in files, NOT on the MicroPython heap: on the
                     # device they are calculator (list) memory, not Python heap
@@ -49,6 +50,8 @@ def store_list(name, data):
         raise ValueError("List length > 100.")
     if CUT is not None and STORES >= CUT:
         raise SystemExit
+    if FAIL is not None and STORES == FAIL:
+        raise MemoryError("ERR:MEMORY")
     _BUF[0] = n
     i = 0
     for x in data:

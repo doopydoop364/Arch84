@@ -11,7 +11,15 @@ from time import ticks_ms, ticks_diff
 sys.path.insert(0, ".")
 sys.path.insert(0, "emu")
 import ti_system
-import ti_draw
+NODRAW = "nodraw" in sys.argv
+if NODRAW:
+    sys.path.remove("emu")      # ti_draw must not be importable: exercises the TiTerm path
+
+    class ti_draw:
+        CALLS = PIXELS = CHARS = 0
+        LAST = {}
+else:
+    import ti_draw
 
 kf, lf, rf = sys.argv[1], sys.argv[2], sys.argv[3]
 ti_system.KFILE = open(kf)
@@ -21,6 +29,9 @@ try:
     c = os.getenv("A84_CUT")
     if c:
         ti_system.CUT = int(c)
+    c = os.getenv("A84_FAIL")
+    if c:
+        ti_system.FAIL = int(c)
 except AttributeError:
     pass
 rep = {"imports": []}
@@ -57,10 +68,12 @@ def idle():
     rep["keys_used"] = ti_system.KPOS
 
 
-SHOT = len(sys.argv) > 4 and sys.argv[4] == "shots"
+SHOT = "shots" in sys.argv
 
 
 def screen():
+    if NODRAW:
+        return [ti_system.ROWS[r] for r in sorted(ti_system.ROWS)]
     ys = sorted(ti_draw.LAST)
     return [ti_draw.LAST[y][1] for y in ys]
 
@@ -95,7 +108,7 @@ rep["error"] = err
 rep["total_ms"] = ticks_diff(ticks_ms(), t_start)
 gc.collect()
 rep["end_free"] = gc.mem_free()
-if len(sys.argv) > 4 and sys.argv[4] == "meminfo":
+if "meminfo" in sys.argv:
     micropython.mem_info()
 rep["min_free_nogc"] = mn[0]
 rep["min_free_gc"] = mn[1]

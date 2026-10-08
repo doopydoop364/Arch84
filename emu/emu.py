@@ -80,7 +80,7 @@ class Emu:
         self.listdir = os.path.join(self._tmp.name, "lists")
         os.makedirs(self.listdir)
 
-    def run(self, lines=None, keys=None, heap=None, fresh=False, shots=False, cut=None, meminfo=False,
+    def run(self, lines=None, keys=None, heap=None, fresh=False, shots=False, cut=None, meminfo=False, nodraw=False, fail=None,
             exit_at_end=True):
         """Boot Arch84 and type `lines` (+ `exit` unless exit_at_end False).
         Lists persist between calls on this Emu unless fresh=True."""
@@ -100,6 +100,8 @@ class Emu:
                    os.path.join(HERE, "run.py"), kf, lf, rf]
             if shots:
                 cmd.append("shots")
+            if nodraw:
+                cmd.append("nodraw")
             if meminfo:
                 cmd.append("meminfo")
 
@@ -108,6 +110,8 @@ class Emu:
                 m = self.as_mb << 20
                 resource.setrlimit(resource.RLIMIT_AS, (m, m))
             env = dict(os.environ)
+            if fail is not None:
+                env["A84_FAIL"] = str(fail)
             if cut is not None:
                 env["A84_CUT"] = str(cut)
             p = subprocess.run(cmd, env=env, cwd=ROOT, preexec_fn=lim, capture_output=True, stdin=subprocess.DEVNULL,
