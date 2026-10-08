@@ -30,3 +30,6 @@ folder (it is not part of this repository).
   (frees the Python heap, which is what limits the filesystem; Python cannot reach the flash Archive itself);
   `archive extract [-k] NAME`, `archive list`, `archive check`, `archive delete NAME`. Needs ~25 KB of free
   heap to run. `fsck [-r]` checks the saved copy, archives, packages and system files and clears leftover lists.
+* `man COMMAND` (or `help COMMAND`) shows a page for every command; `man -k WORD` searches.
+* Also: `;` `&&` `||`, `mkdir -p`, `cp -r`, `ls -l`, `cut tr nl seq`, `test`/`[`/`expr`, generated `/proc`
+  (`meminfo uptime version mounts modules`) and `/dev/null`.

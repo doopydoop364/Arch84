@@ -167,5 +167,7 @@ CASES = [
     ("test", ["test -d /tmp && echo yes"], "yes\n"),
     ("[", ["[ 2 -lt 3 ] && echo yes"], "yes\n"),
     ("expr", ["expr 2 + 3"], "5\n"),
+    ("man", ["man ls"], "~ls - list a directory"),
+    ("help COMMAND", ["help cp"], "~usage: cp [-r]"),
     ("tee <", ["echo q > f", "tee g < f", "cat g"], "q\n"),
 ]

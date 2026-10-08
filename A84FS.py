@@ -449,43 +449,6 @@ def unesc(s):
     return "".join(out)
 
 
-def decode_fs(text):
-    lines = text.split("\n")
-    if lines and lines[-1] == "":
-        lines.pop()
-    if not lines or not lines[0].startswith("A84FS"):
-        raise ValueError("bad header")
-    if lines[0] != "A84FS" + str(FS_VERSION):
-        raise ValueError("unsupported fs version " + lines[0][5:])
-    if lines[-1] != "END":
-        raise ValueError("missing END (truncated)")
-    vfs = VFS()
-    for line in lines[1:-1]:
-        f = line.split("\t")
-        try:
-            if f[0] == "D" and len(f) == 2:
-                path = unesc(f[1])
-                _check_path(path)
-                vfs.mkdir(path)
-            elif f[0] == "F" and len(f) == 3:
-                path = unesc(f[1])
-                _check_path(path)
-                if vfs.exists(path):
-                    raise ValueError("duplicate " + path)
-                vfs.write(path, unesc(f[2]))
-            else:
-                raise ValueError("bad record")
-        except VFSError as e:
-            raise ValueError("bad tree: " + str(e))
-    vfs.dirty = False
-    return vfs
-
-
-def _check_path(path):
-    if path == "/" or normalize(path, "/", "/") != path:
-        raise ValueError("bad path " + path)
-
-
 # ------------------------------------------------------ storage backends
 
 class StorageError(Exception):

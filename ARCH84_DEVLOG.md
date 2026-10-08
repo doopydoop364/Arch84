@@ -618,3 +618,7 @@ run on the calculator yet.
   found by the shell fuzzer when `cp -r / x` looped forever), `ls -l` (sizes), lazy A84C8 (`cut tr nl seq`) and
   A84C9 (`test [ expr`), which make scripts with `&&`/`||` practical.
 * `emu/push_main.sh` runs the full validation and pushes to main only when it passes.
+* **man / help COMMAND (phase 16)**: lazy A84MN, one page per command (usage + description), `man -k WORD`;
+  `test_manpages.py` fails if a command has no page or a page names an unknown command.
+* **Resident memory** again: the lazy-command table is one string per module (class `Lazy`), and the v1 text
+  reader (`decode_fs`) lives in A84V1, loaded only when a v1 save is found: free heap at the prompt 45.0 KB.

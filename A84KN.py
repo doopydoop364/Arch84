@@ -1,7 +1,7 @@
 # A84KN: kernel (Arch84 module 4/11). Re-exports A84PE (parser, line editor).
 
 from A84FS import (DEFAULT_DIRS, HOME, PROFILE, StorageError, VERSION, VFS,
-    VFSError, decode_fs, ms_since, now_ms)
+    VFSError, ms_since, now_ms)
 from A84CZ import decode_stream, fs_stream, same_tree
 
 
@@ -162,6 +162,7 @@ class Kernel:
             return None, None
         try:
             if got[0] == 1:
+                from A84V1 import decode_fs         # old text format: rare, so not resident
                 self.vfs = decode_fs(b"".join(got[1]).decode())
             else:
                 self.vfs = decode_stream(got[1])

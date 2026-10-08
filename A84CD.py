@@ -9,6 +9,8 @@ def fail(sh, cmd, arg, e):
 
 
 def cmd_help(sh, args):
+    if args:
+        return load_command("man")(sh, args)         # help COMMAND = man COMMAND
     names = all_commands()
     names.sort()
     sh.out("Arch84 " + VERSION + " commands:\n" + " ".join(names) + "\n")
@@ -383,21 +385,50 @@ COMMANDS = {
 }
 
 
-# Commands that live in A84C2..C5 (13 KB of heap in all): registered by name only and
-# loaded on first use, so they cost nothing until you run one.
-LAZY = {}
-for _m, _names in (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname"),
-                   ("A84C4", "du df free mount umount uptime"),
-                   ("A84C5", "date reboot poweroff"), ("A84C6", "uniq tee"), ("A84EV", "edit"), ("A84PX", "pacman makepkg"), ("A84AX", "archive"), ("A84FK", "fsck"),
-                   ("A84C7", "uname whoami hostname which keys selftest"),
-                   ("A84C8", "cut tr nl seq"), ("A84C9", "test [ expr")):
-    for _n in _names.split():
-        LAZY[_n] = _m
+# Commands that live in lazily loaded modules: known by name only, loaded on first use,
+# so they cost nothing until you run one. One string per module instead of a dict entry
+# (and an interned name) per command.
+MODS = (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname"),
+        ("A84C4", "du df free mount umount uptime"), ("A84C5", "date reboot poweroff"),
+        ("A84C6", "uniq tee"), ("A84EV", "edit"), ("A84PX", "pacman makepkg"),
+        ("A84AX", "archive"), ("A84FK", "fsck"),
+        ("A84C7", "uname whoami hostname which keys selftest"),
+        ("A84C8", "cut tr nl seq"), ("A84C9", "test [ expr"), ("A84MN", "man"))
+
+
+class Lazy:
+    # dict-like view of MODS: name -> module
+    def __getitem__(self, name):
+        for m, names in MODS:
+            if (" " + names + " ").find(" " + name + " ") >= 0:
+                return m
+        raise KeyError(name)
+
+    def __contains__(self, name):
+        for m, names in MODS:
+            if (" " + names + " ").find(" " + name + " ") >= 0:
+                return True
+        return False
+
+    def __iter__(self):
+        return iter(self.keys())
+
+    def keys(self):
+        out = []
+        for m, names in MODS:
+            out.extend(names.split(" "))
+        return out
+
+    def values(self):
+        return [m for m, names in MODS]
+
+
+LAZY = Lazy()
 
 
 def all_commands():
     names = list(COMMANDS.keys())
-    for n in LAZY:
+    for n in LAZY.keys():
         if n not in COMMANDS:
             names.append(n)
     return names
@@ -424,7 +455,7 @@ def evict():
     import sys
     import gc
     gone = 0
-    for n in LAZY:
+    for n in LAZY.keys():
         COMMANDS.pop(n, None)
     for m in list(LAZY.values()) + list(HELPERS):
         if m != "A84SC" and m in sys.modules:
