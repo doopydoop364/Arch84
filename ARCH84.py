@@ -5,6 +5,7 @@
 #   A84UI (text terminals)  A84GX (color terminal)  A84CD (commands)
 #   A84SH (shell)
 # loaded on first use: A84C2 (phase 5 commands), A84TS (selftest)
+import gc
 import A84FS
 import A84CZ
 import A84ST
@@ -19,16 +20,20 @@ from A84ST import make_storage
 from A84GX import TI, TD
 
 
+def boot_once(term):
+    # everything the session holds (kernel, filesystem tree, shell) is local
+    # to this call, so a reboot really releases it before the next load
+    sh = Shell(Kernel(make_storage(), term.post), term)
+    sh.run()
+    return sh.reboot
+
+
 def main():
     banner = "Arch84 " + VERSION + " booting\n"
     term = pick_term(TI, TD, banner)
-    while True:
-        kernel = Kernel(make_storage(), term.post)
-        sh = Shell(kernel, term)
-        sh.run()
-        if not sh.reboot:
-            break
+    while boot_once(term):
         term.clear()
+        gc.collect()
         term.post(banner)
 
 

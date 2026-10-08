@@ -80,7 +80,7 @@ class Emu:
         self.listdir = os.path.join(self._tmp.name, "lists")
         os.makedirs(self.listdir)
 
-    def run(self, lines=None, keys=None, heap=None, fresh=False, shots=False, cut=None,
+    def run(self, lines=None, keys=None, heap=None, fresh=False, shots=False, cut=None, meminfo=False,
             exit_at_end=True):
         """Boot Arch84 and type `lines` (+ `exit` unless exit_at_end False).
         Lists persist between calls on this Emu unless fresh=True."""
@@ -100,6 +100,8 @@ class Emu:
                    os.path.join(HERE, "run.py"), kf, lf, rf]
             if shots:
                 cmd.append("shots")
+            if meminfo:
+                cmd.append("meminfo")
 
             def lim():
                 resource.setrlimit(resource.RLIMIT_CPU, (self.cpu_s, self.cpu_s))

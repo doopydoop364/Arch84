@@ -51,6 +51,8 @@ def idle():
         rep["boot_recalls"] = ti_system.RECALLS
     rep["last_free"] = b
     if SHOT:
+        rep.setdefault("free_log", []).append(b)
+    if SHOT:
         rep.setdefault("screens", []).append(screen())
     rep["keys_used"] = ti_system.KPOS
 
@@ -72,6 +74,18 @@ for name in ("A84FS", "A84CZ", "A84ST", "A84KN", "A84CD", "A84CE", "A84UI",
     gc.collect()
     rep["imports"].append((name, gc.mem_free()))
 rep["free_loaded"] = gc.mem_free()
+import A84SH
+_orig_run = A84SH.Shell.run
+rep["run_entries"] = []
+
+
+def _run(self):
+    gc.collect()
+    rep["run_entries"].append(gc.mem_free())
+    return _orig_run(self)
+
+
+A84SH.Shell.run = _run
 err = None
 try:
     import ARCH84
@@ -81,6 +95,8 @@ rep["error"] = err
 rep["total_ms"] = ticks_diff(ticks_ms(), t_start)
 gc.collect()
 rep["end_free"] = gc.mem_free()
+if len(sys.argv) > 4 and sys.argv[4] == "meminfo":
+    micropython.mem_info()
 rep["min_free_nogc"] = mn[0]
 rep["min_free_gc"] = mn[1]
 rep["stack_peak"] = stack[0]
