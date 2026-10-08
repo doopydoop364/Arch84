@@ -16,11 +16,14 @@ from A84KN import Kernel
 from A84SH import Shell
 
 NAMES = ["a", "b", "c", "d/e", "d", "d/f", "g.txt", ".h", "x y", "é", "/tmp/t", "~/n", "../a", ".", "..", "/", "a/b/c"]
-WORDS = ["hello", "foo bar", "x", "", "é€", "a\\nb", "'q q'", '"$HOME"', "$?", "tab\\tx", "0123456789" * 8]
+WORDS = ["a b", "*", "?", "-n", "--", "$USER", "${HOME}/x", "~", "~/q", "\"'", "\\", ">", ">>", "#c", "hello", "foo bar", "x", "", "é€", "a\\nb", "'q q'", '"$HOME"', "$?", "tab\\tx", "0123456789" * 8]
 CMDS = ["echo", "cat", "ls", "ls -a", "cd", "mkdir", "touch", "rm", "rm -r", "rmdir", "cp", "mv",
         "head", "tail -n 2", "grep", "grep -n", "grep -c", "grep -i", "sort", "sort -n", "sort -u", "wc",
         "du", "du -s", "find", "basename", "dirname", "pwd", "df", "history", "env", "export V=1",
-        "alias z=ls", "which ls", "uname -a"]
+        "alias z=ls", "which ls", "uname -a", "sort -r", "sort -nr", "tail -n 0", "head -n 1", "head -n x",
+        "wc -l", "wc -c", "wc -w", "grep -v", "cat -", "ls -l", "mkdir -p", "date", "unalias z", "which z",
+        "cp -r", "rm -f", "echo -n", "export", "alias", "history -c", "find / -type d -name", "find . -type f",
+        "du /tmp", "cd ~", "cd -", "mv -f", "z"]
 
 
 class T:
@@ -110,6 +113,7 @@ def main():
         if len(sys.argv) > 3 and int(sys.argv[3]) == i:
             print("LINE", line, "\nOUT", t.t)
         print(i, h(line), sh.status, h(t.t), len(t.t), t.t[:60].replace("\n", "|") if "internal" in t.t or "EXC" in t.t else "")
+    k.fix_system_files()        # what the next boot repairs anyway
     k.sync()
     before = dump(k.vfs)
     k = sh = t = r = None       # one kernel at a time, like the device
