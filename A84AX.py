@@ -2,7 +2,7 @@
 # (Arch84 module, lazily loaded). Library and `archive create` are in A84AR.
 from A84FS import StorageError, VFSError
 from A84CD import COMMANDS, unload
-from A84AI import ArError, find, read_index, store_for, write_index
+from A84AI import ArError, find, read_index, shrink, store_for, write_index
 
 
 def delete(sh, name):
@@ -22,15 +22,19 @@ def check(sh, e):
 
 def cmd_archive(sh, args):
     post = None
+    status = 1
     try:
         status, post = run(sh, args)
     finally:
         # the packer / decoder are big: drop them before the filesystem is saved
-        unload("archive", "A84AX", "A84AR", "A84AE", "A84AI")
-    if post is None:
-        sh.k.stop_spin()
-        return status
-    return status + commit(sh, post)
+        unload("archive", "A84AR", "A84AE")
+    try:
+        if post is None:
+            sh.k.stop_spin()
+            return status
+        return status + commit(sh, post)
+    finally:
+        unload("archive", "A84AX", "A84AI")
 
 
 def commit(sh, post):
@@ -53,9 +57,10 @@ def commit(sh, post):
         sh.err("archive: warning: not saved yet (" + err + "): run sync")
         return 0
     if post[0] == "shrink":
-        from A84AI import shrink, store_for
-        shrink(store_for(sh), post[1])
-        unload("archive", "A84AI")
+        try:
+            shrink(store_for(sh), post[1])
+        except (StorageError, MemoryError):
+            sh.err("archive: warning: could not clear the old lists (fsck -r does it)")
     return 0
 
 
