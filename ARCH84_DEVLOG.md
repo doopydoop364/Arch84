@@ -610,3 +610,7 @@ run on the calculator yet.
   a syntax error runs nothing). Typeable: `;` = cos key, `&` = 2nd + x^-1 (a single `&` is still unsupported).
 * **Resident memory**: uname/whoami/hostname/which/keys/selftest moved to lazy A84C7 (-1.5 KB resident);
   free heap at the prompt is now 44.9 KB.
+* **/proc and /dev (phase 7)**: `VFS.proc` is a hook the kernel sets (`Kernel.procfs` -> lazy A84PF). `VFS.get`
+  asks it for `/proc/*` and `/dev/*` paths the saved tree lacks; `/proc/{meminfo,modules,mounts,uptime,version}`
+  are generated on every read, `/dev/null` discards writes. Everything under /proc and /dev is read-only
+  ("Read-only file system") and never stored. `ls` no longer assumes listed names are tree children.

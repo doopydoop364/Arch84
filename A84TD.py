@@ -156,5 +156,7 @@ CASES = [
     ("fsck", ["fsck"], "~no problems found"),
     ("list ;", ["echo a; echo b"], "a\nb\n"),
     ("list &&", ["false && echo no || echo yes"], "yes\n"),
+    ("proc", ["cat /proc/version | grep -c Arch84"], "1\n"),
+    ("dev null", ["echo x > /dev/null", "cat /dev/null | wc -c"], "0\n"),
     ("tee <", ["echo q > f", "tee g < f", "cat g"], "q\n"),
 ]

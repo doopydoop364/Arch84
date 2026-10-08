@@ -207,6 +207,7 @@ class VFS:
     def __init__(self):
         self.root = Node(True)
         self.dirty = False
+        self.proc = None        # provider of the generated /proc and /dev files (set by the kernel)
 
     # paths passed in must already be normalized and absolute
 
@@ -216,6 +217,8 @@ class VFS:
             if part == "":
                 continue
             if not node.is_dir or part not in node.children:
+                if self.proc is not None and (path[:6] == "/proc/" or path[:5] == "/dev/"):
+                    return self.proc(path)
                 return None
             node = node.children[part]
         return node
@@ -235,6 +238,8 @@ class VFS:
         parts = [p for p in path.split("/") if p != ""]
         if not parts:
             raise VFSError("Invalid argument")
+        if len(parts) > 1 and (parts[0] == "proc" or parts[0] == "dev"):
+            raise VFSError("Read-only file system")      # generated, never stored
         node = self.root
         for part in parts[:-1]:
             if part not in node.children:
@@ -259,12 +264,16 @@ class VFS:
         self.dirty = True
 
     def touch(self, path):
+        if path == "/dev/null":
+            return
         parent, name = self._parent(path)
         if name not in parent.children:
             parent.children[name] = Node(False)
             self.dirty = True
 
     def write(self, path, data):
+        if path == "/dev/null":
+            return                      # the bit bucket
         parent, name = self._parent(path)
         node = parent.children.get(name)
         if node is None:
@@ -288,6 +297,10 @@ class VFS:
         self.dirty = True
 
     def append(self, path, data):
+        if path == "/dev/null":
+            return
+        if path[:6] == "/proc/" or path[:5] == "/dev/":
+            raise VFSError("Read-only file system")
         node = self.get(path)
         if node is None:
             self.write(path, data)
@@ -338,6 +351,8 @@ class VFS:
         if not node.is_dir:
             raise VFSError("Not a directory")
         names = list(node.children.keys())
+        if self.proc is not None and (path == "/proc" or path == "/dev"):
+            names = self.proc(path)
         names.sort()
         return names
 

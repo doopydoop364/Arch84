@@ -130,6 +130,7 @@ class Kernel:
         if self.vfs is None:
             self.vfs = VFS()
             self.vfs.reset_default()
+        self.vfs.proc = self.procfs
         if migrated and self.sync_ok:
             self.say("[ FIX  ] Upgrading filesystem to v2")
         self.pend("Checking system files")
@@ -169,6 +170,14 @@ class Kernel:
                 return None, "Load fs: out of memory" + need_bytes(repr(e))
             return None, "Corrupt fs: " + str(e)
         return got[0], None
+
+    def procfs(self, path):
+        # the generated /proc and /dev files (A84PF, loaded on demand); None if unavailable
+        try:
+            import A84PF
+        except (ImportError, MemoryError):
+            return None
+        return A84PF.node(self, path)
 
     def fix_system_files(self):
         # recreate missing system dirs/files; returns how many were repaired

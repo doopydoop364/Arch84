@@ -52,7 +52,7 @@ def cmd_ls(sh, args):
         for n in sh.vfs.listdir(path):
             if n.startswith(".") and not show_all:
                 continue
-            if node.children[n].is_dir:
+            if sh.vfs.isdir(path.rstrip("/") + "/" + n):
                 n += "/"
             names.append(n)
         if names:

@@ -15,7 +15,7 @@ from A84ST import MemStorage
 from A84KN import Kernel
 from A84SH import Shell
 
-NAMES = ["a", "b", "c", "d/e", "d", "d/f", "g.txt", ".h", "x y", "é", "/tmp/t", "~/n", "../a", ".", "..", "/", "a/b/c"]
+NAMES = ["a", "b", "c", "d/e", "d", "d/f", "g.txt", ".h", "x y", "é", "/tmp/t", "~/n", "../a", ".", "..", "/", "a/b/c", "/proc/version", "/proc/mounts", "/dev/null", "/proc/nope", "/dev"]
 WORDS = ["a b", "*", "?", "-n", "--", "$USER", "${HOME}/x", "~", "~/q", "\"'", "\\", ">", ">>", "#c", "hello", "foo bar", "x", "", "é€", "a\\nb", "'q q'", '"$HOME"', "$?", "tab\\tx", "0123456789" * 8]
 CMDS = ["echo", "cat", "ls", "ls -a", "cd", "mkdir", "touch", "rm", "rm -r", "rmdir", "cp", "mv",
         "head", "tail -n 2", "grep", "grep -n", "grep -c", "grep -i", "sort", "sort -n", "sort -u", "wc",
@@ -99,6 +99,19 @@ def dump(vfs):
     return "\n".join(out)
 
 
+def fake_proc(path):
+    from A84FS import Node
+    if path == "/proc":
+        return ["meminfo", "version"]
+    if path == "/dev":
+        return ["null"]
+    if path == "/dev/null":
+        return Node(False, "")
+    if path in ("/proc/meminfo", "/proc/version"):
+        return Node(False, "fixed " + path + "\n")
+    return None
+
+
 def main():
     seed = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     ncmd = int(sys.argv[2]) if len(sys.argv) > 2 else 80
@@ -107,6 +120,7 @@ def main():
     k = Kernel(ms)
     t = T()
     sh = Shell(k, t)
+    k.vfs.proc = fake_proc          # the real files differ between interpreters (heap, uptime)
     bad = 0
     for i in range(ncmd):
         line = mkline(r)
