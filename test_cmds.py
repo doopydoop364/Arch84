@@ -71,6 +71,13 @@ class CmdTests(unittest.TestCase):
         self.assertEqual(self.r("cp -r a2/t a2/b"), "")                    # files still work with -r
         self.assertTrue(self.sh.vfs.isfile("/home/evo/a2/b/t"))
 
+    def test_head_tail_dash_number(self):
+        self.r("seq 5 > n")
+        self.assertEqual(self.r("head -2 n"), "1\n2\n")
+        self.assertEqual(self.r("tail -2 n"), "4\n5\n")
+        self.assertEqual(self.r("cat n | head -1"), "1\n")
+        self.assertIn("No such file", self.r("head -x n"))
+
     def test_ls_l(self):
         self.r("mkdir d; echo hello > f")
         out = self.r("ls -l")
@@ -155,5 +162,53 @@ class CmdTests(unittest.TestCase):
             self.assertIn(c, LAZY)
 
 
+class SedTests(unittest.TestCase):
+    def setUp(self):
+        self.sh, self.t = mk()
+        self.sh.vfs.write("/home/evo/f", "one\ntwo\nthree two\nfour\n")
+
+    def r(self, line):
+        self.t.text = ""
+        self.sh.execute(line)
+        return self.t.text
+
+    def test_substitute(self):
+        self.assertEqual(self.r("sed 's/two/2/' f"), "one\n2\nthree 2\nfour\n")
+        self.assertEqual(self.r("echo aaa | sed 's/a/b/'"), "baa\n")
+        self.assertEqual(self.r("echo aaa | sed 's/a/b/g'"), "bbb\n")
+        self.assertEqual(self.r("echo abc | sed 's/b/[&]/'"), "a[b]c\n")
+        self.assertEqual(self.r("echo abc | sed 's/b/\\&/'"), "a&c\n")
+        self.assertEqual(self.r("echo a/b | sed 's|/|-|'"), "a-b\n")
+        self.assertEqual(self.r("echo a/b | sed 's/\\//-/'"), "a-b\n")
+        self.assertEqual(self.r("echo abc | sed 's/x/y/'"), "abc\n")
+        self.assertEqual(self.r("echo abc | sed 's/abc//'"), "\n")
+
+    def test_addresses_and_commands(self):
+        self.assertEqual(self.r("sed 2d f"), "one\nthree two\nfour\n")
+        self.assertEqual(self.r("sed 2,3d f"), "one\nfour\n")
+        self.assertEqual(self.r("sed '/two/d' f"), "one\nfour\n")
+        self.assertEqual(self.r("sed -n 2p f"), "two\n")
+        self.assertEqual(self.r("sed -n '/o/p' f"), "one\ntwo\nthree two\nfour\n")
+        self.assertEqual(self.r("sed 2p f").count("two"), 3)             # printed twice + the other line
+        self.assertEqual(self.r("sed -n 's/two/2/p' f"), "2\nthree 2\n")
+        self.assertEqual(self.r("sed '2,3s/e/E/g' f"), "one\ntwo\nthrEE two\nfour\n")
+        self.assertIn("unknown command", self.r("sed '$d' f"))              # "last line" is not supported
+        self.assertEqual(self.r("sed '/one/s/o/0/;3d' f"), "0ne\ntwo\nfour\n")
+
+    def test_errors(self):
+        for bad, msg in (("sed", "usage"), ("sed 'x' f", "unknown command"), ("sed 's/a/b' f", "unterminated"),
+                         ("sed 's//b/' f", "empty pattern"), ("sed 's/a/b/q' f", "unknown flag"),
+                         ("sed '2,d' f", "bad address"), ("sed 'd d' f", "extra characters"), ("sed 2 f", "missing command"),
+                         ("sed d nosuch", "No such file")):
+            self.assertIn(msg, self.r(bad), bad)
+
+    def test_rev_and_pipes(self):
+        self.assertEqual(self.r("echo abc | rev"), "cba\n")
+        self.assertEqual(self.r("rev f").split("\n")[0], "eno")
+        self.assertEqual(self.r("cat f | sed 's/o/0/g' | rev | head -n 1"), "en0\n")
+        self.assertEqual(self.r("echo 5 | sed 's/5/&&/'"), "55\n")
+
+
 if __name__ == "__main__":
     unittest.main()
+

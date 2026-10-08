@@ -322,6 +322,8 @@ def head_tail(sh, name, args):
                 sh.err(name + ": invalid number of lines: " + args[i + 1])
                 return 1
             i += 1
+        elif len(a) > 1 and a[0] == "-" and a[1:].strip("0123456789") == "":
+            n = int(a[1:])                  # head -5
         else:
             files.append(a)
         i += 1
@@ -393,7 +395,7 @@ MODS = (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname")
         ("A84C6", "uniq tee"), ("A84EV", "edit"), ("A84PX", "pacman makepkg"),
         ("A84AX", "archive"), ("A84FK", "fsck"),
         ("A84C7", "uname whoami hostname which keys selftest"),
-        ("A84C8", "cut tr nl seq"), ("A84C9", "test [ expr"), ("A84MN", "man"))
+        ("A84C8", "cut tr nl seq"), ("A84C9", "test [ expr"), ("A84MN", "man"), ("A84CA", "sed rev"))
 
 
 class Lazy:

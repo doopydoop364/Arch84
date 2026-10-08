@@ -3,7 +3,7 @@ import unittest
 
 from testutil import *
 from A84CD import all_commands
-import A84C2, A84C3, A84C4, A84C5, A84C6, A84C7, A84C8, A84C9
+import A84C2, A84C3, A84C4, A84C5, A84C6, A84C7, A84C8, A84C9, A84CA
 import A84MN
 from A84SH import Shell
 from A84KN import Kernel
@@ -82,6 +82,12 @@ class ManTests(unittest.TestCase):
         sh.term.text = ""
         sh.execute("man")
         self.assertIn("usage: man", sh.term.text)
+
+    def test_module_is_generated_from_the_text_file(self):
+        import subprocess
+        import sys
+        r = subprocess.run([sys.executable, "tools/genman.py", "--check"])
+        self.assertEqual(r.returncode, 0, "A84MN.py is stale: run python3 tools/genman.py")
 
     def test_man_unloads_itself(self):
         import sys

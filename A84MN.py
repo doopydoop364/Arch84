@@ -1,6 +1,6 @@
 # A84MN: `man` - the manual pages (Arch84 module, lazily loaded; unloads itself after use).
-# One line per page: name TAB usage TAB description. Keep this in step with the commands:
-# test_manpages.py fails if a command has no page.
+# GENERATED from docs/manpages.txt by tools/genman.py - edit that file, not this one.
+# One line per page: name TAB usage TAB description.
 from A84CD import COMMANDS, all_commands, unload
 
 PAGES = (
@@ -53,23 +53,27 @@ PAGES = (
         'poweroff\tpoweroff\tsave and leave Arch84\n'
         'pwd\tpwd\tprint the current directory\n'
         'reboot\treboot\tsave and restart Arch84\n'
+        'rev\trev [FILE...]\treverse each line\n'
         'rm\trm [-rf] PATH...\tremove files; -r directories too, -f ignores missing names\n'
         'rmdir\trmdir DIR...\tremove empty directories\n'
+        "sed\tsed [-n] 'COMMAND[;COMMAND...]' [FILE...]\tedit lines of standard input or files. Addresses: N, N,M, /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands\n"
         'selftest\tselftest\trun the built-in tests in a sandbox (needs free memory; reboot first)\n'
         'seq\tseq [FIRST [STEP]] LAST\tprint numbers (at most 2000)\n'
         'sort\tsort [-rnu] [FILE...]\tsort lines; -r reverse, -n numeric, -u drop duplicates\n'
+    ),
+    (
         'sync\tsync [-f]\tsave the filesystem now; -f overwrites a save that failed to load\n'
         'tail\ttail [-n N] [FILE...]\tlast N lines (default 10)\n'
         'tee\ttee [-a] FILE...\tcopy standard input to the output and to the files; -a appends\n'
         'test\ttest EXPR   or   [ EXPR ]\tconditions for scripts: -e -f -d PATH, -z -n STRING, A = B, A != B, A -eq|-ne|-lt|-le|-gt|-ge B, ! EXPR. Status 0 = true\n'
-    ),
-    (
         'touch\ttouch FILE...\tcreate empty files\n'
         'tr\ttr SET1 SET2   or   tr -d SET\ttranslate or delete characters read from standard input; sets may use ranges a-z and \\n\n'
         'true\ttrue\tdo nothing, successfully\n'
         'umount\tumount PATH\tonly reports that / is busy: nothing else can be mounted\n'
         'unalias\tunalias NAME...\tremove aliases\n'
         'uname\tuname [-a|-s|-n|-r]\tsystem name, host, version\n'
+    ),
+    (
         'uniq\tuniq [-cd] [FILE]\tcollapse repeated neighbouring lines; -c counts, -d only repeated ones\n'
         'uptime\tuptime\ttime since Arch84 started and the calculator tick counter\n'
         'wc\twc [-lwc] [FILE...]\tlines, words, characters\n'

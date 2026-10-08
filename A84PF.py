@@ -2,7 +2,7 @@
 # Nothing here is ever stored: VFS.get() asks node() for paths the saved tree does not have.
 from A84FS import Node, VERSION
 
-PROC = ("meminfo", "modules", "mounts", "uptime", "version")
+PROC = ("dmesg", "meminfo", "modules", "mounts", "uptime", "version")
 
 
 def node(k, path):
@@ -19,6 +19,8 @@ def node(k, path):
 
 
 def text(k, name):
+    if name == "dmesg":
+        return "\n".join(k.boot_msgs) + "\n"        # the lines printed while this session booted
     if name == "version":
         return "Arch84 " + VERSION + " (MicroPython) " + k.hostname() + "\n"
     if name == "uptime":

@@ -1,0 +1,62 @@
+alias	alias [NAME[=VALUE]...]	list or define aliases (first word of a command)
+archive	archive create NAME PATH... | extract [-k] NAME | list | check [NAME] | delete NAME	pack files into compressed calculator lists and take them out of RAM; extract brings them back (-k keeps the archive). Needs ~25 KB free heap.
+basename	basename PATH [SUFFIX]	last part of a path, minus SUFFIX
+cat	cat [FILE...]	print files, or standard input (- also means standard input)
+cd	cd [DIR]	change directory (default: home)
+clear	clear	clear the screen and the scrollback
+cp	cp [-r] SRC... DEST	copy files; -r copies directories (files share their text, so copies are cheap)
+cut	cut -d C -f LIST | -c LIST [FILE...]	print chosen fields (-f) or characters (-c); LIST is like 1,3-5,7-
+date	date [-s 'YYYY-MM-DD HH:MM[:SS]']	show or set the date; the calculator has no clock, so it is kept from the moment you set it
+df	df	raw and stored size of the filesystem and how many lists it uses
+dirname	dirname PATH	everything but the last part of a path
+du	du [-s] [PATH...]	characters used by files; -s only totals
+echo	echo [-n] [WORD...]	print the words; -n omits the newline
+edit	edit FILE	full-screen editor. CLEAR = command line: w save, q quit, qq quit without saving, wq, N go to line, /text find, n next, d y p cut/copy/paste a line, s/a/b/ and %s/a/b/ replace
+env	env	list the environment variables
+exit	exit	save and leave Arch84
+export	export [NAME[=VALUE]...]	set environment variables (no arguments: list them)
+expr	expr A OP B	integer arithmetic: + - * / %
+false	false	do nothing, unsuccessfully
+find	find [PATH] [-name PATTERN] [-type f|d]	list files below PATH; PATTERN may use * and ?
+free	free	heap memory: total, used, free
+fsck	fsck [-r]	check the saved filesystem, archives, packages and system files; -r repairs what is safe
+grep	grep [-ivnc] PATTERN [FILE...]	print lines containing PATTERN (text, not a regular expression); -i ignore case, -v invert, -n numbers, -c count
+head	head [-n N] [FILE...]	first N lines (default 10)
+help	help [COMMAND]	list all commands, or show the page of one
+history	history [-c]	numbered command history; -c clears it
+hostname	hostname	show the host name (from /etc/hostname)
+keys	keys	how to type symbols on the calculator keys
+ls	ls [-a] [-l] [PATH...]	list a directory; -a shows dot files, -l shows sizes (directories end in /)
+makepkg	makepkg [-d DEP]... DIR NAME VERSION [DESCRIPTION]	pack the tree in DIR (laid out like /) into /var/cache/pacman/pkg/NAME-VERSION.ar84
+man	man [COMMAND | -k WORD]	manual page of a command; -k lists pages mentioning WORD
+mkdir	mkdir [-p] DIR...	make directories; -p makes parents too and accepts existing ones
+mount	mount	show the root filesystem and where it is stored
+mv	mv SRC... DEST	move or rename
+nl	nl [FILE...]	number lines
+pacman	pacman -U FILE | -S NAME | -R NAME | -Q[ilkop] [ARG] | -Sl	.ar84 packages. -U install a file, -S install from /var/cache/pacman/pkg with its dependencies, -R remove, -Q list, -Qi info, -Ql files, -Qk verify files, -Qo owner of a path, -Qp inspect a package file, -Sl list the repository
+poweroff	poweroff	save and leave Arch84
+pwd	pwd	print the current directory
+reboot	reboot	save and restart Arch84
+rm	rm [-rf] PATH...	remove files; -r directories too, -f ignores missing names
+rmdir	rmdir DIR...	remove empty directories
+selftest	selftest	run the built-in tests in a sandbox (needs free memory; reboot first)
+seq	seq [FIRST [STEP]] LAST	print numbers (at most 2000)
+sort	sort [-rnu] [FILE...]	sort lines; -r reverse, -n numeric, -u drop duplicates
+sync	sync [-f]	save the filesystem now; -f overwrites a save that failed to load
+tail	tail [-n N] [FILE...]	last N lines (default 10)
+tee	tee [-a] FILE...	copy standard input to the output and to the files; -a appends
+test	test EXPR   or   [ EXPR ]	conditions for scripts: -e -f -d PATH, -z -n STRING, A = B, A != B, A -eq|-ne|-lt|-le|-gt|-ge B, ! EXPR. Status 0 = true
+touch	touch FILE...	create empty files
+tr	tr SET1 SET2   or   tr -d SET	translate or delete characters read from standard input; sets may use ranges a-z and \n
+true	true	do nothing, successfully
+umount	umount PATH	only reports that / is busy: nothing else can be mounted
+uname	uname [-a|-s|-n|-r]	system name, host, version
+uniq	uniq [-cd] [FILE]	collapse repeated neighbouring lines; -c counts, -d only repeated ones
+unalias	unalias NAME...	remove aliases
+uptime	uptime	time since Arch84 started and the calculator tick counter
+wc	wc [-lwc] [FILE...]	lines, words, characters
+which	which NAME...	what a command name refers to (alias, built-in, or a file on PATH)
+whoami	whoami	show the user name
+sed	sed [-n] 'COMMAND[;COMMAND...]' [FILE...]	edit lines of standard input or files. Addresses: N, N,M, /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands
+rev	rev [FILE...]	reverse each line
+[	[ EXPR ]	same as test; the last argument must be ]

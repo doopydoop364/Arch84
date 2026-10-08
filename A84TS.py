@@ -101,7 +101,7 @@ def selftest(sh, args):
         else:
             fails.append(label)
             sh.out("FAIL " + label + ": " + got[:12] + "\n")
-    for m in ("A84C2", "A84C3", "A84C4", "A84C5", "A84C6", "A84C7", "A84C8", "A84C9", "A84MN"):
+    for m in ("A84C2", "A84C3", "A84C4", "A84C5", "A84C6", "A84C7", "A84C8", "A84C9", "A84MN", "A84CA"):
         try:
             __import__(m)      # the lazy commands must be registered to be tested
         except ImportError:

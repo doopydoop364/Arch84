@@ -169,5 +169,7 @@ CASES = [
     ("expr", ["expr 2 + 3"], "5\n"),
     ("man", ["man ls"], "~ls - list a directory"),
     ("help COMMAND", ["help cp"], "~usage: cp [-r]"),
+    ("sed", ["echo abc > f", "sed s/b/X/ f"], "aXc\n"),
+    ("rev", ["echo abc > f", "rev f"], "cba\n"),
     ("tee <", ["echo q > f", "tee g < f", "cat g"], "q\n"),
 ]

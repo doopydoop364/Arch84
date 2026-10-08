@@ -44,7 +44,7 @@ class ProcTests(unittest.TestCase):
         return run(self.sh, self.t, line)
 
     def test_listing_and_reading(self):
-        self.assertEqual(self.r("ls /proc"), "meminfo  modules  mounts  uptime  version\n")
+        self.assertEqual(self.r("ls /proc"), "dmesg  meminfo  modules  mounts  uptime  version\n")
         self.assertIn("Arch84 0.0.7", self.r("cat /proc/version"))
         self.assertIn("rootfs / vfs rw", self.r("cat /proc/mounts"))
         self.assertIn("A84KN", self.r("cat /proc/modules"))
@@ -66,7 +66,12 @@ class ProcTests(unittest.TestCase):
                      "mv /proc/version /tmp/q", "cp /etc/hostname /proc/h", "echo x >> /proc/uptime",
                      "mkdir /dev/x", "touch /dev/zero", "echo x > /dev/tty"):
             self.assertIn("Read-only file system", self.r(line), line)
-        self.assertEqual(self.sh.vfs.listdir("/proc"), ["meminfo", "modules", "mounts", "uptime", "version"])
+        self.assertEqual(self.sh.vfs.listdir("/proc"), ["dmesg", "meminfo", "modules", "mounts", "uptime", "version"])
+
+    def test_dmesg(self):
+        out = self.r("cat /proc/dmesg")
+        self.assertIn("Mounted VFS root", out)
+        self.assertIn("Loaded history", out)
 
     def test_dev_null(self):
         self.assertEqual(self.r("echo hi > /dev/null"), "")
