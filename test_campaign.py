@@ -203,5 +203,42 @@ class ClockWrapTests(unittest.TestCase):
             A84FS._time = real
 
 
+class BootLoadRetryTests(unittest.TestCase):
+    def saved(self):
+        ms = MemStorage()
+        k = Kernel(ms)
+        k.vfs.write("/tmp/keep", "data")
+        k.sync()
+        return ms
+
+    def test_transient_load_memoryerror_is_retried(self):
+        ms = self.saved()
+        real = ms.read
+        calls = []
+
+        def flaky():
+            calls.append(1)
+            if len(calls) == 1:
+                raise MemoryError()
+            return real()
+        ms.read = flaky
+        k = Kernel(ms)
+        self.assertTrue(k.sync_ok)
+        self.assertEqual(k.vfs.read("/tmp/keep"), "data")
+        self.assertFalse(any("FAILED" in m for m in k.boot_msgs))
+
+    def test_persistent_load_memoryerror_still_disables_saving(self):
+        ms = self.saved()
+
+        def boom():
+            raise MemoryError()
+        ms.read = boom
+        k = Kernel(ms)
+        self.assertFalse(k.sync_ok)
+        self.assertTrue(any("out of memory" in m for m in k.boot_msgs))
+        with self.assertRaises(StorageError):
+            k.sync()
+
+
 if __name__ == "__main__":
     unittest.main()

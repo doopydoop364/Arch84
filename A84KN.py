@@ -110,33 +110,23 @@ class Kernel:
         got = None
         migrated = False
         self.pend("Loading filesystem")
-        try:
-            got = self.storage.read()
-        except StorageError as e:
+        got, err = self.load_fs()
+        if err is not None and "out of memory" in err:
+            # a load can fail only because of garbage / fragmentation at this
+            # moment: collect and try once more before turning saving off
+            import gc
+            self.vfs = None
+            gc.collect()
+            got, err = self.load_fs()
+        if err is not None:
             self.sync_ok = False
-            self.say(bad + "Load fs: " + str(e))
+            self.say(bad + err)
             self.say("[ WARN ] Saving off (sync -f)")
-        except MemoryError:
-            self.sync_ok = False
-            self.say(bad + "Load fs: out of memory")
-            self.say("[ WARN ] Saving off (sync -f)")
-        if got is not None:
-            try:
-                if got[0] == 1:
-                    self.vfs = decode_fs(b"".join(got[1]).decode())
-                    migrated = True
-                else:
-                    self.vfs = decode_stream(got[1])
-                self.say(ok + "Restored fs (" + str(self.vfs.count()) + " nodes)")
-            except (ValueError, StorageError, MemoryError) as e:
-                self.sync_ok = False
-                if "MemoryError" in repr(e) or isinstance(e, MemoryError):
-                    self.say(bad + "Load fs: out of memory" + need_bytes(repr(e)))
-                else:
-                    self.say(bad + "Corrupt fs: " + str(e))
-                self.say("[ WARN ] Saving off (sync -f)")
-        elif self.sync_ok:
+        elif got is None:
             self.say(ok + "Created new filesystem")
+        else:
+            self.say(ok + "Restored fs (" + str(self.vfs.count()) + " nodes)")
+            migrated = got == 1
         if self.vfs is None:
             self.vfs = VFS()
             self.vfs.reset_default()
@@ -158,6 +148,27 @@ class Kernel:
         self.say(ok + "Loaded history (" + str(len(self.history)) + ")")
         if migrated and self.sync_ok:
             self.vfs.dirty = True       # the next sync (or exit) writes v2
+
+    def load_fs(self):
+        # -> (storage version or None, error text or None); sets self.vfs
+        try:
+            got = self.storage.read()
+        except StorageError as e:
+            return None, "Load fs: " + str(e)
+        except MemoryError:
+            return None, "Load fs: out of memory"
+        if got is None:
+            return None, None
+        try:
+            if got[0] == 1:
+                self.vfs = decode_fs(b"".join(got[1]).decode())
+            else:
+                self.vfs = decode_stream(got[1])
+        except (ValueError, StorageError, MemoryError) as e:
+            if "MemoryError" in repr(e) or isinstance(e, MemoryError):
+                return None, "Load fs: out of memory" + need_bytes(repr(e))
+            return None, "Corrupt fs: " + str(e)
+        return got[0], None
 
     def fix_system_files(self):
         # recreate missing system dirs/files; returns how many were repaired
