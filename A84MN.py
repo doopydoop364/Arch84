@@ -22,11 +22,11 @@ PAGES = (
         'du\tdu [-s] [PATH...]\tcharacters used by files; -s only totals\n'
         'echo\techo [-n] [WORD...]\tprint the words; -n omits the newline\n'
         'edit\tedit FILE\tfull-screen editor. CLEAR = command line: w save, q quit, qq quit without saving, wq, N go to line, /text find, n next, d y p cut/copy/paste a line, u undo (again = redo), s/a/b/ and %s/a/b/ replace\n'
-        'env\tenv\tlist the environment variables\n'
-        'exit\texit\tsave and leave Arch84\n'
-        'export\texport [NAME[=VALUE]...]\tset environment variables (no arguments: list them)\n'
+        'env\tenv\tlist the environment variables (system-wide ones come from /etc/environment: USER HOME PATH SHELL HISTSIZE HISTFILE HOSTNAME)\n'
     ),
     (
+        'exit\texit\tsave and leave Arch84\n'
+        'export\texport [NAME[=VALUE]...]\tset environment variables (no arguments: list them)\n'
         'expr\texpr A OP B\tinteger arithmetic: + - * / %\n'
         'false\tfalse\tdo nothing, unsuccessfully\n'
         'find\tfind [PATH] [-name PATTERN] [-type f|d]\tlist files below PATH; PATTERN may use * and ?\n'
@@ -35,10 +35,10 @@ PAGES = (
         'grep\tgrep [-ivncrl] PATTERN [FILE...]\tprint lines containing PATTERN (text, not a regex); -i ignore case, -v invert, -n numbers, -c count, -l names only, -r recurse into directories (. by default)\n'
         'head\thead [-n N] [FILE...]\tfirst N lines (default 10)\n'
         'help\thelp [COMMAND]\tlist all commands, or show the page of one\n'
-        'history\thistory [-c]\tnumbered command history; -c clears it\n'
-        'hostname\thostname\tshow the host name (from /etc/hostname)\n'
     ),
     (
+        'history\thistory [-c]\tnumbered command history; -c clears it\n'
+        'hostname\thostname\tshow the host name (from /etc/hostname)\n'
         'keys\tkeys\thow to type symbols on the calculator keys\n'
         'ls\tls [-a] [-l] [PATH...]\tlist a directory; -a shows dot files, -l shows sizes (directories end in /)\n'
         'makepkg\tmakepkg [-d DEP]... DIR NAME VERSION [DESCRIPTION]\tpack the tree in DIR (laid out like /) into /var/cache/pacman/pkg/NAME-VERSION.ar84\n'
@@ -47,36 +47,42 @@ PAGES = (
         'mount\tmount\tshow the root filesystem and where it is stored\n'
         'mv\tmv SRC... DEST\tmove or rename\n'
         'nl\tnl [FILE...]\tnumber lines\n'
-        'pacman\tpacman -U FILE | -S[yu] [NAME] | -R NAME | -Sl|-Ss W|-Si N | -Q[ilkopu] [ARG]\t.ar84 packages. -U file, -S repo (+deps), -Sy index, -Su upgrade, -R remove, -Sl/-Ss/-Si repo list/search/info, -Qi/-Ql/-Qk/-Qo/-Qp query, -Qu upgradable. Holds /var/lib/pacman/pacman.lock; rm it if stale\n'
     ),
     (
+        'pacman\tpacman -U FILE | -S[yu] [NAME] | -R NAME | -Sl|-Ss W|-Si N | -Q[ilkopu] [ARG]\t.ar84 packages. -U file, -S repo (+deps), -Sy index, -Su upgrade, -R remove, -Sl/-Ss/-Si repo list/search/info, -Qi/-Ql/-Qk/-Qo/-Qp query, -Qu upgradable. Holds /var/lib/pacman/pacman.lock; rm it if stale\n'
         'poweroff\tpoweroff\tsave and leave Arch84\n'
+        'printenv\tprintenv [NAME...]\tprint all environment variables, or the values of NAME\n'
         'pwd\tpwd\tprint the current directory\n'
         'reboot\treboot\tsave and restart Arch84\n'
         'rev\trev [FILE...]\treverse each line\n'
         'rm\trm [-rf] PATH...\tremove files; -r directories too, -f ignores missing names\n'
         'rmdir\trmdir DIR...\tremove empty directories\n'
         "sed\tsed [-n] 'COMMAND[;COMMAND...]' [FILE...]\tedit lines of standard input or files. Addresses: N, N,M, N,$, $ (last line), /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands\n"
-        'selftest\tselftest\trun the built-in tests in a sandbox (needs free memory; reboot first)\n'
-        'seq\tseq [FIRST [STEP]] LAST\tprint numbers (at most 2000)\n'
-        'sort\tsort [-rnu] [FILE...]\tsort lines; -r reverse, -n numeric, -u drop duplicates\n'
     ),
     (
+        'selftest\tselftest\trun the built-in tests in a sandbox (needs free memory; reboot first)\n'
+        'seq\tseq [FIRST [STEP]] LAST\tprint numbers (at most 2000)\n'
+        'setenv\tsetenv NAME=VALUE...\tset variables system-wide: updates /etc/environment (read at every startup) and this session\n'
+        'sort\tsort [-rnu] [FILE...]\tsort lines; -r reverse, -n numeric, -u drop duplicates\n'
         'sync\tsync [-f]\tsave the filesystem now; -f overwrites a save that failed to load\n'
         'tail\ttail [-n N] [FILE...]\tlast N lines (default 10)\n'
         'tee\ttee [-a] FILE...\tcopy standard input to the output and to the files; -a appends\n'
         'test\ttest EXPR   or   [ EXPR ]\tconditions for scripts: -e -f -d PATH, -z -n STRING, A = B, A != B, A -eq|-ne|-lt|-le|-gt|-ge B, ! EXPR. Status 0 = true\n'
+    ),
+    (
         'touch\ttouch FILE...\tcreate empty files\n'
         'tr\ttr SET1 SET2   or   tr -d SET\ttranslate or delete characters read from standard input; sets may use ranges a-z and \\n\n'
         'true\ttrue\tdo nothing, successfully\n'
         'umount\tumount PATH\tonly reports that / is busy: nothing else can be mounted\n'
         'unalias\tunalias NAME...\tremove aliases\n'
         'uname\tuname [-a|-s|-n|-r]\tsystem name, host, version\n'
-    ),
-    (
         'uniq\tuniq [-cd] [FILE]\tcollapse repeated neighbouring lines; -c counts, -d only repeated ones\n'
+        'unset\tunset NAME...\tremove variables from this session only\n'
+        'unsetenv\tunsetenv NAME...\tremove variables from /etc/environment and this session\n'
         'uptime\tuptime\ttime since Arch84 started and the calculator tick counter\n'
         'wc\twc [-lwc] [FILE...]\tlines, words, characters\n'
+    ),
+    (
         'which\twhich NAME...\twhat a command name refers to (alias, built-in, or a file on PATH)\n'
         'whoami\twhoami\tshow the user name\n'
     ),

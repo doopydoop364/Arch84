@@ -264,6 +264,8 @@ class Shell(Completer, Lifecycle):
             t.post("[ WARN ] Startup files skipped\n")
         else:
             self.startup()
+            if self.cwd == HOME:
+                self.cwd = self.k.env.get("HOME", HOME)
         self.k.spin("Starting shell")
         if self.vfs.isdir(self.cwd) and len(COMMANDS) > 0:
             t.post("[  OK  ] Reached target Shell\n")

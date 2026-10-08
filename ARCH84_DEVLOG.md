@@ -638,3 +638,13 @@ run on the calculator yet.
 - Found by low-heap cmdfuzz: when `exit` failed (out of memory) and input then ended, the shell retried `exit`
   forever (emulator-only: the device never sees end of input). It now gives up after a few attempts, and
   `exit` evicts lazy modules and retries once when out of memory.
+
+## Global environment: /etc/environment
+- `/etc/environment` (seeded on new filesystems and by the boot repair) holds NAME=value lines read at every
+  startup (not in safe mode) over the built-in defaults: USER, HOME, PATH, SHELL, HISTSIZE (1..500),
+  HISTFILE, HOSTNAME (used when /etc/hostname is empty). Invalid lines are ignored.
+- Replaced hardcoded values: history file/size now follow $HISTFILE/$HOME/$HISTSIZE, the startup cwd and `~`
+  follow $HOME, pacman protects `$HOME/.profile .ashrc .ash_history`, /etc/profile no longer exports PATH/SHELL
+  for new filesystems (old ones keep their profile, which still wins).
+- New: `unset` (session), lazy `printenv setenv unsetenv` (setenv/unsetenv rewrite /etc/environment, keeping
+  comments, and change the running session). Cost: ~1.1 KB of resident heap.

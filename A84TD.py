@@ -77,6 +77,7 @@ CASES = [
     ("hostname file", ["echo box > /etc/hostname", "hostname"], "box\n"),
     ("env", ["env"], "~SHELL=/bin/ash\n"),
     ("export", ["export FOO=bar", "echo $FOO"], "bar\n"),
+    ("unset", ["export FOO=bar", "unset FOO", "echo [$FOO]"], "[]\n"),
     ("export bad", ["export 1x=3"], "~not a valid identifier"),
     ("vars", ["echo $USER $HOME $PATH"], "evo /home/evo /usr/local/bin:/usr/bin:/bin\n"),
     ("quotes", ["echo 'a  b' \"c d\""], "a  b c d\n"),

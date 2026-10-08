@@ -94,7 +94,7 @@ class VFSTests(unittest.TestCase):
                           "run", "tmp", "usr", "var"])
         self.assertEqual(self.v.listdir("/var"), ["cache", "lib", "log"])
         self.assertEqual(self.v.listdir("/usr"), ["bin", "lib", "share"])
-        self.assertEqual(self.v.listdir("/etc"), ["hostname", "profile", "version"])
+        self.assertEqual(self.v.listdir("/etc"), ["environment", "hostname", "profile", "version"])
         self.assertEqual(self.v.listdir("/home"), ["evo"])
         self.assertEqual(self.v.read("/etc/hostname"), "arch84\n")
         self.assertEqual(self.v.read("/etc/version"), VERSION + "\n")
@@ -418,7 +418,7 @@ class PersistTests(unittest.TestCase):
         ms = MemStorage()
         save_vfs(ms, v)
         k = Kernel(ms)
-        self.assertTrue(any(("Repaired %d system files" % (len(DEFAULT_DIRS) + 1)) in m for m in k.boot_msgs))
+        self.assertTrue(any(("Repaired %d system files" % (len(DEFAULT_DIRS) + 2)) in m for m in k.boot_msgs))
         k2 = Kernel(MemStorage())
         self.assertTrue(any("Checked system files" in m for m in k2.boot_msgs))
 

@@ -3,7 +3,7 @@ import unittest
 
 from testutil import *
 from A84CD import all_commands
-import A84C2, A84C3, A84C4, A84C5, A84C6, A84C7, A84C8, A84C9, A84CA
+import A84C2, A84C3, A84C4, A84C5, A84C6, A84C7, A84C8, A84C9, A84CA, A84CB
 import A84MN
 from A84SH import Shell
 from A84KN import Kernel

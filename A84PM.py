@@ -27,6 +27,7 @@ CHUNK = 256
 MAXENTRIES = 300
 MAXFILE = 20000
 ROOTS = ("usr", "opt", "etc", "home", "var")
+HOMEDIR = ["/home/evo"]        # set from $HOME by the pacman command
 DENY_TREES = ("/var/lib/pacman", "/var/cache/pacman")
 DENY_FILES = ("/etc/version", "/etc/hostname", "/etc/profile", "/etc/clock",
               "/home/evo/.profile", "/home/evo/.ashrc", "/home/evo/.ash_history")
@@ -88,7 +89,7 @@ def ok_path(p):
             return False
     if p.split("/")[1] not in ROOTS or "/" not in p[1:]:
         return False
-    if p in DENY_FILES:
+    if p in DENY_FILES or (p.startswith(HOMEDIR[0] + "/.") and p[len(HOMEDIR[0]) + 2:] in ("profile", "ashrc", "ash_history")):
         return False
     for t in DENY_TREES:
         if p == t or p.startswith(t + "/"):

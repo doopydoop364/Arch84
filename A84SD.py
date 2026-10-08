@@ -1,16 +1,40 @@
 # A84SD: startup files and shutdown sequence (Arch84 module, mixed into Shell;
 # split from A84SH to keep each module's compile-time memory peak low).
 from A84FS import ERR, HOME, StorageError, VFSError
+from A84PE import isname
 
 NOSTARTUP = ("exit", "reboot", "poweroff")
 
 
 class Lifecycle:
+    def load_environment(self):
+        # /etc/environment: NAME=value lines replace the built-in defaults
+        # (USER, HOME, PATH, SHELL, HISTSIZE, HISTFILE, HOSTNAME ...)
+        path = "/etc/environment"
+        if not self.vfs.isfile(path):
+            return 0
+        n = 0
+        for line in self.vfs.lines(path):
+            line = line.strip()
+            i = line.find("=")
+            if i < 1 or line[0] == "#":
+                continue
+            name = line[:i].strip()
+            ok = not ("0" <= name[0] <= "9")
+            for c in name:
+                if not isname(c):
+                    ok = False
+            if ok:
+                self.k.env[name] = line[i + 1:].strip()
+                n += 1
+        return n
+
     def startup(self):
         # /etc/profile, ~/.profile, ~/.ashrc: one command per line.
         # exit/reboot/poweroff are refused here so a bad file cannot lock
         # the user out (there is no editor on the device yet).
         t = self.term
+        self.load_environment()
         home = self.k.env.get("HOME", HOME)
         for path in ("/etc/profile", home + "/.profile", home + "/.ashrc"):
             if not self.vfs.isfile(path):

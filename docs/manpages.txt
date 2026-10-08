@@ -12,7 +12,7 @@ dirname	dirname PATH	everything but the last part of a path
 du	du [-s] [PATH...]	characters used by files; -s only totals
 echo	echo [-n] [WORD...]	print the words; -n omits the newline
 edit	edit FILE	full-screen editor. CLEAR = command line: w save, q quit, qq quit without saving, wq, N go to line, /text find, n next, d y p cut/copy/paste a line, u undo (again = redo), s/a/b/ and %s/a/b/ replace
-env	env	list the environment variables
+env	env	list the environment variables (system-wide ones come from /etc/environment: USER HOME PATH SHELL HISTSIZE HISTFILE HOSTNAME)
 exit	exit	save and leave Arch84
 export	export [NAME[=VALUE]...]	set environment variables (no arguments: list them)
 expr	expr A OP B	integer arithmetic: + - * / %
@@ -60,3 +60,7 @@ whoami	whoami	show the user name
 sed	sed [-n] 'COMMAND[;COMMAND...]' [FILE...]	edit lines of standard input or files. Addresses: N, N,M, N,$, $ (last line), /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands
 rev	rev [FILE...]	reverse each line
 [	[ EXPR ]	same as test; the last argument must be ]
+printenv	printenv [NAME...]	print all environment variables, or the values of NAME
+setenv	setenv NAME=VALUE...	set variables system-wide: updates /etc/environment (read at every startup) and this session
+unsetenv	unsetenv NAME...	remove variables from /etc/environment and this session
+unset	unset NAME...	remove variables from this session only

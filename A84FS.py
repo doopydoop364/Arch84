@@ -196,9 +196,14 @@ DEFAULT_DIRS = ["/bin", "/boot", "/dev", "/etc", "/home", "/home/evo",
                 "/var/lib", "/var/log"]
 # /dev and /proc stay empty until they become generated (never persisted
 # content); the startup files below are seeded only on a brand-new filesystem
-PROFILE = ("# /etc/profile\n"
-           "export PATH=/usr/local/bin:/usr/bin:/bin\n"
-           "export SHELL=/bin/ash\n")
+PROFILE = "# /etc/profile (system-wide variables are in /etc/environment)\n"
+# system-wide variables, read at startup into every session (NAME=value per line)
+ENVIRONMENT = ("# /etc/environment: system-wide variables (NAME=value)\n"
+               "USER=evo\n"
+               "HOME=/home/evo\n"
+               "PATH=/usr/local/bin:/usr/bin:/bin\n"
+               "SHELL=/bin/ash\n"
+               "HISTSIZE=40\n")
 USER_PROFILE = "# ~/.profile\n"
 ASHRC = "# ~/.ashrc\nalias ll='ls -a'\n"
 
@@ -400,6 +405,7 @@ class VFS:
         self.write("/etc/hostname", "arch84\n")
         self.write("/etc/version", VERSION + "\n")
         self.write("/etc/profile", PROFILE)
+        self.write("/etc/environment", ENVIRONMENT)
         self.write(HOME + "/.profile", USER_PROFILE)
         self.write(HOME + "/.ashrc", ASHRC)
         self.dirty = True

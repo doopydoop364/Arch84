@@ -21,6 +21,8 @@ folder (it is not part of this repository).
 * `edit FILE` is a small full-screen editor. CLEAR opens a command line: `w` save, `q` quit,
   `qq` quit without saving, `wq`, `N` go to line, `/text` find, `n`, `d` `y` `p` line cut/copy/paste,
   `s/old/new/` and `%s/old/new/`.
+* Environment: system-wide variables live in `/etc/environment` (`USER HOME PATH SHELL HISTSIZE HISTFILE HOSTNAME`);
+  `setenv NAME=VALUE`/`unsetenv NAME` change the file and the session, `export`/`unset` only the session.
 * Scripts: a file on `PATH` (or run with a `/`) executes line by line with `$1..$9`, `$#`.
 * `.ar84` packages: `makepkg [-d DEP] DIR NAME VERSION [DESC]` packs a staging tree (DIR mirrors `/`) into
   `/var/cache/pacman/pkg/NAME-VERSION.ar84`; `pacman -U FILE` installs, `-S NAME` installs from that

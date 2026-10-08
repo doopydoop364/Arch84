@@ -1,6 +1,6 @@
 # A84KN: kernel (Arch84 module 4/11). Re-exports A84PE (parser, line editor).
 
-from A84FS import (DEFAULT_DIRS, HOME, PROFILE, StorageError, VERSION, VFS,
+from A84FS import (DEFAULT_DIRS, ENVIRONMENT, HOME, PROFILE, StorageError, VERSION, VFS,
     VFSError, ms_since, now_ms)
 from A84CZ import decode_stream, fs_stream, same_tree
 
@@ -8,7 +8,6 @@ from A84CZ import decode_stream, fs_stream, same_tree
 # --------------------------------------------------------------- kernel
 
 HIST_MAX = 40
-HIST_FILE = HOME + "/.ash_history"
 
 
 # systemd-style progress frames: a 3-asterisk window sliding through 6 cells
@@ -201,6 +200,9 @@ class Kernel:
         if not v.isfile("/etc/profile"):
             v.write("/etc/profile", PROFILE)
             n += 1
+        if not v.isfile("/etc/environment"):
+            v.write("/etc/environment", ENVIRONMENT)
+            n += 1
         if not v.isfile("/etc/version") or v.read("/etc/version") != VERSION + "\n":
             v.write("/etc/version", VERSION + "\n")
         return n
@@ -211,15 +213,29 @@ class Kernel:
         except VFSError:
             h = ""
         if h == "":
-            h = "arch84"
+            h = self.env.get("HOSTNAME", "arch84")
         return h
 
+    def hist_file(self):
+        return self.env.get("HISTFILE", self.env.get("HOME", HOME) + "/.ash_history")
+
+    def hist_max(self):
+        # $HISTSIZE (1..500), else the built-in default
+        try:
+            n = int(self.env.get("HISTSIZE", ""))
+        except ValueError:
+            return HIST_MAX
+        if n < 1 or n > 500:
+            return HIST_MAX
+        return n
+
     def load_history(self):
-        if self.vfs.isfile(HIST_FILE):
-            for line in self.vfs.read(HIST_FILE).split("\n"):
+        hf = self.hist_file()
+        if self.vfs.isfile(hf):
+            for line in self.vfs.read(hf).split("\n"):
                 if line != "":
                     self.history.append(line)
-            self.history = self.history[-HIST_MAX:]
+            self.history = self.history[-self.hist_max():]
 
     def add_history(self, line):
         if line.strip() == "":
@@ -227,16 +243,18 @@ class Kernel:
         if self.history and self.history[-1] == line:
             return
         self.history.append(line)
-        if len(self.history) > HIST_MAX:
-            self.history = self.history[-HIST_MAX:]
+        m = self.hist_max()
+        if len(self.history) > m:
+            self.history = self.history[-m:]
 
     def save_history(self):
         # writes ~/.ash_history only if it changed (so it does not dirty the fs)
-        if not self.vfs.isdir(HOME):
+        hf = self.hist_file()
+        if not self.vfs.isdir(hf[:hf.rfind("/")] or "/"):
             return
         data = "\n".join(self.history) + "\n"
-        if not self.vfs.isfile(HIST_FILE) or self.vfs.read(HIST_FILE) != data:
-            self.vfs.write(HIST_FILE, data)
+        if not self.vfs.isfile(hf) or self.vfs.read(hf) != data:
+            self.vfs.write(hf, data)
 
     def verify(self, w):
         # read the freshly written (not yet live) slot back; the caller

@@ -46,6 +46,11 @@ def cmd_export(sh, args):
     return st
 
 
+def cmd_unset(sh, args):
+    for a in args:
+        sh.k.env.pop(a, None)
+
+
 def cmd_alias(sh, args):
     if not args:
         names = list(sh.k.aliases.keys())
@@ -104,6 +109,6 @@ def cmd_exit(sh, args):
 
 
 COMMANDS.update({
-    "history": cmd_history, "env": cmd_env, "export": cmd_export,
+    "history": cmd_history, "env": cmd_env, "export": cmd_export, "unset": cmd_unset,
     "alias": cmd_alias, "unalias": cmd_unalias, "sync": cmd_sync, "exit": cmd_exit,
 })

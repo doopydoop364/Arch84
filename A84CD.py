@@ -395,7 +395,8 @@ MODS = (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname")
         ("A84C6", "uniq tee"), ("A84EV", "edit"), ("A84PX", "pacman makepkg"),
         ("A84AX", "archive"), ("A84FK", "fsck"),
         ("A84C7", "uname whoami hostname which keys selftest"),
-        ("A84C8", "cut tr nl seq"), ("A84C9", "test [ expr"), ("A84MN", "man"), ("A84CA", "sed rev"))
+        ("A84C8", "cut tr nl seq"), ("A84C9", "test [ expr"), ("A84MN", "man"), ("A84CA", "sed rev"),
+        ("A84CB", "printenv setenv unsetenv"))
 
 
 class Lazy:

@@ -10,7 +10,7 @@
 #   makepkg [-d DEP]... DIR NAME VERSION [DESCRIPTION...]
 from A84FS import VFSError, dpieces
 from A84CD import COMMANDS
-from A84PM import DBDIR, LOCK, PkgError, Sum, scan
+from A84PM import DBDIR, HOMEDIR, LOCK, PkgError, Sum, scan
 from A84PD import db_names, db_read, mkdirs, owner
 from A84PI import install, remove
 from A84PB import build, newest, plan, repo, sync, upgrades
@@ -178,6 +178,7 @@ def change(sh, op, mods, rest):
 
 
 def cmd_pacman(sh, args):
+    HOMEDIR[0] = sh.k.env.get("HOME", "/home/evo")
     if not args or args[0][:1] != "-" or len(args[0]) < 2:
         sh.err(USAGE.rstrip())
         return 1
