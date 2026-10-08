@@ -85,7 +85,9 @@ def repo(vfs):
     if vfs.isdir(REPO):
         for f in vfs.listdir(REPO):
             if f.endswith(".ar84") and "-" in f:
-                n, v = f[:-5].rsplit("-", 1)
+                k = f.rfind("-")
+                n = f[:k]
+                v = f[k + 1:-5]
                 if ok_name(n) and ok_ver(v):
                     out.append((n, v, REPO + "/" + f))
     return out

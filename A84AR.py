@@ -56,7 +56,8 @@ def encode(vfs, paths, stats):
             path, node = stack.pop()
             if node.is_dir:
                 rec_path(out, 68, path)
-                names = sorted(node.children)
+                names = list(node.children)
+                names.sort()
                 for i in range(len(names) - 1, -1, -1):
                     stack.append((path + "/" + names[i], node.children[names[i]]))
             else:

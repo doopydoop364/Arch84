@@ -26,7 +26,8 @@ def check(vfs, meta):
 
 
 def rollback(vfs, undo, created):
-    for u in reversed(undo):
+    for i in range(len(undo) - 1, -1, -1):
+        u = undo[i]
         try:
             if u[0] == "n":
                 vfs.remove(u[1])
@@ -34,11 +35,18 @@ def rollback(vfs, undo, created):
                 vfs.put(u[1], u[2])
         except VFSError:
             pass
-    for d in reversed(created):
+    for i in range(len(created) - 1, -1, -1):
         try:
-            vfs.remove(d)
+            vfs.remove(created[i])
         except VFSError:
             pass
+
+
+def deepest_first(dirs):
+    out = list(dirs)
+    out.sort(key=len)
+    out.reverse()
+    return out
 
 
 def finish(cur):
@@ -91,7 +99,7 @@ def install(vfs, path):
         for p, size, s in old["files"]:
             if p not in new and vfs.isfile(p):
                 vfs.remove(p)
-        for d in sorted(old["dirs"], key=len, reverse=True):
+        for d in deepest_first(old["dirs"]):
             if vfs.isdir(d):
                 if vfs.listdir(d) == [] and d not in meta["dirs"]:
                     vfs.remove(d)
@@ -121,7 +129,7 @@ def remove(vfs, name):
     for p, size, s in meta["files"]:
         if vfs.isfile(p):
             vfs.remove(p)
-    for d in sorted(meta["dirs"], key=len, reverse=True):
+    for d in deepest_first(meta["dirs"]):
         if vfs.isdir(d) and vfs.listdir(d) == []:
             vfs.remove(d)
     db_remove(vfs, name)

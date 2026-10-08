@@ -89,7 +89,11 @@ def extract(sh, name, keep):
             parent.children.pop(nm, None)
         if not keep and vfs.isdir(DIR):
             ents = read_index(vfs)
-            if not any(y["name"] == name for y in ents):
+            gone = True
+            for y in ents:
+                if y["name"] == name:
+                    gone = False
+            if gone:
                 ents.append(e)
                 write_index(vfs, ents)
         k.stop_spin()

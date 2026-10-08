@@ -35,7 +35,7 @@ class Completer:
                 i += 1
             elif c == "|":
                 # a new command starts after a pipe
-                del words[:]
+                words = []
                 wstart = -1
             elif c == " " or c == "\t":
                 if wstart >= 0:

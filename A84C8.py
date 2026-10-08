@@ -7,7 +7,10 @@ def ranges(spec):
     # "1,3-5,7-" -> [(lo, hi)]  (hi None = to the end); None if malformed
     out = []
     for part in spec.split(","):
-        a, sep, b = part.partition("-")
+        k = part.find("-")
+        a = part if k < 0 else part[:k]
+        b = "" if k < 0 else part[k + 1:]
+        sep = k >= 0
         try:
             lo = int(a) if a != "" else 1
             hi = int(b) if sep and b != "" else (None if sep else lo)

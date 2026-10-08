@@ -95,7 +95,7 @@ def vkey(v):
     # sortable version key: numeric parts compare as numbers
     out = []
     for p in v.replace("_", ".").replace("+", ".").split("."):
-        if p.isdigit():
+        if p != "" and p.strip("0123456789") == "":
             out.append((1, int(p), ""))
         else:
             out.append((0, 0, p))

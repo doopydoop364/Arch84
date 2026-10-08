@@ -83,7 +83,7 @@ class Editor:
         elif self.row > 0:
             prev = self.lines[self.row - 1]
             self.lines[self.row - 1] = prev + self.lines[self.row]
-            del self.lines[self.row]
+            self.lines.pop(self.row)
             self.row -= 1
             self.col = len(prev)
             self.dirty = True
@@ -95,7 +95,7 @@ class Editor:
             self.dirty = True
         elif self.row + 1 < len(self.lines):
             self.lines[self.row] = ln + self.lines[self.row + 1]
-            del self.lines[self.row + 1]
+            self.lines.pop(self.row + 1)
             self.dirty = True
 
     # ---- keys
@@ -176,7 +176,7 @@ class Editor:
         elif c == "wq" or c == "x":
             self.act = "wq"
             self.saveas = None
-        elif c.isdigit():
+        elif c.strip("0123456789") == "":
             self.goto(int(c))
         elif c[0] == "/":
             if len(c) > 1:
@@ -187,7 +187,7 @@ class Editor:
         elif c == "d":
             self.yank = self.lines[self.row]
             if len(self.lines) > 1:
-                del self.lines[self.row]
+                self.lines.pop(self.row)
             else:
                 self.lines[0] = ""
             self.dirty = True
@@ -227,7 +227,7 @@ class Editor:
 
     def subst(self, c):
         whole = c[0] == "%"
-        parts = c[c.index("/") + 1:].split("/")
+        parts = c[c.find("/") + 1:].split("/")
         if len(parts) < 2 or parts[0] == "":
             self.msg = "use s/old/new/"
             return

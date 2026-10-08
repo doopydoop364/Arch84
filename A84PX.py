@@ -123,7 +123,9 @@ def cmd_pacman(sh, args):
         if op == "Q":
             return query(sh, mods, rest)
         if op == "S" and "l" in mods:
-            for n, v, p in sorted(repo(vfs)):
+            rows = repo(vfs)
+            rows.sort()
+            for n, v, p in rows:
                 sh.out(n + " " + v + "\n")
             return 0
         if op == "U" or op == "S" or op == "R":
