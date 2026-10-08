@@ -264,6 +264,28 @@ class VerifyMemoryTests(unittest.TestCase):
             self.assertFalse(same(self.mk(base), self.mk(other)), other)
             self.assertFalse(same(self.mk(other), self.mk(base)), other)
 
+    def test_same_tree_empty_file_vs_directory(self):
+        # an empty file and a directory both have data == ""; only is_dir tells them apart
+        a = self.mk({"/tmp/x": ""})
+        b = self.mk({"/tmp/x": None})
+        self.assertFalse(A84CZ.same_tree(a, b))
+        self.assertFalse(A84CZ.same_tree(b, a))
+
+    def test_legacy_2k_frame_gives_canonical_big_file_shape(self):
+        # older saves used frames of up to 2048 bytes: a 1500-char file then sits in
+        # ONE frame and must still come back as pieces (== needs canonical data)
+        from A84FS import dnew
+        v = self.mk({"/tmp/big": "abcdefghij" * 150})
+        real = A84CZ.CHUNK
+        A84CZ.CHUNK = 2048
+        try:
+            stream = b"".join(fs_stream(v, [0, 0]))
+        finally:
+            A84CZ.CHUNK = real
+        back = decode_stream([stream])
+        self.assertEqual(back.get("/tmp/big").data, dnew("abcdefghij" * 150))
+        self.assertIsInstance(back.get("/tmp/big").data, list)
+
     def test_memoryerror_in_the_compare_keeps_the_save(self):
         # it used to abort the whole sync as "out of memory (nothing was changed)"
         # after every list had been written and verified

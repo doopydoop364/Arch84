@@ -83,7 +83,7 @@ Cross-version: streams written by the new code decode with the original code and
 at the device-like heap it reports LOWMEM for the heavy checks (same class as the original).
 
 ## Status
-Discovery passes: 1 complete (all modules read or fuzzed, coverage 92% lines by unit tests).
+Discovery passes: 3 done (each found small work; mutation testing of the new code: 14 mutants, all killed after adding 2 tests). Coverage 92% lines.
 Consecutive clean passes: 0 (pass 1 found work). Next: pass 2 = re-run every tool + re-review.
 Known/unchanged: ~130 small files / ~12 KB file data ceiling; lazy commands fail to compile
 ("out of memory loading A84Cx") when <~30 KB is free; `mkdir -p`/`cp -r` unsupported; unquoted empty
