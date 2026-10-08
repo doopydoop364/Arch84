@@ -127,6 +127,21 @@ class ShellSurvivesMemoryErrorsTests(unittest.TestCase):
         self.assertTrue(any("alive" in s for s in t.out), t.out)       # the shell carried on
         self.assertLessEqual(len(t.lines), 3)                          # and gave up its scrollback
 
+    def test_input_ending_while_exit_keeps_failing_terminates(self):
+        t = self.make([], 0)
+
+        def eof(prompt, ed):
+            raise EOFError()
+        t.readline = eof
+        sh = Shell(Kernel(MemStorage()), t)
+        import A84CD
+        A84CD.COMMANDS["exit"] = lambda sh_, a: (_ for _ in ()).throw(MemoryError())
+        try:
+            sh.run()                    # used to loop forever
+        finally:
+            import A84CE
+            A84CD.COMMANDS["exit"] = A84CE.cmd_exit
+
     def test_message_lost_after_two_failures_still_does_not_kill_the_shell(self):
         t = self.make(["boom", "echo alive"], 2)
         sh = Shell(Kernel(MemStorage()), t)

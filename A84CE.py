@@ -94,7 +94,13 @@ def cmd_sync(sh, args):
 
 
 def cmd_exit(sh, args):
-    sh.shutdown("exit")
+    try:
+        sh.shutdown("exit")
+    except MemoryError:
+        # too full to even show progress: drop the lazy command modules and retry
+        from A84CD import evict
+        evict()
+        sh.shutdown("exit")
 
 
 COMMANDS.update({

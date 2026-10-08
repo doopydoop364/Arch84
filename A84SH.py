@@ -273,6 +273,7 @@ class Shell(Completer, Lifecycle):
         t.post(self.k.hostname() + " login: " + self.k.env["USER"]
                + " (auto)\n")
         memerr = 0
+        eofs = 0
         while self.running:
             self.vfs = self.k.vfs
             prompt = ""
@@ -280,6 +281,10 @@ class Shell(Completer, Lifecycle):
                 prompt = self.prompt()
                 line = t.readline(prompt, self.new_editor())
             except EOFError:
+                # input ended; `exit` can fail (memory), so do not insist forever
+                eofs += 1
+                if eofs > 5:
+                    break
                 line = "exit"
             except MemoryError:
                 # a transient shortage while typing/drawing is not an API
