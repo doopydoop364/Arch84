@@ -17,7 +17,7 @@ def sh(name, cmd, **kw):
         print((r.stdout + r.stderr)[-600:])
     return r
 
-for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes") + (() if quick else ("test_bigfiles",)):
+for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor") + (() if quick else ("test_bigfiles",)):
     sh(t, [sys.executable, t + ".py"])
 n = 15 if quick else 60
 bad = 0
@@ -36,6 +36,7 @@ print("%-34s %s" % ("codec_fuzz identical streams", "ok" if a == b and "bad 0" i
 if not (a == b and "bad 0" in a):
     fails.append("codec_fuzz")
 sh("keyfuzz", [sys.executable, "emu/keyfuzz.py", "1", "5" if quick else "20", "1500"])
+sh("editor on emulated device", [sys.executable, "emu/edtest.py"])
 sh("powercut (40 files)", [sys.executable, "emu/powercut.py", "40"])
 if not quick:
     r = sh("leak check", [sys.executable, "emu/leak.py"])

@@ -275,6 +275,18 @@ class VFS:
             node.data = dnew(data)
         self.dirty = True
 
+    def put(self, path, data):
+        # replace a file's contents with data that is already canonical (dnew/dchunks)
+        parent, name = self._parent(path)
+        node = parent.children.get(name)
+        if node is None:
+            parent.children[name] = Node(False, data)
+        elif node.is_dir:
+            raise VFSError("Is a directory")
+        else:
+            node.data = data
+        self.dirty = True
+
     def append(self, path, data):
         node = self.get(path)
         if node is None:

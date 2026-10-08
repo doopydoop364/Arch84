@@ -8,7 +8,7 @@ from A84CD import all_commands
 ARGKIND = {
     "cd": "d", "rmdir": "d", "ls": "p", "cat": "p", "rm": "p", "cp": "p",
     "mv": "p", "head": "p", "tail": "p", "touch": "p", "mkdir": "p",
-    "tee": "p", "uniq": "p", "grep": "p", "sort": "p", "wc": "p",
+    "tee": "p", "edit": "p", "uniq": "p", "grep": "p", "sort": "p", "wc": "p",
     "which": "c", "help": "c", "export": "v", "unalias": "a", "uname": "o",
 }
 

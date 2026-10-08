@@ -146,5 +146,6 @@ CASES = [
     ("uniq", ["echo a > f", "echo a >> f", "echo b >> f", "uniq f"], "a\nb\n"),
     ("uniq -c", ["echo a > f", "echo a >> f", "uniq -c f"], "      2 a\n"),
     ("tee", ["echo q | tee f", "cat f"], "q\n"),
+    ("edit (no terminal)", ["edit f"], "edit: needs the calculator terminal\n"),
     ("tee <", ["echo q > f", "tee g < f", "cat g"], "q\n"),
 ]
