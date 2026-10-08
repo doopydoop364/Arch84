@@ -13,11 +13,39 @@ def cmd_false(sh, args):
     return 1
 
 
+def walk_files(sh, paths):
+    # grep -r: every file under the given paths (directories expand, in name order)
+    out = []
+    for p in paths:
+        q = sh.resolve(p) if p != "-" else p
+        if p != "-" and sh.vfs.isdir(q):
+            stack = [(p, q)]
+            while stack:
+                shown, real = stack.pop()
+                names = list(sh.vfs.listdir(real))
+                names.sort()
+                subs = []
+                for n in names:
+                    sub = shown.rstrip("/") + "/" + n if shown != "." else n
+                    r = real.rstrip("/") + "/" + n
+                    if sh.vfs.isdir(r):
+                        subs.append((sub, r))
+                    else:
+                        out.append(sub)
+                subs.reverse()
+                stack += subs
+        else:
+            out.append(p)
+    return out
+
+
 def cmd_grep(sh, args):
     ci = False
     num = False
     inv = False
     cnt = False
+    rec = False
+    lis = False
     rest = []
     for a in args:
         if a[:1] == "-" and len(a) > 1 and not rest:
@@ -30,6 +58,10 @@ def cmd_grep(sh, args):
                     inv = True
                 elif c == "c":
                     cnt = True
+                elif c == "r":
+                    rec = True
+                elif c == "l":
+                    lis = True
                 else:
                     sh.err("grep: invalid option -- '" + c + "'")
                     return 2
@@ -37,13 +69,17 @@ def cmd_grep(sh, args):
             rest.append(a)
     if len(rest) == 1 and sh.stdin is not None:
         rest.append("-")
+    elif len(rest) == 1 and rec:
+        rest.append(".")
     if len(rest) < 2:
-        sh.err("usage: grep [-ivnc] PATTERN [FILE...]")
+        sh.err("usage: grep [-ivncrl] PATTERN [FILE...]")
         return 2
     pat = rest[0]
     if ci:
         pat = pat.lower()
     files = rest[1:]
+    if rec:
+        files = walk_files(sh, files)
     st = 1
     for f in files:
         try:
@@ -55,22 +91,26 @@ def cmd_grep(sh, args):
         n = 0
         i = 0
         for line in it:
+            if lis and n:
+                break
             i += 1
             hay = line
             if ci:
                 hay = line.lower()
             if (pat in hay) != inv:
                 n += 1
-                if not cnt:
+                if not cnt and not lis:
                     pre = ""
-                    if len(files) > 1:
+                    if len(files) > 1 or rec:
                         pre = f + ":"
                     if num:
                         pre += str(i) + ":"
                     sh.out(pre + line + "\n")
-        if cnt:
+        if lis and n:
+            sh.out(f + "\n")
+        elif cnt:
             pre = ""
-            if len(files) > 1:
+            if len(files) > 1 or rec:
                 pre = f + ":"
             sh.out(pre + str(n) + "\n")
         if n and st != 2:

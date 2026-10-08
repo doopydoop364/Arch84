@@ -20,7 +20,7 @@ false	false	do nothing, unsuccessfully
 find	find [PATH] [-name PATTERN] [-type f|d]	list files below PATH; PATTERN may use * and ?
 free	free	heap memory: total, used, free
 fsck	fsck [-r]	check the saved filesystem, archives, packages and system files; -r repairs what is safe
-grep	grep [-ivnc] PATTERN [FILE...]	print lines containing PATTERN (text, not a regular expression); -i ignore case, -v invert, -n numbers, -c count
+grep	grep [-ivncrl] PATTERN [FILE...]	print lines containing PATTERN (text, not a regex); -i ignore case, -v invert, -n numbers, -c count, -l names only, -r recurse into directories (. by default)
 head	head [-n N] [FILE...]	first N lines (default 10)
 help	help [COMMAND]	list all commands, or show the page of one
 history	history [-c]	numbered command history; -c clears it
@@ -57,6 +57,6 @@ uptime	uptime	time since Arch84 started and the calculator tick counter
 wc	wc [-lwc] [FILE...]	lines, words, characters
 which	which NAME...	what a command name refers to (alias, built-in, or a file on PATH)
 whoami	whoami	show the user name
-sed	sed [-n] 'COMMAND[;COMMAND...]' [FILE...]	edit lines of standard input or files. Addresses: N, N,M, /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands
+sed	sed [-n] 'COMMAND[;COMMAND...]' [FILE...]	edit lines of standard input or files. Addresses: N, N,M, N,$, $ (last line), /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands
 rev	rev [FILE...]	reverse each line
 [	[ EXPR ]	same as test; the last argument must be ]

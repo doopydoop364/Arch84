@@ -162,6 +162,39 @@ class CmdTests(unittest.TestCase):
             self.assertIn(c, LAZY)
 
 
+class GrepTests(unittest.TestCase):
+    def setUp(self):
+        self.sh, self.t = mk()
+        v = self.sh.vfs
+        v.mkdir("/home/evo/d")
+        v.mkdir("/home/evo/d/e")
+        v.write("/home/evo/d/a", "alpha\nneedle\n")
+        v.write("/home/evo/d/e/b", "beta\nneedle two\n")
+        v.write("/home/evo/d/e/c", "gamma\n")
+        v.write("/home/evo/f", "needle\n")
+
+    def r(self, line):
+        self.t.text = ""
+        self.sh.execute(line)
+        return self.t.text
+
+    def test_recursive(self):
+        self.assertEqual(self.r("grep -r needle d"), "d/a:needle\nd/e/b:needle two\n")
+        self.assertEqual(self.r("grep -rn needle d"), "d/a:2:needle\nd/e/b:2:needle two\n")
+        self.assertEqual(self.r("grep -rc needle d"), "d/a:1\nd/e/b:1\nd/e/c:0\n")
+        self.assertEqual(self.r("grep -rl needle d"), "d/a\nd/e/b\n")
+        self.assertEqual(self.r("grep -r needle f d/e"), "f:needle\nd/e/b:needle two\n")
+        self.assertEqual(self.r("grep -r nothing d; echo $?"), "1\n")
+        self.assertEqual(self.r("cd d; grep -r needle"), "a:needle\ne/b:needle two\n")
+
+    def test_list_files(self):
+        self.assertEqual(self.r("grep -l needle f d/a d/e/c"), "f\nd/a\n")
+
+    def test_plain_unchanged(self):
+        self.assertEqual(self.r("grep needle f"), "needle\n")
+        self.assertEqual(self.r("grep needle f f"), "f:needle\nf:needle\n")
+
+
 class SedTests(unittest.TestCase):
     def setUp(self):
         self.sh, self.t = mk()
@@ -171,6 +204,17 @@ class SedTests(unittest.TestCase):
         self.t.text = ""
         self.sh.execute(line)
         return self.t.text
+
+    def test_last_line_address(self):
+        self.assertEqual(self.r("sed -n '$p' f"), "four\n")
+        self.assertEqual(self.r("sed '$d' f"), "one\ntwo\nthree two\n")
+        self.assertEqual(self.r("sed -n '3,$p' f"), "three two\nfour\n")
+        self.assertEqual(self.r("sed -n '4,$p' f"), "four\n")
+        self.assertEqual(self.r("sed -n '5,$p' f"), "")
+        self.assertEqual(self.r("sed '$s/four/4/' f"), "one\ntwo\nthree two\n4\n")
+        self.assertEqual(self.r("echo x | sed -n '$p'"), "x\n")
+        self.assertEqual(self.r("echo -n | sed -n '$p'"), "")
+        self.assertIn("unknown command", self.r("sed -n '$,3p' f"))
 
     def test_substitute(self):
         self.assertEqual(self.r("sed 's/two/2/' f"), "one\n2\nthree 2\nfour\n")
@@ -192,7 +236,7 @@ class SedTests(unittest.TestCase):
         self.assertEqual(self.r("sed 2p f").count("two"), 3)             # printed twice + the other line
         self.assertEqual(self.r("sed -n 's/two/2/p' f"), "2\nthree 2\n")
         self.assertEqual(self.r("sed '2,3s/e/E/g' f"), "one\ntwo\nthrEE two\nfour\n")
-        self.assertIn("unknown command", self.r("sed '$d' f"))              # "last line" is not supported
+        self.assertIn("unknown command", self.r("sed '$,2d' f"))
         self.assertEqual(self.r("sed '/one/s/o/0/;3d' f"), "0ne\ntwo\nfour\n")
 
     def test_errors(self):

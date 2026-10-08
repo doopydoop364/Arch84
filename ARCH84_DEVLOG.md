@@ -631,3 +631,10 @@ run on the calculator yet.
   file list of the repository differs from the index, or when missing; makepkg deletes it. It is regenerable, so
   it is never trusted over the package files (install still validates the package).
 - -Su/-Syu upgrade installed packages that have a newer repository version; -Qu lists them.
+
+## grep -r/-l, sed `$`
+- `grep -r` walks directories in name order (`.` by default, paths printed relative to what was given),
+  `-l` prints matching file names only. `sed` accepts `$` and `N,$` addresses (one line of lookahead).
+- Found by low-heap cmdfuzz: when `exit` failed (out of memory) and input then ended, the shell retried `exit`
+  forever (emulator-only: the device never sees end of input). It now gives up after a few attempts, and
+  `exit` evicts lazy modules and retries once when out of memory.

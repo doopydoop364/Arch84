@@ -1,6 +1,6 @@
 # A84CA: sed rev (Arch84 module, lazily loaded). Registers itself into COMMANDS.
 # sed [-n] 'COMMAND[;COMMAND...]' [FILE...]  (reads standard input without FILE)
-#   address: N | N,M | /text/        commands: s/old/new/[g][p]  d  p
+#   address: N | N,M | N,$ | $ | /text/        commands: s/old/new/[g][p]  d  p
 # "old" is plain text, not a regular expression; & in "new" is the matched text.
 # Put the script in quotes: ; is also the shell's command separator.
 from A84FS import VFSError
@@ -18,6 +18,8 @@ def parse_addr(s, i):
         if j < 0:
             raise SedError("unterminated address")
         return ("t", s[i + 1:j]), j + 1
+    if i < len(s) and s[i] == "$":
+        return ("n", -1, -1), i + 1             # -1 = the last line
     j = i
     while j < len(s) and "0" <= s[j] <= "9":
         j += 1
@@ -26,6 +28,8 @@ def parse_addr(s, i):
     lo = int(s[i:j])
     hi = lo
     if j < len(s) and s[j] == ",":
+        if j + 1 < len(s) and s[j + 1] == "$":
+            return ("n", lo, -1), j + 2
         k = j + 1
         while k < len(s) and "0" <= s[k] <= "9":
             k += 1
@@ -85,11 +89,13 @@ def compile_script(script):
     return cmds
 
 
-def matches(addr, n, line):
+def matches(addr, n, line, last):
     if addr is None:
         return True
     if addr[0] == "n":
-        return addr[1] <= n <= addr[2]
+        if addr[1] < 0:
+            return last
+        return addr[1] <= n and (addr[2] < 0 or n <= addr[2])
     return addr[1] in line
 
 
@@ -119,6 +125,23 @@ def substitute(line, old, new, glob):
     return out + line[i:], done
 
 
+def edit(sh, cmds, quiet, n, line, last):
+    dead = False
+    for addr, c, old, new, flags in cmds:
+        if dead or not matches(addr, n, line, last):
+            continue
+        if c == "d":
+            dead = True
+        elif c == "p":
+            sh.out(line + "\n")
+        else:
+            line, hit = substitute(line, old, new, "g" in flags)
+            if hit and "p" in flags:
+                sh.out(line + "\n")
+    if not quiet and not dead:
+        sh.out(line + "\n")
+
+
 def cmd_sed(sh, args):
     quiet = False
     rest = []
@@ -140,23 +163,14 @@ def cmd_sed(sh, args):
     for f in files:
         try:
             n = 0
+            prev = None
             for line in sh.lines(f):
-                n += 1
-                show = not quiet
-                dead = False
-                for addr, c, old, new, flags in cmds:
-                    if dead or not matches(addr, n, line):
-                        continue
-                    if c == "d":
-                        dead = True
-                    elif c == "p":
-                        sh.out(line + "\n")
-                    else:
-                        line, hit = substitute(line, old, new, "g" in flags)
-                        if hit and "p" in flags:
-                            sh.out(line + "\n")
-                if show and not dead:
-                    sh.out(line + "\n")
+                if prev is not None:
+                    n += 1
+                    edit(sh, cmds, quiet, n, prev, False)
+                prev = line
+            if prev is not None:
+                edit(sh, cmds, quiet, n + 1, prev, True)
         except VFSError as e:
             sh.err("sed: " + f + ": " + str(e))
             st = 1

@@ -32,14 +32,14 @@ PAGES = (
         'find\tfind [PATH] [-name PATTERN] [-type f|d]\tlist files below PATH; PATTERN may use * and ?\n'
         'free\tfree\theap memory: total, used, free\n'
         'fsck\tfsck [-r]\tcheck the saved filesystem, archives, packages and system files; -r repairs what is safe\n'
-        'grep\tgrep [-ivnc] PATTERN [FILE...]\tprint lines containing PATTERN (text, not a regular expression); -i ignore case, -v invert, -n numbers, -c count\n'
+        'grep\tgrep [-ivncrl] PATTERN [FILE...]\tprint lines containing PATTERN (text, not a regex); -i ignore case, -v invert, -n numbers, -c count, -l names only, -r recurse into directories (. by default)\n'
         'head\thead [-n N] [FILE...]\tfirst N lines (default 10)\n'
         'help\thelp [COMMAND]\tlist all commands, or show the page of one\n'
         'history\thistory [-c]\tnumbered command history; -c clears it\n'
         'hostname\thostname\tshow the host name (from /etc/hostname)\n'
-        'keys\tkeys\thow to type symbols on the calculator keys\n'
     ),
     (
+        'keys\tkeys\thow to type symbols on the calculator keys\n'
         'ls\tls [-a] [-l] [PATH...]\tlist a directory; -a shows dot files, -l shows sizes (directories end in /)\n'
         'makepkg\tmakepkg [-d DEP]... DIR NAME VERSION [DESCRIPTION]\tpack the tree in DIR (laid out like /) into /var/cache/pacman/pkg/NAME-VERSION.ar84\n'
         'man\tman [COMMAND | -k WORD]\tmanual page of a command; -k lists pages mentioning WORD\n'
@@ -56,7 +56,7 @@ PAGES = (
         'rev\trev [FILE...]\treverse each line\n'
         'rm\trm [-rf] PATH...\tremove files; -r directories too, -f ignores missing names\n'
         'rmdir\trmdir DIR...\tremove empty directories\n'
-        "sed\tsed [-n] 'COMMAND[;COMMAND...]' [FILE...]\tedit lines of standard input or files. Addresses: N, N,M, /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands\n"
+        "sed\tsed [-n] 'COMMAND[;COMMAND...]' [FILE...]\tedit lines of standard input or files. Addresses: N, N,M, N,$, $ (last line), /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands\n"
         'selftest\tselftest\trun the built-in tests in a sandbox (needs free memory; reboot first)\n'
         'seq\tseq [FIRST [STEP]] LAST\tprint numbers (at most 2000)\n'
         'sort\tsort [-rnu] [FILE...]\tsort lines; -r reverse, -n numeric, -u drop duplicates\n'
