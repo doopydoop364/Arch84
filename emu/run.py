@@ -104,6 +104,7 @@ try:
     import ARCH84
 except BaseException as e:
     err = repr(e)
+    sys.print_exception(e, sys.stderr)
 rep["error"] = err
 rep["total_ms"] = ticks_diff(ticks_ms(), t_start)
 gc.collect()

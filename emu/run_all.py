@@ -46,6 +46,7 @@ print("%-34s %s" % ("codec_fuzz identical streams", "ok" if a == b and "bad 0" i
 if not (a == b and "bad 0" in a):
     fails.append("codec_fuzz")
 sh("keyfuzz", [sys.executable, "emu/keyfuzz.py", "1", "5" if quick else "20", "1500"])
+sh("keyfuzz low memory (103 KB heap)", [sys.executable, "emu/keyfuzz.py", "200", "4" if quick else "12", "2500", "--heap=103000"])
 sh("editor on emulated device", [sys.executable, "emu/edtest.py"])
 sh("archive on emulated device", [sys.executable, "emu/archtest.py"])
 sh("powercut (40 files)", [sys.executable, "emu/powercut.py", "40"])

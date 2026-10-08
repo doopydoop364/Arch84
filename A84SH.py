@@ -240,6 +240,23 @@ class Shell(Completer, Lifecycle):
             self.err("ash: " + target + ": " + str(e))
             self.status = 1
 
+    def warn(self, text):
+        # a message while memory is short: free the scrollback first and never raise,
+        # or the shell (and any unsaved work) would die inside its own error handler
+        import gc
+        gc.collect()
+        try:
+            self.term.write(text)
+        except MemoryError:
+            lines = getattr(self.term, "lines", None)
+            if lines:
+                self.term.lines = lines[-3:]
+            gc.collect()
+            try:
+                self.term.write(text)
+            except MemoryError:
+                pass
+
     def run(self):
         t = self.term
         self.k.spin("Startup (hold CLEAR to skip)")
@@ -258,8 +275,9 @@ class Shell(Completer, Lifecycle):
         memerr = 0
         while self.running:
             self.vfs = self.k.vfs
-            prompt = self.prompt()
+            prompt = ""
             try:
+                prompt = self.prompt()
                 line = t.readline(prompt, self.new_editor())
             except EOFError:
                 line = "exit"
@@ -272,7 +290,7 @@ class Shell(Completer, Lifecycle):
                 if memerr < 4:
                     continue
                 memerr = 0
-                self.term.write(ERR + "ash: low memory\n")
+                self.warn(ERR + "ash: low memory\n")
                 continue
             except Exception as e:
                 # key/display API mismatch: degrade to input() instead of dying
@@ -298,10 +316,10 @@ class Shell(Completer, Lifecycle):
             except MemoryError:
                 import gc
                 gc.collect()
-                t.write(ERR + "ash: out of memory\n")
+                self.warn(ERR + "ash: out of memory\n")
                 self.status = 1
             except Exception as e:
-                t.write("ash: internal error: " + repr(e) + "\n")
+                self.warn("ash: internal error: " + repr(e) + "\n")
         if not self.reboot:
             t.close()
 

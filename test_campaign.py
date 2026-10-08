@@ -84,6 +84,76 @@ class NameLimitTests(unittest.TestCase):
         self.assertEqual(walk(Kernel(ms).vfs), walk(self.v))
 
 
+class ShellSurvivesMemoryErrorsTests(unittest.TestCase):
+    """The error handler itself needs memory: running out inside it used to end the shell."""
+
+    def make(self, lines, fail_writes):
+        class Term:
+            def __init__(self):
+                self.out = []
+                self.lines = ["x" * 30] * 40
+                self.fails = fail_writes
+                self.feed = list(lines)
+
+            def write(self, s):
+                if self.fails:
+                    self.fails -= 1
+                    raise MemoryError()
+                self.out.append(s)
+
+            def post(self, s, pending=False): pass
+            def echo(self, s): pass
+            def busy(self): pass
+            def clear(self): pass
+            def close(self): pass
+            def safe_key(self, tick=None): return False
+
+            def readline(self, prompt, ed):
+                return self.feed.pop(0) if self.feed else "exit"
+        return Term()
+
+    def test_oom_message_that_itself_runs_out_of_memory(self):
+        t = self.make(["boom", "echo alive"], 1)
+        sh = Shell(Kernel(MemStorage()), t)
+        import A84CD
+
+        def boom(sh_, args):
+            raise MemoryError()
+        A84CD.COMMANDS["boom"] = boom
+        try:
+            sh.run()
+        finally:
+            del A84CD.COMMANDS["boom"]
+        self.assertTrue(any("alive" in s for s in t.out), t.out)       # the shell carried on
+        self.assertLessEqual(len(t.lines), 3)                          # and gave up its scrollback
+
+    def test_message_lost_after_two_failures_still_does_not_kill_the_shell(self):
+        t = self.make(["boom", "echo alive"], 2)
+        sh = Shell(Kernel(MemStorage()), t)
+        import A84CD
+        A84CD.COMMANDS["boom"] = lambda sh_, a: (_ for _ in ()).throw(MemoryError())
+        try:
+            sh.run()
+        finally:
+            del A84CD.COMMANDS["boom"]
+        self.assertTrue(any("alive" in s for s in t.out), t.out)
+
+    def test_prompt_building_may_run_out_of_memory(self):
+        t = self.make(["echo ok"], 0)
+        sh = Shell(Kernel(MemStorage()), t)
+        real = sh.prompt
+        calls = []
+
+        def flaky():
+            calls.append(1)
+            if len(calls) == 1:
+                raise MemoryError()
+            return real()
+        sh.prompt = flaky
+        sh.run()
+        self.assertTrue(any("ok" in s for s in t.out), t.out)
+
+
 class SortTieTests(unittest.TestCase):
     def test_numeric_sort_ties_use_whole_line(self):
         # sort(1) -n breaks ties by comparing the lines; MicroPython's list
