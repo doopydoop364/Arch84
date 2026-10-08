@@ -1,5 +1,6 @@
 # A84TX: selftest storage/codec checks (split from A84TS; loaded only by selftest)
-from A84FS import SPLIT, VFS, dlen, encode_fs
+from A84FS import SPLIT, VFS, dlen
+from A84V1 import encode_fs
 from A84CZ import (decode_stream, fs_measure, fs_stream, lz_compress,
     lz_decompress, same_tree)
 from A84ST import ListStore, MemStorage, block_name, checksum1, pack5, unpack5
