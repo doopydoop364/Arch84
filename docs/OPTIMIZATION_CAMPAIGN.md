@@ -28,10 +28,23 @@ files that save, reload and re-save), `emu/loadheap.py`, `emu/mp/*_probe.py` (al
 phase), `fuzz_shell.py` (CPython-vs-MicroPython differential shell fuzzer, deterministic seeds).
 Run with `A84_MICROPYTHON=<path>` or a binary at `/tmp/a84-micropython`.
 
-## Baseline (original commit 077bca7, same harness)
-boot free 48,688 B; cap.py: only **51** small files survive save->reload->re-save with full
-verification (154 with the verify step allowed to skip, flaky); 100 files: reload then exit-sync
-fails OOM. Phase churn (bytes allocated, 60 files): load 84 KB, stream+feed 57 KB, verify 77 KB.
+## Baseline vs now (SAME harness, heap 127800; baseline = original commit 077bca7 in a separate worktree)
+| metric | baseline | now |
+|---|---|---|
+| free heap at prompt (resident code) | 47,648 B | 47,136 B (-512 B) |
+| files surviving save -> fresh boot -> edit -> re-save, full verify | 51 | 124 |
+| same, verify allowed to skip its tree compare | 132 | 135 (noise level) |
+| 100 small files: smallest heap that loads | ~126,000 | ~99,000 |
+| 100 small files: smallest heap that saves | ~112,000 | ~107,000 |
+| `reboot` with 100 files, then keep working | fails | works (stale-GC-root scrub, ARCH84.py) |
+| min clean heap: boot / cmd_mix / files_create_delete / 8 KB file + sync | 87.1 / 102.1 / 97.7 / 128.2 K | 87.8 / 92.5 / 94.9 / 124.5 K |
+| allocation churn, 60 files: load / stream+feed / verify | 84 / 57 / 77 KB | 37 / 29 / 31 KB |
+| host time (relative, 100 files): sync / load | 12.8 / 5.3 ms | 10.8 / 3.1 ms |
+| 8.7 KB single file saves | yes | yes; 17 KB: both fail (low memory) |
+Honest reading: the biggest gains are in garbage churn (-50%), robustness at 50-120 files and after
+`reboot`; the absolute ceiling (~130-135 small files / ~12-17 KB of file data at this heap) barely moved
+because the whole tree lives in RAM (~120 B per file node + resident modules ~60 KB of a 125 KB heap).
+Host-MicroPython timings are not device timings.
 
 ## Fixed / optimised (all with desktop regression tests in test_campaign.py unless noted)
 1. **Names > 255 UTF-8 bytes were accepted, then every sync failed** (`verify failed: bad name
@@ -50,23 +63,31 @@ fails OOM. Phase churn (bytes allocated, 60 files): load 84 KB, stream+feed 57 K
 7. `rm -r` and `VFS.count` iterative (no recursion limit risk on a deep tree).
 8. v1 text *writer* moved to A84V1 (tests/self-test only), recovering ~1 KB resident heap
    (deploy.py MODULES updated).
+9. **Tab completion inside an open quote doubled the quote** (`cat "my f<Tab>` -> `cat ""my file`).
+10. **Startup could hang forever** if the tick counter wrapped inside the 0.5 s hold-CLEAR window
+    (raw `t1 - t0 > 500`); now `ticks_diff`.
+11. **A MemoryError in the post-save tree compare aborted a finished save** ("out of memory (nothing
+    was changed)" after every list was written); now downgraded to the existing "compare skipped"
+    warning, and `same_tree` no longer queues one tuple per file.
+12. Boot retries a failed (out-of-memory) load once after `gc.collect()` before disabling saving.
+13. `reboot` frees the finished session first (`boot_once`) and scrubs stale GC roots: the
+    conservative GC kept the old filesystem tree alive (9-15 KB less free after reboot).
 
-## Results so far (emulator, heap 127800)
-| metric | before | after |
-|---|---|---|
-| free heap at prompt | 48,688 B | 48,528 B |
-| files surviving save/reload/re-save (full verify) | 51 | ~120-130 |
-| load churn (60 files) | 84 KB | 37 KB |
-| stream+feed churn | 57 KB | 29 KB |
-| verify churn | 77 KB | 31 KB |
-| 8.7 KB single file saves | no (low memory) | yes |
-Leak check (emu/leak.py): heap flat after history fills (x10 vs x40 within 0.7 KB).
+## Verification tooling (all green at last run)
+`python3 emu/run_all.py` (unit tests 239 + bigfiles, CPython==MicroPython differential shell fuzz x60,
+codec fuzz with byte-identical streams on both interpreters, key fuzz, power-cut sweep, leak check).
+Also `emu/powercut.py N --fail` (store_list raising), `emu/keyfuzz.py ... --nodraw` (TiTerm path).
+Cross-version: streams written by the new code decode with the original code and vice versa (149 trees).
+`selftest` passes 112/112 on a 250 KB heap and never stores a list (power-cut at store 0 not reached);
+at the device-like heap it reports LOWMEM for the heavy checks (same class as the original).
 
 ## Status
-Discovery pass 1 in progress (VFS, codec, storage, sort/grep/wc reviewed). Consecutive clean passes: 0.
-Next: review A84PE (parser/editor), A84CP (completion), A84C5 (date), A84UI/GX rendering; fuzz the
-line editor; re-run all tools; revisit load/resync failures at 150+ files (lazy-module compile
-fragmentation); `mkdir -p`/`cp -r` are unsupported (feature gaps, not changed).
+Discovery passes: 1 complete (all modules read or fuzzed, coverage 92% lines by unit tests).
+Consecutive clean passes: 0 (pass 1 found work). Next: pass 2 = re-run every tool + re-review.
+Known/unchanged: ~130 small files / ~12 KB file data ceiling; lazy commands fail to compile
+("out of memory loading A84Cx") when <~30 KB is free; `mkdir -p`/`cp -r` unsupported; unquoted empty
+`$VAR` is not dropped from argv like in sh; `sync -x`/`reboot x` ignore bad args; per-key display cost
+~7 draw calls / ~14k filled pixels (full-row clears) - not optimised, no device timing available.
 
 ## Unverified
 Everything on real hardware. Device `bytes+bytearray`, `bytearray.decode`, float rounding of
