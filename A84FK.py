@@ -4,8 +4,9 @@
 #   fsck -r    also repair what is safe: leftover archive lists, missing system files
 from A84FS import DEFAULT_DIRS, StorageError, VFSError
 from A84CD import COMMANDS, unload
-from A84PD import DBDIR
 from A84AI import read_index, store_for
+
+DBDIR = "/var/lib/pacman/local"        # as in A84PM, which fsck must not load (memory)
 
 
 def check_main(sh, out):

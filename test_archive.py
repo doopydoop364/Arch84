@@ -311,5 +311,14 @@ class FsckTests(unittest.TestCase):
     def test_usage(self):
         self.assertIn("usage", self.r("fsck -x"))
 
+class FsckConstantsTests(unittest.TestCase):
+    def test_fsck_does_not_import_the_package_modules_and_agrees_with_them(self):
+        import A84FK, A84PM
+        self.assertEqual(A84FK.DBDIR, A84PM.DBDIR)
+        src = open("A84FK.py").read()
+        self.assertNotIn("import A84PD", src)
+        self.assertNotIn("from A84PD", src)
+
+
 if __name__ == "__main__":
     unittest.main()
