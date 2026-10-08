@@ -16,7 +16,7 @@
 # bytes TAB sum TAB files TAB raw TAB path TAB path ... An archive is created only after
 # its lists were written and read back; the files leave RAM in the same sync that saves
 # the catalogue, so a power cut shows either the old state or the new one.
-from A84FS import StorageError, dpieces
+from A84FS import StorageError, VFSError, dpieces
 from A84CZ import FACTORY1_DIRS, FACTORY1_FILES, Out, put_varint, slices
 from A84ST import Writer
 from A84AI import (ArError, DIR, MAXID, ok_name, read_index, store_for, write_index)
@@ -168,12 +168,12 @@ def create(sh, name, args):
     ent = {"id": aid, "name": name, "blocks": w.nblocks, "bytes": w.nbytes, "sum": w.checksum(),
            "files": nfiles, "raw": raw, "paths": paths}
     ents.append(ent)
-    held = []
+    try:
+        write_index(vfs, ents)      # first: if this runs out of memory nothing has been removed yet
+    except (MemoryError, VFSError):
+        raise ArError("out of memory while updating the catalogue; nothing was archived")
     for p in paths:
         i = p.rfind("/")
-        parent = vfs.get(p[:i] or "/")
-        held.append(parent.children.pop(p[i + 1:]))
-    held = None                 # the files are gone from RAM from here on
-    write_index(vfs, ents)
+        vfs.get(p[:i] or "/").children.pop(p[i + 1:])       # the files leave RAM here
     vfs.dirty = True            # A84AX saves after this module is gone
     return ent, stats

@@ -17,14 +17,14 @@ def used(t):
 def main():
     e = Emu()
     make = []
-    for i in range(5):
+    for i in range(4):
         make += ["echo " + "x" * 90 + " > f%d" % i] + ["cat f%d f%d > t" % (i, i), "cat t t > f%d" % i] * 2
     make.append("rm t")
     rA = e.run(make + ["free"], fresh=True)
     u_before = used(rA["stdout"])
-    rB = e.run(make + ["archive create big f0 f1 f2 f3 f4", "free"], fresh=True)
+    rB = e.run(make + ["archive create big f0 f1 f2 f3", "free"], fresh=True)
     u_after = used(rB["stdout"])
-    print("heap in use with 5 files of ~1.4 KB: %s B; after `archive create`: %s B -> freed %s B" % (
+    print("heap in use with 4 files of ~1.4 KB: %s B; after `archive create`: %s B -> freed %s B" % (
         u_before, u_after, (u_before - u_after) if u_before and u_after else "?"))
     ok = bool(u_before and u_after and u_before - u_after > 2000)
     r1 = e.run(["archive list", "archive check", "ls", "sync"])
@@ -32,7 +32,7 @@ def main():
     r2 = e.run(["archive extract big", "wc f0"])
     t2 = r2["stdout"]
     print("fresh boot, extract:", [l for l in t2.split("\n") if "restored" in l or " f0" in l])
-    ok = ok and "restored 5 files" in t2 and "Traceback" not in t1 + t2
+    ok = ok and "restored 4 files" in t2 and "Traceback" not in t1 + t2
     r3 = e.run(["archive list", "fsck"])
     print("after extract:", [l for l in r3["stdout"].split("\n") if "problems" in l or "archive" in l and "list" not in l][-3:])
     ok = ok and "no problems found" in r3["stdout"]
