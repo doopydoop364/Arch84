@@ -240,7 +240,13 @@ class Kernel:
             raise StorageError("verify failed: " + str(e))
         if back is None:
             return ["verify: tree compare skipped (low memory)"]
-        if not same_tree(back, self.vfs):
+        try:
+            same = same_tree(back, self.vfs)
+        except MemoryError:
+            # the checksum and the decode already passed; the structural
+            # compare is the extra check, so losing it must not undo a save
+            return ["verify: tree compare skipped (low memory)"]
+        if not same:
             raise StorageError("verify failed: saved tree differs")
         return []
 

@@ -5,6 +5,7 @@ import unittest
 
 from testutil import *
 import A84CZ
+import A84KN
 from A84SH import Shell
 from A84CZ import lz_compress, lz_decompress, LZ_HASH
 
@@ -238,6 +239,48 @@ class BootLoadRetryTests(unittest.TestCase):
         self.assertTrue(any("out of memory" in m for m in k.boot_msgs))
         with self.assertRaises(StorageError):
             k.sync()
+
+
+class VerifyMemoryTests(unittest.TestCase):
+    def mk(self, files):
+        v = VFS()
+        v.reset_default()
+        for p, d in files.items():
+            if d is None:
+                v.mkdir(p)
+            else:
+                v.write(p, d)
+        return v
+
+    def test_same_tree_detects_every_kind_of_difference(self):
+        base = {"/tmp/a": "1", "/tmp/d": None, "/tmp/d/x": "2"}
+        same = A84CZ.same_tree
+        self.assertTrue(same(self.mk(base), self.mk(base)))
+        for other in ({"/tmp/a": "9", "/tmp/d": None, "/tmp/d/x": "2"},       # data
+                      {"/tmp/a": "1", "/tmp/d": None},                         # missing
+                      {"/tmp/a": "1", "/tmp/d": None, "/tmp/d/y": "2"},        # renamed
+                      {"/tmp/a": None, "/tmp/d": "z"},                         # file<->dir
+                      {"/tmp/a": "1", "/tmp/d": None, "/tmp/d/x": "2", "/tmp/e": "3"}):
+            self.assertFalse(same(self.mk(base), self.mk(other)), other)
+            self.assertFalse(same(self.mk(other), self.mk(base)), other)
+
+    def test_memoryerror_in_the_compare_keeps_the_save(self):
+        # it used to abort the whole sync as "out of memory (nothing was changed)"
+        # after every list had been written and verified
+        ms = MemStorage()
+        k = Kernel(ms)
+        k.vfs.write("/tmp/x", "kept")
+        real = A84KN.same_tree
+
+        def boom(a, b):
+            raise MemoryError()
+        A84KN.same_tree = boom
+        try:
+            r = k.sync()
+        finally:
+            A84KN.same_tree = real
+        self.assertIn("tree compare skipped", " ".join(r[3]))
+        self.assertEqual(walk(Kernel(ms).vfs)["/tmp/x"], "kept")
 
 
 if __name__ == "__main__":

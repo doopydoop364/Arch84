@@ -550,20 +550,27 @@ def decode_stream(chunks):
 
 
 def same_tree(a, b):
-    # iterative structural equality of two VFS trees
+    # iterative structural equality of two VFS trees. Files are compared in
+    # place; only directories are queued (a wide directory used to queue one
+    # tuple per file, which is what ran out of memory at the end of a save).
     stack = [(a.root, b.root)]
     while stack:
         x, y = stack.pop()
-        if x.is_dir != y.is_dir:
+        if not x.is_dir or not y.is_dir:
             return False
-        if not x.is_dir:
-            if x.data != y.data:
-                return False
-            continue
-        if len(x.children) != len(y.children):
+        xc = x.children
+        yc = y.children
+        if len(xc) != len(yc):
             return False
-        for name in x.children:
-            if name not in y.children:
+        for name in xc:
+            if name not in yc:
                 return False
-            stack.append((x.children[name], y.children[name]))
+            cx = xc[name]
+            cy = yc[name]
+            if cx.is_dir != cy.is_dir:
+                return False
+            if cx.is_dir:
+                stack.append((cx, cy))
+            elif cx.data != cy.data:
+                return False
     return True
