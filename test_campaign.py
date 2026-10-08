@@ -5,6 +5,7 @@ import unittest
 
 from testutil import *
 import A84CZ
+from A84SH import Shell
 from A84CZ import lz_compress, lz_decompress, LZ_HASH
 
 
@@ -48,6 +49,56 @@ class LzHashTests(unittest.TestCase):
     def test_text_ratio_not_worse_than_pinned(self):
         d = open("A84SH.py", "rb").read()[:1024]
         self.assertLess(len(lz_compress(d)), 740)
+
+
+class NameLimitTests(unittest.TestCase):
+    """A name over 255 UTF-8 bytes used to be accepted and then made every
+    sync fail ("verify failed: bad name length"), so nothing could be saved."""
+
+    def setUp(self):
+        self.v = VFS()
+        self.v.reset_default()
+
+    def test_too_long_rejected_everywhere(self):
+        long = "a" * 256
+        self.v.write("/tmp/ok", "x")
+        for fn in (lambda: self.v.write("/tmp/" + long, "x"),
+                   lambda: self.v.mkdir("/tmp/" + long),
+                   lambda: self.v.touch("/tmp/" + long),
+                   lambda: self.v.copyfile("/tmp/ok", "/tmp/" + long),
+                   lambda: self.v.rename("/tmp/ok", "/tmp/" + long),
+                   lambda: self.v.write("/tmp/" + "é" * 128, "x")):
+            with self.assertRaises(VFSError) as c:
+                fn()
+            self.assertIn("too long", str(c.exception))
+        self.assertEqual(self.v.listdir("/tmp"), ["ok"])
+
+    def test_limit_name_saves(self):
+        for name in ("a" * 255, "é" * 127 + "a"):
+            self.v.write("/tmp/" + name, "x")
+        ms = MemStorage()
+        k = Kernel(ms)
+        k.vfs = self.v
+        k.sync()
+        self.assertEqual(walk(Kernel(ms).vfs), walk(self.v))
+
+
+class SortTieTests(unittest.TestCase):
+    def test_numeric_sort_ties_use_whole_line(self):
+        # sort(1) -n breaks ties by comparing the lines; MicroPython's list
+        # sort is unstable so relying on input order gave arbitrary output
+        k = Kernel(MemStorage())
+
+        class T:
+            text = ""
+            def write(self, s): self.text += s
+            def post(self, s, pending=False): pass
+            def busy(self): pass
+        t = T()
+        sh = Shell(k, t)
+        k.vfs.write("/tmp/n", "b\n10 z\n2 y\na\n10 a\n2 x\nc\n")
+        sh.execute("sort -n /tmp/n")
+        self.assertEqual(t.text, "a\nb\nc\n2 x\n2 y\n10 a\n10 z\n")
 
 
 if __name__ == "__main__":

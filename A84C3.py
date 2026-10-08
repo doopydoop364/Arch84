@@ -55,7 +55,9 @@ def cmd_sort(sh, args):
             sh.err("sort: " + f + ": " + str(e))
             st = 2
     if num:
-        lines.sort(key=numkey)
+        # ties fall back to the whole line (like sort(1)); MicroPython's list
+        # sort is not stable, so equal keys alone gave an arbitrary order
+        lines.sort(key=lambda l: (numkey(l), l))
     else:
         lines.sort()
     if rev:

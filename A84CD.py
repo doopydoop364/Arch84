@@ -129,10 +129,17 @@ def cmd_echo(sh, args):
 
 
 def rm_tree(vfs, path):
-    if vfs.isdir(path):
-        for n in vfs.listdir(path):
-            rm_tree(vfs, path.rstrip("/") + "/" + n)
-    vfs.remove(path)
+    # iterative: no recursion limit to hit on a deep tree
+    stack = [path]
+    order = []
+    while stack:
+        p = stack.pop()
+        order.append(p)
+        if vfs.isdir(p):
+            for n in vfs.listdir(p):
+                stack.append(p.rstrip("/") + "/" + n)
+    while order:
+        vfs.remove(order.pop())
 
 
 def cmd_rm(sh, args):

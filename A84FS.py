@@ -90,6 +90,7 @@ class VFSError(Exception):
 # canonical (equal text -> equal representation, so == works on data) and
 # nothing on the load/save/copy/append/stream paths ever joins a big file into
 # one string: the calculator heap fragments, and a single 5 KB string failed.
+MAXNAME = 255   # bytes of UTF-8 per path component (the saved format's limit)
 SPLIT = 512     # small, uniform pieces: they fit the holes a fragmented heap has
 BIGMIN = 1024
 
@@ -241,7 +242,12 @@ class VFS:
             node = node.children[part]
             if not node.is_dir:
                 raise VFSError("Not a directory")
-        return node, parts[-1]
+        name = parts[-1]
+        if len(name) > 63 and len(name.encode()) > MAXNAME:
+            # the saved format limits a name to 255 UTF-8 bytes; accepting a
+            # longer one made every later sync fail
+            raise VFSError("File name too long")
+        return node, name
 
     def mkdir(self, path):
         if path == "/":
@@ -372,13 +378,13 @@ class VFS:
         self.dirty = True
 
     def count(self):
-        return self._count(self.root)
-
-    def _count(self, node):
-        n = 1
-        if node.is_dir:
-            for name in node.children:
-                n += self._count(node.children[name])
+        n = 0
+        stack = [self.root]
+        while stack:
+            node = stack.pop()
+            n += 1
+            if node.is_dir:
+                stack.extend(node.children.values())
         return n
 
 

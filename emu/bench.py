@@ -40,4 +40,5 @@ def main():
     if "--json" in sys.argv:
         json.dump(out, open(sys.argv[sys.argv.index("--json") + 1], "w"), indent=1, sort_keys=True)
 
-main()
+if __name__ == "__main__":
+    main()
