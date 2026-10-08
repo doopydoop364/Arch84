@@ -32,11 +32,11 @@ class Shell(Completer):
 
     # -- helpers used by commands
     def out(self, text):
-        # output is flushed in ~1 KB batches (on a line boundary), so a command
+        # output is flushed in ~512 B batches (on a line boundary), so a command
         # that prints a big file never builds one big string
         self._out.append(text)
         self._outn += len(text)
-        if self._outn >= 1024 and text.endswith("\n"):
+        if self._outn >= 512 and text.endswith("\n"):
             self.flush_out()
 
     def flush_out(self):

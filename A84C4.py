@@ -63,7 +63,11 @@ def cmd_du(sh, args):
 
 
 def cmd_df(sh, args):
-    raw, stored = fs_measure(sh.vfs)
+    sh.k.release_spare()        # same buffers as a save: use the reserved block
+    try:
+        raw, stored = fs_measure(sh.vfs)
+    finally:
+        sh.k.hold_spare()
     per = DATA_ELEMS * ELEM_BYTES
     sh.out("Filesystem  " + pad("Raw", 6) + " " + pad("Stored", 6) + " "
            + pad("Blk", 3) + "\n")

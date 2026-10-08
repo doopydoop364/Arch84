@@ -538,3 +538,24 @@ commands, `sync`, `exit`, relaunch.
 Precompiled bytecode (mpy v5) would remove compile peaks entirely, but device
 execution of .mpy modules is unverified (README says only transfer was
 validated).
+
+---
+# Big-file save runs out of memory (found on the calculator) and the fix
+
+On the device the doubling test (`cat a b`-style) stopped at 8 KB total.
+Reproduced in the emulator: the doubling works, but `sync`/`df` then fail with
+`MemoryError` allocating ~1.4 KB while 28 KB are free: the heap is fragmented
+(`max free sz` was ~1 KB), and the writer needs contiguous buffers.
+
+- File pieces are 512 chars (BIGMIN 1024) instead of 1024/2048, output flush
+  batches are 512 B, frames are 1024 raw bytes (readers still accept frames up
+  to 2 * CHUNK, so older saves load). In-memory shape only: the saved format is
+  unchanged.
+- `Kernel` reserves a 3 KB block at boot (`hold_spare`) and hands it back just
+  before a save or `df` (`release_spare`), re-reserving it afterwards, so the
+  writer's buffers find a contiguous hole. Costs 3 KB of free heap.
+- Emulator, HEAP=127800: one file doubled in place to 12,288 bytes with
+  `cat a >> a` saves (12,724 -> 1,962 bytes, 4 blocks) and reloads. Two files
+  of that size (`cat a a > b`, ~18 KB total) are still over the limit: the
+  whole filesystem lives in RAM, so keep the total file data under ~12 KB on
+  the device. Use `cat a >> a` to double a file; it needs one copy only.

@@ -29,8 +29,13 @@ def need_bytes(msg):
     return " (needed " + msg[i + 11:j] + " B)"
 
 
+SPARE = 3072    # contiguous block held back for sync/df (see hold_spare)
+
+
 class Kernel:
     def __init__(self, storage, log=None):
+        self.spare = None
+        self.hold_spare()       # first thing: the heap is still unfragmented
         self.storage = storage
         self.log = log      # called with each boot line as its step finishes
         self.spin_msg = None
@@ -46,6 +51,22 @@ class Kernel:
         self.t0 = now_ms()
         self.boot_msgs = []
         self.boot()
+
+    def hold_spare(self):
+        # The calculator heap fragments: after file work there can be 30 KB
+        # free but no hole over ~1 KB, and the writer needs contiguous
+        # buffers. One block is reserved at boot and handed back right
+        # before a save so those buffers land in it.
+        if self.spare is None:
+            try:
+                self.spare = bytearray(SPARE)
+            except MemoryError:
+                self.spare = None
+
+    def release_spare(self):
+        self.spare = None
+        import gc
+        gc.collect()
 
     def spin(self, msg):
         # a task is running: "[*     ] msg", the asterisks slide as work is
@@ -218,6 +239,13 @@ class Kernel:
                                "(sync -f to overwrite)")
         self.save_history()
         stats = [0, 0]
+        self.release_spare()
+        try:
+            return self.sync_run(stats)
+        finally:
+            self.hold_spare()
+
+    def sync_run(self, stats):
         try:
             w = self.storage.writer()
             for fr in fs_stream(self.vfs, stats):

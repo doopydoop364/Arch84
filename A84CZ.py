@@ -19,9 +19,9 @@
 # FACTORY1_* is FROZEN. Saves made with factory 1 rebuild their defaults from
 # it, so editing it would silently corrupt old saves. To change the shipped
 # defaults, add FACTORY2 and keep FACTORY1; test_arch84.py pins the hash.
-from A84FS import Node, StorageError, VERSION, VFS, dchunks, dpieces
+from A84FS import Node, SPLIT, StorageError, VERSION, VFS, dchunks, dpieces
 
-CHUNK = 2048
+CHUNK = 1024    # raw bytes per frame (readers accept up to 2 * CHUNK: older saves used 2048)
 FRAME_HDR = 5
 MAXNAME = 255
 MAXDATA = 1048576
@@ -200,13 +200,13 @@ def rec_head(out, t, parent, name):
 
 
 def slices(pieces):
-    # <= 1 KB slices of characters (never splits a UTF-8 character)
+    # <= SPLIT-char slices (never splits a UTF-8 character)
     for p in pieces:
-        if len(p) <= 1024:
+        if len(p) <= SPLIT:
             yield p
         else:
-            for i in range(0, len(p), 1024):
-                yield p[i:i + 1024]
+            for i in range(0, len(p), SPLIT):
+                yield p[i:i + SPLIT]
 
 
 def rec_file(out, parent, name, data):

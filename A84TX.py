@@ -112,7 +112,7 @@ def c_big_codec():
     v.reset_default()
     v.write("/home/evo/big", "0123456789abcdef\n" * 200)       # 3400 chars -> pieces
     d = v.get("/home/evo/big").data
-    if isinstance(d, str) or len(d) != 4 or len(d[0]) != SPLIT or dlen(d) != 3400:
+    if isinstance(d, str) or len(d) != (3400 + SPLIT - 1) // SPLIT or len(d[0]) != SPLIT or dlen(d) != 3400:
         return False
     back = decode_stream(fs_stream(v))
     return same_tree(back, v) and back.get("/home/evo/big").data == d

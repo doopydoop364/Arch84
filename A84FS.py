@@ -90,8 +90,8 @@ class VFSError(Exception):
 # canonical (equal text -> equal representation, so == works on data) and
 # nothing on the load/save/copy/append/stream paths ever joins a big file into
 # one string: the calculator heap fragments, and a single 5 KB string failed.
-SPLIT = 1024
-BIGMIN = 2048
+SPLIT = 512     # small, uniform pieces: they fit the holes a fragmented heap has
+BIGMIN = 1024
 
 
 def dnew(s):

@@ -1853,6 +1853,31 @@ class GfxTests(unittest.TestCase):
         self.assertIsInstance(pick_term(Bad([]), FakeTD(fail=True), "b\n"), PlainTerm)
 
 
+class SpareBlockTests(unittest.TestCase):
+    def test_spare_is_held_and_released_around_a_save(self):
+        k = Kernel(MemStorage())
+        self.assertIsNotNone(k.spare)
+        seen = []
+        real = k.sync_run
+        def spy(stats):
+            seen.append(k.spare)
+            return real(stats)
+        k.sync_run = spy
+        k.vfs.write("/tmp/x", "hi")
+        k.sync()
+        self.assertEqual(seen, [None])          # handed back while saving
+        self.assertIsNotNone(k.spare)           # and re-reserved afterwards
+
+    def test_spare_is_re_reserved_after_a_failed_save(self):
+        k = Kernel(MemStorage())
+        def boom(stats):
+            raise StorageError("nope")
+        k.sync_run = boom
+        with self.assertRaises(StorageError):
+            k.sync()
+        self.assertIsNotNone(k.spare)
+
+
 class MemoryResilienceTests(unittest.TestCase):
     """A transient MemoryError must never end the shell or drop it to input()."""
 
