@@ -148,6 +148,55 @@ class StateMachineTests(unittest.TestCase):
         e.key("clear"); self.type(e, "p"); e.key("enter")
         self.assertEqual(e.lines, ["one", "three", "two", "two"])        # pasted below the cursor
 
+    def cmd(self, e, text):
+        e.key("clear")
+        self.type(e, text)
+        e.key("enter")
+
+    def test_undo_groups_typing_and_is_a_toggle(self):
+        e = self.ed(["abc"])
+        e.key("end")
+        self.type(e, "def")
+        self.cmd(e, "u")
+        self.assertEqual(e.lines, ["abc"])                  # the whole word, not one letter
+        self.cmd(e, "u")
+        self.assertEqual(e.lines, ["abcdef"])               # u again = redo
+        e.key("home")
+        self.type(e, "X")                                   # a move starts a new group
+        self.cmd(e, "u")
+        self.assertEqual(e.lines, ["abcdef"])
+
+    def test_undo_restores_structure_and_cursor(self):
+        e = self.ed(["one", "two", "three"])
+        e.key("down")
+        self.cmd(e, "d")
+        self.assertEqual(e.lines, ["one", "three"])
+        self.cmd(e, "u")
+        self.assertEqual(e.lines, ["one", "two", "three"])
+        self.assertEqual(e.row, 1)
+        e.key("end"); e.key("enter")
+        self.assertEqual(len(e.lines), 4)
+        self.cmd(e, "u")
+        self.assertEqual(e.lines, ["one", "two", "three"])
+        e.key("home"); e.key("bs")                          # joins with the line above
+        self.assertEqual(e.lines, ["onetwo", "three"])
+        self.cmd(e, "u")
+        self.assertEqual(e.lines, ["one", "two", "three"])
+        self.cmd(e, "%s/o/0/")
+        self.assertEqual(e.lines, ["0ne", "tw0", "three"])
+        self.cmd(e, "u")
+        self.assertEqual(e.lines, ["one", "two", "three"])
+        self.cmd(e, "y"); self.cmd(e, "p")
+        self.assertEqual(len(e.lines), 4)
+        self.cmd(e, "u")
+        self.assertEqual(len(e.lines), 3)
+
+    def test_nothing_to_undo(self):
+        e = self.ed(["x"])
+        self.cmd(e, "u")
+        self.assertEqual(e.msg, "nothing to undo")
+        self.assertEqual(e.lines, ["x"])
+
     def test_delete_last_line_and_paste(self):
         e = self.ed(["only"])
         e.key("clear"); self.type(e, "d"); e.key("enter")

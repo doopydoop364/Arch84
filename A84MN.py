@@ -21,7 +21,7 @@ PAGES = (
         'dirname\tdirname PATH\teverything but the last part of a path\n'
         'du\tdu [-s] [PATH...]\tcharacters used by files; -s only totals\n'
         'echo\techo [-n] [WORD...]\tprint the words; -n omits the newline\n'
-        'edit\tedit FILE\tfull-screen editor. CLEAR = command line: w save, q quit, qq quit without saving, wq, N go to line, /text find, n next, d y p cut/copy/paste a line, s/a/b/ and %s/a/b/ replace\n'
+        'edit\tedit FILE\tfull-screen editor. CLEAR = command line: w save, q quit, qq quit without saving, wq, N go to line, /text find, n next, d y p cut/copy/paste a line, u undo (again = redo), s/a/b/ and %s/a/b/ replace\n'
         'env\tenv\tlist the environment variables\n'
         'exit\texit\tsave and leave Arch84\n'
         'export\texport [NAME[=VALUE]...]\tset environment variables (no arguments: list them)\n'

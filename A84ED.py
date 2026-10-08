@@ -7,6 +7,7 @@
 #   w [file]   save           q  quit        qq (or q!)  quit, discard   wq / x  save+quit
 #   N          go to line N   /text  find    n   find next
 #   d          delete line (kept)   y  copy line   p  paste below
+#   u          undo the last change (typing a word, Enter, Backspace, d, p, s...); u again redoes
 #   s/old/new/ replace in this line     %s/old/new/  replace in every line
 MAXLINES = 1500
 HELP = "CLEAR=cmd  w save  q quit"
@@ -26,6 +27,8 @@ class Editor:
         self.yank = None
         self.find = ""
         self.msg = HELP
+        self.undo = None        # (lines, row, col) before the last change
+        self.lastop = ""        # kind of the last change, so typing a word is one undo step
         self.cmd = None         # None, or the command line being typed
         self.act = None         # for the driver: "w" "q" "wq" "q!"
         self.saveas = None
@@ -55,6 +58,23 @@ class Editor:
         self.row = n - 1
         self.col = 0
         self.fix()
+
+    # ---- undo
+    def mark(self, op):
+        # remember the state before a change; a run of the same kind of change is one step
+        if op != self.lastop or op != "type":
+            self.undo = (self.lines[:], self.row, self.col)
+        self.lastop = op
+
+    def swap(self):
+        if self.undo is None:
+            self.msg = "nothing to undo"
+            return
+        now = (self.lines[:], self.row, self.col)
+        self.lines, self.row, self.col = self.undo
+        self.undo = now
+        self.lastop = ""
+        self.dirty = True
 
     # ---- editing
     def insert(self, s):
@@ -105,7 +125,10 @@ class Editor:
         if self.cmd is not None:
             self.cmd_key(a)
             return
+        if a in ("left", "right", "up", "down", "home", "end", "pgup", "pgdn", "clear"):
+            self.lastop = ""
         if len(a) == 1:
+            self.mark("type")
             self.insert(a)
         elif a == "left":
             if self.col > 0:
@@ -124,6 +147,7 @@ class Editor:
         elif a == "down":
             self.row += 1
         elif a == "home":
+            self.lastop = ""
             self.col = 0
         elif a == "end":
             self.col = len(self.lines[self.row])
@@ -132,12 +156,16 @@ class Editor:
         elif a == "pgdn":
             self.row += self.H - 1
         elif a == "enter":
+            self.mark("enter")
             self.split()
         elif a == "bs":
+            self.mark("bs")
             self.backspace()
         elif a == "del":
+            self.mark("del")
             self.delete()
         elif a == "tab":
+            self.mark("type")
             self.insert("  ")
         elif a == "clear":
             self.cmd = ""
@@ -184,7 +212,10 @@ class Editor:
             self.search()
         elif c == "n":
             self.search()
+        elif c == "u":
+            self.swap()
         elif c == "d":
+            self.mark("cmd")
             self.yank = self.lines[self.row]
             if len(self.lines) > 1:
                 self.lines.pop(self.row)
@@ -200,6 +231,7 @@ class Editor:
             elif len(self.lines) >= MAXLINES:
                 self.msg = "too many lines"
             else:
+                self.mark("cmd")
                 self.lines.insert(self.row + 1, self.yank)
                 self.row += 1
                 self.dirty = True
@@ -236,6 +268,7 @@ class Editor:
         rows = [self.row]
         if whole:
             rows = range(len(self.lines))
+        self.mark("cmd")
         hits = 0
         for r in rows:
             ln = self.lines[r]

@@ -11,7 +11,7 @@ df	df	raw and stored size of the filesystem and how many lists it uses
 dirname	dirname PATH	everything but the last part of a path
 du	du [-s] [PATH...]	characters used by files; -s only totals
 echo	echo [-n] [WORD...]	print the words; -n omits the newline
-edit	edit FILE	full-screen editor. CLEAR = command line: w save, q quit, qq quit without saving, wq, N go to line, /text find, n next, d y p cut/copy/paste a line, s/a/b/ and %s/a/b/ replace
+edit	edit FILE	full-screen editor. CLEAR = command line: w save, q quit, qq quit without saving, wq, N go to line, /text find, n next, d y p cut/copy/paste a line, u undo (again = redo), s/a/b/ and %s/a/b/ replace
 env	env	list the environment variables
 exit	exit	save and leave Arch84
 export	export [NAME[=VALUE]...]	set environment variables (no arguments: list them)
