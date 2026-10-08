@@ -162,7 +162,12 @@ class Kernel:
             return None, None
         try:
             if got[0] == 1:
-                from A84V1 import decode_fs         # old text format: rare, so not resident
+                try:
+                    from A84V1 import decode_fs     # old text format: rare, so not resident
+                except MemoryError:
+                    import sys
+                    sys.modules.pop("A84V1", None)
+                    raise
                 self.vfs = decode_fs(b"".join(got[1]).decode())
             else:
                 self.vfs = decode_stream(got[1])
@@ -177,6 +182,8 @@ class Kernel:
         try:
             import A84PF
         except (ImportError, MemoryError):
+            import sys
+            sys.modules.pop("A84PF", None)
             return None
         return A84PF.node(self, path)
 

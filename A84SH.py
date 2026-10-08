@@ -160,13 +160,16 @@ class Shell(Completer, Lifecycle):
 
     def script(self, name):
         # a file on PATH (or named with a "/") runs as a script: A84SC, loaded on demand
+        import sys
         try:
             try:
                 import A84SC
             except MemoryError:
+                sys.modules.pop("A84SC", None)      # a failed import leaves a broken module behind
                 evict()
                 import A84SC
         except (ImportError, MemoryError):
+            sys.modules.pop("A84SC", None)
             return None
         sp = A84SC.script_path(self, name)
         if sp is None:

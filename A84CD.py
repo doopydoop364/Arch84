@@ -473,6 +473,12 @@ def load_command(name):
         try:
             __import__(LAZY[name])
         except MemoryError:
+            # MicroPython keeps a module that ran out of memory half-built in sys.modules:
+            # evict() drops those too, so the retry starts clean (and so does a later try)
             evict()
-            __import__(LAZY[name])
+            try:
+                __import__(LAZY[name])
+            except MemoryError:
+                evict()
+                raise
     return COMMANDS.get(name)

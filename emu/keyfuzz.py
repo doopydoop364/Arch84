@@ -13,14 +13,14 @@ CODES = [11, 12, 13, 14, 15, 21, 22, 23, 24, 25, 26, 31, 33, 34, 41, 42, 43, 45,
 
 BAD = ("terminal error", "falling back", "Traceback", "internal error", "ash: low memory")
 
-def one(seed, n, nodraw=False):
+def one(seed, n, nodraw=False, heap=None):
     rng = random.Random(seed)
     ks = []
     for _ in range(n):
         r = rng.random()
         ks.append(105 if r < 0.08 else rng.choice(CODES))
     e = Emu()
-    r = e.run(keys=ks, shots=False, nodraw=nodraw)
+    r = e.run(keys=ks, shots=False, nodraw=nodraw, heap=heap)
     txt = r["stdout"] + r["stderr"]
     bad = [b for b in BAD if b in txt]
     if r.get("crash") or r.get("error") or bad or r["rc"] != 0:
@@ -29,11 +29,15 @@ def one(seed, n, nodraw=False):
 
 if __name__ == "__main__":
     nodraw = "--nodraw" in sys.argv
-    a = [int(x) for x in sys.argv[1:] if x != "--nodraw"]
+    heap = None
+    for x in sys.argv:
+        if x.startswith("--heap="):
+            heap = int(x[7:])
+    a = [int(x) for x in sys.argv[1:] if not x.startswith("--")]
     first, count, n = (a + [1, 20, 1500][len(a):])[:3]
     fails = 0
     for s in range(first, first + count):
-        f = one(s, n, nodraw)
+        f = one(s, n, nodraw, heap)
         if f:
             fails += 1
             print("FAIL", f)

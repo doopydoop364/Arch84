@@ -419,6 +419,41 @@ class EvictionTests(unittest.TestCase):
         sh.execute("pacman -Q")                     # and it loads again on demand
         self.assertIn("pacman", COMMANDS)
 
+    def test_a_failed_import_leaves_no_half_built_module_behind(self):
+        # MicroPython keeps a module that ran out of memory in sys.modules, broken: every
+        # later use then failed with AttributeError instead of retrying
+        import builtins
+        import sys
+        for failures, runs in ((1, True), (2, False)):
+            sh = Shell(Kernel(MemStorage()), type("T", (), {"write": lambda s, x: None,
+                                                            "post": lambda s, x, p=False: None,
+                                                            "busy": lambda s: None})())
+            out = []
+            sh.term.write = out.append
+            sys.modules.pop("A84SC", None)
+            sh.vfs.write("/usr/bin/hi", "echo hi\n")
+            real = builtins.__import__
+            left = [1] * failures
+
+            def die_leaving_junk(name, *a, **k):
+                if name == "A84SC" and left:
+                    left.pop()
+                    sys.modules["A84SC"] = type(sys)("A84SC")       # what a half-run import leaves
+                    raise MemoryError()
+                return real(name, *a, **k)
+            builtins.__import__ = die_leaving_junk
+            try:
+                sh.execute("hi")
+            finally:
+                builtins.__import__ = real
+            self.assertEqual("".join(out) == "hi\n", runs)         # one failure is retried, two give up
+            if not runs:
+                self.assertTrue("A84SC" not in sys.modules)
+                self.assertTrue("command not found" in "".join(out))
+            out[:] = []
+            sh.execute("hi")                                         # the next try just works
+            self.assertEqual("".join(out), "hi\n")
+
     def test_persistent_memory_shortage_reports_out_of_memory(self):
         import builtins
         sh = Shell(Kernel(MemStorage()), type("T", (), {"write": lambda s, x: None,
