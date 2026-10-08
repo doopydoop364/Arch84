@@ -144,14 +144,25 @@ def rm_tree(vfs, path):
 
 def cmd_rm(sh, args):
     rec = False
+    force = False
     files = []
+    opts = True
     for a in args:
-        if a == "-r" or a == "-rf" or a == "-R":
-            rec = True
+        if opts and a == "--":
+            opts = False
+        elif opts and len(a) > 1 and a[0] == "-" and a.strip("rRf-") == "" and a.strip("-") != "":
+            for c in a:
+                if c == "r" or c == "R":
+                    rec = True
+                elif c == "f":
+                    force = True
         else:
             files.append(a)
-    if not need(sh, "rm", files):
-        return 1
+    if not files:
+        if not force:
+            sh.err("rm: missing operand")
+            return 1
+        return 0
     st = 0
     for a in files:
         path = sh.resolve(a)
@@ -162,6 +173,8 @@ def cmd_rm(sh, args):
                 if path == "/" or path == sh.cwd or sh.cwd.startswith(path + "/"):
                     raise VFSError("refusing to remove cwd or /")
                 rm_tree(sh.vfs, path)
+            elif force and not sh.vfs.exists(path):
+                continue
             else:
                 sh.vfs.remove(path)
         except VFSError as e:

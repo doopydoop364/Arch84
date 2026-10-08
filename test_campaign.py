@@ -319,5 +319,52 @@ class PropertyTests(unittest.TestCase):
                 self.assertIsInstance(ed.hint, str)
 
 
+class RmOptionTests(unittest.TestCase):
+    def setUp(self):
+        k = Kernel(MemStorage())
+
+        class T:
+            text = ""
+            def write(self, s): self.text += s.replace("\x01", "")
+            def post(self, s, pending=False): pass
+            def busy(self): pass
+        self.t = T()
+        self.sh = Shell(k, self.t)
+        self.v = k.vfs
+        self.v.mkdir("/tmp/d")
+        self.v.write("/tmp/d/f", "x")
+        self.v.write("/tmp/g", "y")
+
+    def run_(self, line):
+        self.t.text = ""
+        self.sh.execute(line)
+        return self.t.text
+
+    def test_flag_orders(self):
+        for flags in ("-r", "-R", "-rf", "-fr", "-Rf", "-r -f"):
+            self.v.mkdir("/tmp/d2")
+            self.v.write("/tmp/d2/f", "x")
+            self.assertEqual(self.run_("rm " + flags + " /tmp/d2"), "", flags)
+            self.assertFalse(self.v.exists("/tmp/d2"), flags)
+
+    def test_force_ignores_missing_but_not_directories(self):
+        self.assertEqual(self.run_("rm -f /tmp/nope"), "")
+        self.assertEqual(self.sh.status, 0)
+        self.assertIn("Is a directory", self.run_("rm -f /tmp/d"))
+        self.assertTrue(self.v.exists("/tmp/d"))
+
+    def test_missing_operand_and_plain_errors_unchanged(self):
+        self.assertIn("missing operand", self.run_("rm"))
+        self.assertIn("No such file", self.run_("rm /tmp/nope"))
+        self.assertEqual(self.run_("rm -f"), "")
+
+    def test_double_dash_and_dash_names(self):
+        self.v.write("/tmp/-r", "z")
+        self.assertEqual(self.run_("rm -- /tmp/-r"), "")
+        self.assertFalse(self.v.exists("/tmp/-r"))
+        self.v.write("/tmp/g2", "z")
+        self.assertEqual(self.run_("rm /tmp/g2"), "")
+
+
 if __name__ == "__main__":
     unittest.main()

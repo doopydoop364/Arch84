@@ -70,6 +70,7 @@ Host-MicroPython timings are not device timings.
     was changed)" after every list was written); now downgraded to the existing "compare skipped"
     warning, and `same_tree` no longer queues one tuple per file.
 12. Boot retries a failed (out-of-memory) load once after `gc.collect()` before disabling saving.
+14. `rm -fr`/`-Rf`/`-f`/`--` were not understood (`rm -f x` treated `-f` as a file name); flags now combine.
 13. `reboot` frees the finished session first (`boot_once`) and scrubs stale GC roots: the
     conservative GC kept the old filesystem tree alive (9-15 KB less free after reboot).
 
