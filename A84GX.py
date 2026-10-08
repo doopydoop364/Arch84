@@ -5,8 +5,8 @@
 # glyph sits 2 px below its row top Y when y = Y + 20; descenders end ~Y+17.
 # fill_rect(x, y, w, h), draw_text(x, y_baseline, text), set_color(r, g, b);
 # draw calls show immediately (paint_buffer/show_draw are not usable).
-from A84FS import *
-from A84UI import *
+from A84FS import ERR
+from A84UI import PlainTerm, TiTerm
 
 try:
     import ti_system as TI

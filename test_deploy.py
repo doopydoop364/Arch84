@@ -40,7 +40,7 @@ class BackupTests(unittest.TestCase):
     def test_original_sources_untouched_by_renaming(self):
         text = source("A84SH")
         deploy.bak_source(text)
-        self.assertIn("from A84FS import *", text)
+        self.assertIn("from A84FS import", text)
         self.assertNotIn("BAK", text)
 
     def test_backup_system_runs_standalone(self):

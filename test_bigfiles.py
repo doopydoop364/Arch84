@@ -229,7 +229,7 @@ class CodecBigTests(unittest.TestCase):
 
     def test_save_and_load_never_join_a_file(self):
         v = self.big_fs(30000)
-        real = (A84FS.dtext, A84CZ.dtext)
+        real = (A84FS.dtext, getattr(A84CZ, "dtext", None))
         def boom(d):
             raise AssertionError("a big file was joined into one string")
         A84FS.dtext = A84CZ.dtext = boom
@@ -237,7 +237,11 @@ class CodecBigTests(unittest.TestCase):
             frames = list(fs_stream(v))
             back = decode_stream(frames)
         finally:
-            A84FS.dtext, A84CZ.dtext = real
+            A84FS.dtext = real[0]
+            if real[1] is None:
+                del A84CZ.dtext
+            else:
+                A84CZ.dtext = real[1]
         self.assertTrue(same_tree(back, v))
 
     def test_random_big_filesystems(self):

@@ -1,7 +1,7 @@
 # A84PE: shell parser and line editor (Arch84 module, split from A84KN to
 # keep each module's compile-time memory peak low)
 
-from A84FS import *
+
 
 
 # --------------------------------------------------------------- parser

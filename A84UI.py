@@ -2,7 +2,7 @@
 # Verified on a TI-84 Evo (OS 7.0): get_key(1) blocks and returns the
 # positional key code, get_key(0) returns 0 when no key is down,
 # disp_at(row, text, align) with rows 1..10 and 31 columns.
-from A84FS import *
+from A84FS import ERR, now_ms
 
 ROWS = 10
 COLS = 31

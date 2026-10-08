@@ -19,7 +19,7 @@
 # FACTORY1_* is FROZEN. Saves made with factory 1 rebuild their defaults from
 # it, so editing it would silently corrupt old saves. To change the shipped
 # defaults, add FACTORY2 and keep FACTORY1; test_arch84.py pins the hash.
-from A84FS import *
+from A84FS import Node, StorageError, VERSION, VFS, dchunks, dpieces
 
 CHUNK = 2048
 FRAME_HDR = 5

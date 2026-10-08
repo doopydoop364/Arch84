@@ -1,7 +1,6 @@
 # A84CD: commands (Arch84 module 7/10)
 
-from A84FS import *
-from A84KN import *
+from A84FS import VERSION, VFSError, basename
 
 
 def fail(sh, cmd, arg, e):
@@ -283,6 +282,17 @@ def cmd_tail(sh, args):
     return head_tail(sh, "tail", args)
 
 
+def pad(v, w):
+    s = str(v)
+    return " " * (w - len(s)) + s
+
+
+def join(a, b):
+    if a.endswith("/"):
+        return a + b
+    return a + "/" + b
+
+
 COMMANDS = {
     "help": cmd_help, "clear": cmd_clear, "pwd": cmd_pwd, "ls": cmd_ls,
     "cd": cmd_cd, "mkdir": cmd_mkdir, "touch": cmd_touch, "cat": cmd_cat,
@@ -291,12 +301,14 @@ COMMANDS = {
 }
 
 
-# Commands that live in A84C2 (13 KB of heap): registered by name only and
+# Commands that live in A84C2..C5 (13 KB of heap in all): registered by name only and
 # loaded on first use, so they cost nothing until you run one.
 LAZY = {}
-for _n in ("true false grep find sort wc basename dirname du df free mount "
-           "umount uptime date reboot poweroff").split():
-    LAZY[_n] = "A84C2"
+for _m, _names in (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname"),
+                   ("A84C4", "du df free mount umount uptime"),
+                   ("A84C5", "date reboot poweroff")):
+    for _n in _names.split():
+        LAZY[_n] = _m
 
 
 def all_commands():

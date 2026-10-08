@@ -14,8 +14,8 @@ from A84GX import *
 import A84TS
 import A84KN
 from testutil import FakeTI, ti_store, save_vfs, put_v1, bad_version
-import A84C2
-from A84C2 import days_from_civil, civil_from_days
+import A84C2, A84C3, A84C4, A84C5
+from A84C5 import days_from_civil, civil_from_days
 from A84CD import *
 from A84SH import *
 
@@ -1137,6 +1137,9 @@ class SpinnerTests(unittest.TestCase):
         self.assertEqual(term.prev[1][1], ("  OK  ", "g"))
 
 
+LAZYMODS = ("A84C2", "A84C3", "A84C4", "A84C5")
+
+
 class LazyCommandTests(unittest.TestCase):
     NAMES = "true false grep find sort wc basename dirname du df free mount umount uptime date reboot poweroff".split()
 
@@ -1144,13 +1147,12 @@ class LazyCommandTests(unittest.TestCase):
         # make the state the calculator starts in: A84C2 not imported yet
         import sys
         saved = {n: COMMANDS.pop(n) for n in self.NAMES if n in COMMANDS}
-        mod = sys.modules.pop("A84C2", None)
+        mod = {m: sys.modules.pop(m) for m in LAZYMODS if m in sys.modules}
         return saved, mod
 
     def restore(self, saved, mod):
         import sys
-        if mod is not None:
-            sys.modules["A84C2"] = mod
+        sys.modules.update(mod)
         COMMANDS.update(saved)
 
     def test_commands_load_on_first_use(self):
@@ -1161,9 +1163,12 @@ class LazyCommandTests(unittest.TestCase):
             sh, t = mk()
             out = run(sh, t, "echo hello > f")
             self.assertEqual(run(sh, t, "grep hell f"), "hello\n")
-            for n in self.NAMES:
+            for n in ("true", "false", "grep", "find"):
                 self.assertIn(n, COMMANDS)             # the whole module registered
+            self.assertNotIn("wc", COMMANDS)           # other pieces still unloaded
             self.assertEqual(run(sh, t, "wc -l f"), "1 f\n")
+            for n in ("sort", "wc", "basename", "dirname"):
+                self.assertIn(n, COMMANDS)
         finally:
             self.restore(saved, mod)
 
@@ -1205,13 +1210,13 @@ class LazyCommandTests(unittest.TestCase):
         saved, mod = self.unload()
         real = builtins.__import__
         def gone(name, *a, **k):
-            if name == "A84C2":
+            if name == "A84C5":
                 raise ImportError("no module")
             return real(name, *a, **k)
         builtins.__import__ = gone
         try:
             sh, t = mk()
-            self.assertIn("module A84C2 is not installed", run(sh, t, "date"))
+            self.assertIn("module A84C5 is not installed", run(sh, t, "date"))
             self.assertEqual(sh.status, 127)
         finally:
             builtins.__import__ = real
@@ -1383,7 +1388,7 @@ class Phase5Tests(unittest.TestCase):
         self.assertIn("usage", self.r("date -x"))
 
     def test_date_rolls_over_midnight_and_detects_lost_clock(self):
-        import A84C2 as m
+        import A84C5 as m
         real = m.mono_s
         try:
             m.mono_s = lambda: 1000
@@ -1593,18 +1598,17 @@ class SelfTestTests(unittest.TestCase):
         import sys
         order = []
         def first():
-            order.append("A84C2" in sys.modules)
+            order.append("A84C2" in sys.modules or "A84C5" in sys.modules)
             return True
         saved = {n: COMMANDS.pop(n) for n in LazyCommandTests.NAMES if n in COMMANDS}
-        mod = sys.modules.pop("A84C2", None)
+        mod = {m: sys.modules.pop(m) for m in LAZYMODS if m in sys.modules}
         real = self.with_checks([("order", first)], cases=[])
         try:
             sh, t = mk()
             run(sh, t, "selftest")
         finally:
             A84TS.CHECKS, A84TS.CASES = real
-            if mod is not None:
-                sys.modules["A84C2"] = mod
+            sys.modules.update(mod)
             COMMANDS.update(saved)
         self.assertEqual(order, [False])
 
@@ -1847,6 +1851,98 @@ class GfxTests(unittest.TestCase):
             def disp_clr(self):
                 raise TypeError("x")
         self.assertIsInstance(pick_term(Bad([]), FakeTD(fail=True), "b\n"), PlainTerm)
+
+
+class MemoryResilienceTests(unittest.TestCase):
+    """A transient MemoryError must never end the shell or drop it to input()."""
+
+    def shell_with(self, term):
+        k = Kernel(MemStorage())
+        return Shell(k, term)
+
+    def test_readline_memoryerror_is_retried_not_degraded(self):
+        class T(CaptureTerm):
+            def __init__(self):
+                CaptureTerm.__init__(self)
+                self.calls = 0
+
+            def readline(self, prompt, ed):
+                self.calls += 1
+                if self.calls <= 2:
+                    raise MemoryError()
+                return "exit"
+        t = T()
+        sh = self.shell_with(t)
+        sh.run()
+        self.assertIs(sh.term, t)               # not replaced by PlainTerm
+        self.assertEqual(t.calls, 3)
+
+    def test_persistent_memoryerror_reports_low_memory_and_keeps_going(self):
+        class T(CaptureTerm):
+            def __init__(self):
+                CaptureTerm.__init__(self)
+                self.calls = 0
+
+            def readline(self, prompt, ed):
+                self.calls += 1
+                if self.calls <= 5:
+                    raise MemoryError()
+                return "exit"
+        t = T()
+        sh = self.shell_with(t)
+        sh.run()
+        self.assertIn("low memory", t.text)
+        self.assertIs(sh.term, t)
+
+    def test_memoryerror_in_echo_still_runs_the_command(self):
+        class T(CaptureTerm):
+            def echo(self, text):
+                raise MemoryError()
+        t = T()
+        sh = self.shell_with(t)
+        t.text = ""
+        sh.k.add_history("x")
+        sh.execute("echo ran")
+        self.assertEqual(t.text, "ran\n")
+
+    def test_memoryerror_in_a_command_is_reported(self):
+        t = CaptureTerm()
+        sh = self.shell_with(t)
+        real = COMMANDS["pwd"]
+        def boom(sh, args):
+            raise MemoryError()
+        COMMANDS["pwd"] = boom
+        try:
+            # the run loop wraps execute(): drive one iteration through run()
+            class T(CaptureTerm):
+                n = 0
+
+                def readline(self, prompt, ed):
+                    T.n += 1
+                    return "pwd" if T.n == 1 else "exit"
+            t = T()
+            sh = self.shell_with(t)
+            sh.run()
+        finally:
+            COMMANDS["pwd"] = real
+        self.assertIn("out of memory", t.text)
+        self.assertTrue(sh.reboot is False)
+
+    def test_selftest_out_of_memory_message(self):
+        import builtins
+        real = builtins.__import__
+        def boom(name, *a, **k):
+            if name == "A84TS":
+                raise MemoryError()
+            return real(name, *a, **k)
+        sh, t = mk()
+        builtins.__import__ = boom
+        try:
+            out = run(sh, t, "selftest")
+        finally:
+            builtins.__import__ = real
+        self.assertIn("out of memory loading the test modules", out)
+        self.assertEqual(sh.status, 1)
 
 
 class FallbackTests(unittest.TestCase):

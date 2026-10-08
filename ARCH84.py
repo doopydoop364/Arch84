@@ -5,15 +5,18 @@
 #   A84UI (text terminals)  A84GX (color terminal)  A84CD (commands)
 #   A84SH (shell)
 # loaded on first use: A84C2 (phase 5 commands), A84TS (selftest)
-from A84FS import *
-from A84CZ import *
-from A84ST import *
-from A84KN import *
+import A84FS
+import A84CZ
+import A84ST
+from A84KN import Kernel
 import A84CD    # biggest compiles: load while little else is resident
 import A84CE
-from A84UI import *
-from A84SH import *
-from A84GX import *      # after the shell: its compile peak needs the room
+import A84UI
+from A84SH import Shell
+from A84GX import pick_term
+from A84FS import VERSION
+from A84ST import make_storage
+from A84GX import TI, TD
 
 
 def main():

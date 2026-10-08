@@ -467,3 +467,74 @@ hold-CLEAR wait on every poll; `Kernel.tick()` advances at most every 90 ms
 (frame order is strictly sequential). Used by boot, startup files, shutdown,
 `sync`. Very fast steps flash by without moving (nothing to report).
 Tests: SpinnerTests (15). Total tests: 248.
+
+---
+# MemoryError regression on the calculator: cause and fix
+
+## Symptom
+`MemoryError` during ordinary use on the real calculator, before any big-file
+test; an earlier build did not show it.
+
+## Method
+The calculator was not attached, so a real MicroPython (32-bit unix port,
+v1.20.0, built with `MICROPY_FORCE_32BIT=1 MICROPY_NLR_SETJMP=1`) was run with
+`-X heapsize=N`, one CPU core, 64 MB address-space cap, CPU/wall timeouts, and
+shims for `ti_system`/`ti_draw` (scripted keys, lists on disk, screen capture).
+Calibration: the emulator starts with ~126 KB free like the device (127 KB) but
+has ~25 KB more free after all modules load (device ~50 KB vs ~75 KB), so
+`HEAP=127800` is the device-like setting. It is NOT the real firmware: treat
+it as a relative measure. The harness lives outside the repo (not committed).
+
+## Cause
+Not a leak (free heap is flat over 400 repeated commands). The heap was too
+thin for the COMPILE of late-loaded modules. MicroPython builds the parse tree
+of a whole module before compiling, so a module needs roughly 4x its source
+size free on top of what is already resident:
+- A84KN (16.9 KB), A84CD (12.8 KB), A84SH (12.9 KB) and the lazily loaded
+  A84C2 (15 KB) / A84TS (15 KB) each needed 50-60 KB at the moment they loaded.
+- With ~44 KB free after boot, the first use of `grep`/`date`/`df`/`sort`...
+  failed with `out of memory loading A84C2` (reproduced in the emulator).
+- A MemoryError while typing/drawing also dropped the shell into the bare
+  `input()` fallback for good, and one in `echo`/`busy` escaped and ended the
+  program.
+
+## Fix
+- Smaller modules (each compiles with a small peak): A84PE (parser, line
+  editor; split from A84KN), A84CE (env/shell commands) and A84CP (tab
+  completion) split from A84CD/A84SH, A84C2..C5 (phase-5 commands, four lazy
+  pieces of ~4 KB each), A84TD/A84TX/A84TS (selftest, three lazy pieces).
+  `deploy.py` MODULES updated.
+- `from X import *` replaced by explicit imports in all modules except the
+  launcher (smaller module namespaces; ~4.6 KB more free after boot).
+- Load order: biggest compiles first (A84CD right after A84KN), A84GX last.
+- The shell survives MemoryError: readline errors gc and retry (4 tries, then
+  "ash: low memory"), echo/busy/history failures are ignored, a command that
+  runs out of memory prints "ash: out of memory" and the shell continues.
+  `selftest` reports low memory clearly, and unloads its modules afterwards
+  (calculator only) so a later `sync` has the memory back.
+- Storage unchanged: a failed sync still raises StorageError("out of memory
+  (nothing was changed)") and the previous slot stays live.
+
+## Measured (emulator, HEAP=127800, 300-command session with Tab/up-arrow,
+## cp/mv/grep/find/sort/..., sync)
+- Before: first `grep` after boot -> out of memory; later in the session the
+  shell fell back to input() or exited.
+- After: 304 commands + sync clean, minimum free 37 KB; free after boot 48.5 KB
+  (was 43.9 KB), after loading all four lazy modules 39 KB (was 31 KB).
+- Still true: `selftest` does not complete from a fresh boot at this heap
+  (it does at 152 KB: 103/112 passed, 9 skipped for low memory). Everything
+  else in ordinary use is clean.
+
+## Tests
+149 + 68 + 31 + 5 desktop tests pass (new: MemoryResilienceTests; lazy tests
+updated for the four pieces).
+
+## Not verified on the calculator yet
+Everything above is emulator + desktop. Needs a deploy and a hand test:
+boot, `free`, ~20 ordinary commands, `grep`/`date`/`df`/`sort` as first
+commands, `sync`, `exit`, relaunch.
+
+## Next ideas (not done)
+Precompiled bytecode (mpy v5) would remove compile peaks entirely, but device
+execution of .mpy modules is unverified (README says only transfer was
+validated).

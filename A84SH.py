@@ -1,10 +1,11 @@
 # A84SH: shell (Arch84 module 9/10)
 
-from A84FS import *
-from A84KN import *
-from A84UI import *
-from A84CE import *
-from A84CP import *
+from A84FS import ERR, HOME, StorageError, VFSError, normalize
+from A84PE import LineEditor, ParseError, parse
+from A84UI import PlainTerm
+from A84CD import COMMANDS, LAZY, load_command
+from A84CP import Completer
+import A84CE    # registers its commands into COMMANDS
 
 
 # ----------------------------------------------------- shell + commands
@@ -244,6 +245,7 @@ class Shell(Completer):
             t.post("[FAILED] Shell: bad cwd, using /\n")
         t.post(self.k.hostname() + " login: " + self.k.env["USER"]
                + " (auto)\n")
+        memerr = 0
         while self.running:
             self.vfs = self.k.vfs
             prompt = self.prompt()
@@ -251,6 +253,17 @@ class Shell(Completer):
                 line = t.readline(prompt, self.new_editor())
             except EOFError:
                 line = "exit"
+            except MemoryError:
+                # a transient shortage while typing/drawing is not an API
+                # mismatch: free garbage and retry before giving up the terminal
+                import gc
+                gc.collect()
+                memerr += 1
+                if memerr < 4:
+                    continue
+                memerr = 0
+                self.term.write(ERR + "ash: low memory\n")
+                continue
             except Exception as e:
                 # key/display API mismatch: degrade to input() instead of dying
                 print("terminal error:", repr(e))
@@ -261,11 +274,22 @@ class Shell(Completer):
                 self.term = t = PlainTerm()
                 self.k.log = t.post
                 continue
-            t.echo(prompt + line)
-            t.busy()
-            self.k.add_history(line)
+            memerr = 0
+            try:
+                t.echo(prompt + line)
+                t.busy()
+                self.k.add_history(line)
+            except MemoryError:
+                # cosmetic steps only: carry on and run the command
+                import gc
+                gc.collect()
             try:
                 self.execute(line)
+            except MemoryError:
+                import gc
+                gc.collect()
+                t.write(ERR + "ash: out of memory\n")
+                self.status = 1
             except Exception as e:
                 t.write("ash: internal error: " + repr(e) + "\n")
         if not self.reboot:

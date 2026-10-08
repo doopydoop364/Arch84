@@ -15,7 +15,7 @@
 # version 2 = this format; version 1 = the old 2-chars-per-element text
 # format, still READ here so existing saves migrate (the first sync after
 # loading one writes version 2).
-from A84FS import *
+from A84FS import StorageError
 
 try:
     import ti_system as _ti

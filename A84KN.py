@@ -1,9 +1,8 @@
 # A84KN: kernel (Arch84 module 4/11). Re-exports A84PE (parser, line editor).
 
-from A84FS import *
-from A84CZ import *
-from A84ST import *
-from A84PE import *
+from A84FS import (DEFAULT_DIRS, HOME, PROFILE, StorageError, VERSION, VFS,
+    VFSError, decode_fs, ms_since, now_ms)
+from A84CZ import decode_stream, fs_stream, same_tree
 
 
 # --------------------------------------------------------------- kernel

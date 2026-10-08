@@ -1,8 +1,8 @@
 # A84CP: tab completion for the shell (Arch84 module, split from A84SH to keep
 # each module's compile-time memory peak low). Mixed into Shell.
 
-from A84FS import *
-from A84CE import *
+from A84FS import VFSError
+from A84CD import all_commands
 
 
 ARGKIND = {

@@ -1,9 +1,9 @@
 # A84CE: shell-environment commands (Arch84 module, split from A84CD to keep
 # each module's compile-time memory peak low). Registers into A84CD.COMMANDS.
 
-from A84FS import *
-from A84KN import *
-from A84CD import *
+from A84FS import StorageError, VERSION
+from A84PE import isname
+from A84CD import COMMANDS, LAZY, need
 
 
 def cmd_history(sh, args):
@@ -157,6 +157,22 @@ def cmd_keys(sh, args):
            "2nd+up/down = scroll\n")
 
 
+def unload_selftest():
+    # the test modules (~15 KB resident) are only needed while testing: drop
+    # them on the calculator so a later sync/command has the memory back
+    import sys
+    if getattr(sys.implementation, "name", "") != "micropython":
+        return                  # desktop tests patch and re-run the module
+    try:
+        for m in ("A84TS", "A84TD", "A84TX"):
+            if m in sys.modules:
+                del sys.modules[m]
+    except Exception:
+        pass
+    import gc
+    gc.collect()
+
+
 def cmd_selftest(sh, args):
     # runs in a sandbox shell; never touches the real filesystem
     try:
@@ -164,7 +180,14 @@ def cmd_selftest(sh, args):
     except ImportError:
         sh.err("selftest: module A84TS is not installed")
         return 1
-    return selftest(sh, args)
+    except MemoryError:
+        sh.err("selftest: out of memory loading the test modules (try reboot first)")
+        return 1
+    try:
+        return selftest(sh, args)
+    finally:
+        selftest = None         # drop the last reference, then unload
+        unload_selftest()
 
 
 def cmd_exit(sh, args):

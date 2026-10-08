@@ -9,7 +9,10 @@ except ImportError:
     def ticks_ms(): return int(_tm() * 1000)
     def ticks_diff(a, b): return a - b
 import ti_system as ti
-from A84TS import *
+from A84KN import Kernel
+from A84ST import make_storage
+from A84CZ import fs_measure
+from A84TX import CHECKS, real_scratch_check
 
 
 def heap():

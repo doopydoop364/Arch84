@@ -23,8 +23,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-MODULES = ["A84FS", "A84CZ", "A84ST", "A84PE", "A84KN", "A84UI", "A84GX", "A84CD", "A84CE", "A84CP", "A84C2",
-           "A84SH", "A84TS"]
+MODULES = ["A84FS", "A84CZ", "A84ST", "A84PE", "A84KN", "A84UI", "A84GX", "A84CD", "A84CE", "A84CP", "A84C2", "A84C3", "A84C4", "A84C5",
+           "A84SH", "A84TD", "A84TX", "A84TS"]
 LAUNCHER = "ARCH84"
 BAK_LAUNCHER = "ARC84BAK"
 STATE = os.path.join(HERE, ".deploy_state.json")
