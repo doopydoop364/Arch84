@@ -614,3 +614,7 @@ run on the calculator yet.
   asks it for `/proc/*` and `/dev/*` paths the saved tree lacks; `/proc/{meminfo,modules,mounts,uptime,version}`
   are generated on every read, `/dev/null` discards writes. Everything under /proc and /dev is read-only
   ("Read-only file system") and never stored. `ls` no longer assumes listed names are tree children.
+* **More commands**: `mkdir -p`, `cp -r` (iterative, shares file pieces; refuses to copy a directory into itself -
+  found by the shell fuzzer when `cp -r / x` looped forever), `ls -l` (sizes), lazy A84C8 (`cut tr nl seq`) and
+  A84C9 (`test [ expr`), which make scripts with `&&`/`||` practical.
+* `emu/push_main.sh` runs the full validation and pushes to main only when it passes.

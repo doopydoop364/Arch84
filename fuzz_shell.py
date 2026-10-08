@@ -23,7 +23,7 @@ CMDS = ["echo", "cat", "ls", "ls -a", "cd", "mkdir", "touch", "rm", "rm -r", "rm
         "alias z=ls", "which ls", "uname -a", "sort -r", "sort -nr", "tail -n 0", "head -n 1", "head -n x",
         "wc -l", "wc -c", "wc -w", "grep -v", "cat -", "ls -l", "mkdir -p", "date", "unalias z", "which z",
         "cp -r", "rm -f", "echo -n", "export", "alias", "history -c", "find / -type d -name", "find . -type f",
-        "du /tmp", "cd ~", "cd -", "mv -f", "z"]
+        "du /tmp", "cd ~", "cd -", "mv -f", "z", "cut -d a -f 1", "cut -c 2-", "tr a-c x", "tr -d a", "nl", "seq 3", "test -f", "[ -d", "expr 1 +", "ls -l", "cp -r", "mkdir -p"]
 
 
 class T:

@@ -9,7 +9,7 @@ quick = "--quick" in sys.argv
 fails = []
 
 def sh(name, cmd, **kw):
-    r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, stdin=subprocess.DEVNULL, **kw)
+    r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=900, **kw)
     ok = r.returncode == 0
     print("%-34s %s" % (name, "ok" if ok else "FAIL"), flush=True)
     if not ok:
@@ -17,28 +17,28 @@ def sh(name, cmd, **kw):
         print((r.stdout + r.stderr)[-600:])
     return r
 
-for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor", "test_pacman", "test_archive", "test_proc") + (() if quick else ("test_bigfiles",)):
+for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor", "test_pacman", "test_archive", "test_proc", "test_cmds") + (() if quick else ("test_bigfiles",)):
     sh(t, [sys.executable, t + ".py"])
 n = 15 if quick else 60
 bad = 0
 for s in range(1, n + 1):
-    a = subprocess.run([sys.executable, "fuzz_shell.py", str(s), "150"], cwd=ROOT, capture_output=True, text=True).stdout
-    b = subprocess.run([MP, "-X", "heapsize=3000000", "fuzz_shell.py", str(s), "150"], cwd=ROOT, capture_output=True, text=True).stdout
+    a = subprocess.run([sys.executable, "fuzz_shell.py", str(s), "150"], cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
+    b = subprocess.run([MP, "-X", "heapsize=3000000", "fuzz_shell.py", str(s), "150"], cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
     if a != b or "reload SAME bad 0" not in a:
         bad += 1
         print("  fuzz_shell seed", s, "differs / bad")
 print("%-34s %s" % ("fuzz_shell CPython==MicroPython x%d" % n, "ok" if not bad else "FAIL"))
 if bad:
     fails.append("fuzz_shell")
-a = subprocess.run([sys.executable, "codec_fuzz.py", "1", "100"], cwd=ROOT, capture_output=True, text=True).stdout
-b = subprocess.run([MP, "-X", "heapsize=3000000", "codec_fuzz.py", "1", "100"], cwd=ROOT, capture_output=True, text=True).stdout
-pa = subprocess.run([sys.executable, "fuzz_pkg.py", "1", "60"], cwd=ROOT, capture_output=True, text=True).stdout
-pb = subprocess.run([MP, "-X", "heapsize=3000000", "fuzz_pkg.py", "1", "60"], cwd=ROOT, capture_output=True, text=True).stdout
+a = subprocess.run([sys.executable, "codec_fuzz.py", "1", "100"], cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
+b = subprocess.run([MP, "-X", "heapsize=3000000", "codec_fuzz.py", "1", "100"], cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
+pa = subprocess.run([sys.executable, "fuzz_pkg.py", "1", "60"], cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
+pb = subprocess.run([MP, "-X", "heapsize=3000000", "fuzz_pkg.py", "1", "60"], cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
 print("%-34s %s" % ("fuzz_pkg CPython==MicroPython", "ok" if pa == pb and "dirty 0" in pa else "FAIL"))
 if not (pa == pb and "dirty 0" in pa):
     fails.append("fuzz_pkg")
-fa = subprocess.run([sys.executable, "fuzz_archive.py", "1", "40"], cwd=ROOT, capture_output=True, text=True).stdout
-fb = subprocess.run([MP, "-X", "heapsize=3000000", "fuzz_archive.py", "1", "40"], cwd=ROOT, capture_output=True, text=True).stdout
+fa = subprocess.run([sys.executable, "fuzz_archive.py", "1", "40"], cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
+fb = subprocess.run([MP, "-X", "heapsize=3000000", "fuzz_archive.py", "1", "40"], cwd=ROOT, capture_output=True, text=True, timeout=300).stdout
 print("%-34s %s" % ("fuzz_archive CPython==MicroPython", "ok" if fa == fb and "bad 0" in fa else "FAIL"))
 if not (fa == fb and "bad 0" in fa):
     fails.append("fuzz_archive")

@@ -24,10 +24,14 @@ def cmd_pwd(sh, args):
 
 def cmd_ls(sh, args):
     show_all = False
+    long = False
     paths = []
     for a in args:
-        if a == "-a":
-            show_all = True
+        if a == "-a" or a == "-l" or a == "-la" or a == "-al":
+            if a != "-l":
+                show_all = True
+            if a != "-a":
+                long = True
         elif a.startswith("-") and len(a) > 1:
             sh.err("ls: invalid option -- '" + a[1:] + "'")
             return 2
@@ -52,11 +56,19 @@ def cmd_ls(sh, args):
         for n in sh.vfs.listdir(path):
             if n.startswith(".") and not show_all:
                 continue
-            if sh.vfs.isdir(path.rstrip("/") + "/" + n):
+            q = path.rstrip("/") + "/" + n
+            if sh.vfs.isdir(q):
                 n += "/"
+                if long:
+                    n = "     - " + n
+            elif long:
+                n = pad(sh.vfs.size(q), 6) + " " + n
             names.append(n)
         if names:
-            sh.out("  ".join(names) + "\n")
+            if long:
+                sh.out("\n".join(names) + "\n")
+            else:
+                sh.out("  ".join(names) + "\n")
     return st
 
 
@@ -84,12 +96,24 @@ def need(sh, cmd, args):
 
 
 def cmd_mkdir(sh, args):
+    parents = "-p" in args
+    args = [a for a in args if a != "-p"]
     if not need(sh, "mkdir", args):
         return 1
     st = 0
     for a in args:
         try:
-            sh.vfs.mkdir(sh.resolve(a))
+            p = sh.resolve(a)
+            if parents:
+                cur = ""
+                for part in p.split("/")[1:]:
+                    cur += "/" + part
+                    if not sh.vfs.exists(cur):
+                        sh.vfs.mkdir(cur)
+                    elif not sh.vfs.isdir(cur):
+                        raise VFSError("Not a directory")
+            else:
+                sh.vfs.mkdir(p)
         except VFSError as e:
             st = fail(sh, "mkdir", "cannot create directory '" + a + "'", e)
     return st
@@ -210,7 +234,31 @@ def dest_for(sh, src, dst):
     return d
 
 
+def copy_tree(vfs, src, dst):
+    # iterative; files share their (immutable) pieces
+    stack = [(src, dst)]
+    while stack:
+        s, d = stack.pop()
+        if vfs.isdir(s):
+            if not vfs.exists(d):
+                vfs.mkdir(d)
+            elif not vfs.isdir(d):
+                raise VFSError("Not a directory")
+            for n in vfs.listdir(s):
+                stack.append((s.rstrip("/") + "/" + n, d.rstrip("/") + "/" + n))
+        else:
+            vfs.copyfile(s, d)
+
+
 def cmd_cp(sh, args):
+    rec = False
+    rest = []
+    for a in args:
+        if a == "-r" or a == "-R":
+            rec = True
+        else:
+            rest.append(a)
+    args = rest
     if len(args) < 2:
         sh.err("cp: missing file operand")
         return 1
@@ -222,9 +270,17 @@ def cmd_cp(sh, args):
     st = 0
     for s in srcs:
         try:
-            if sh.vfs.isdir(sh.resolve(s)):
-                raise VFSError("omitting directory")
-            sh.vfs.copyfile(sh.resolve(s), dest_for(sh, s, dst))   # shares the pieces
+            sp = sh.resolve(s)
+            dp = dest_for(sh, s, dst)
+            if sh.vfs.isdir(sp):
+                if not rec:
+                    raise VFSError("omitting directory")
+                dp = sh.resolve(dp)
+                if dp == sp or dp.startswith(sp.rstrip("/") + "/"):
+                    raise VFSError("cannot copy a directory into itself")
+                copy_tree(sh.vfs, sp, dp)
+            else:
+                sh.vfs.copyfile(sp, dp)   # shares the pieces
         except VFSError as e:
             st = fail(sh, "cp", "cannot copy '" + s + "'", e)
     return st
@@ -333,7 +389,8 @@ LAZY = {}
 for _m, _names in (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname"),
                    ("A84C4", "du df free mount umount uptime"),
                    ("A84C5", "date reboot poweroff"), ("A84C6", "uniq tee"), ("A84EV", "edit"), ("A84PX", "pacman makepkg"), ("A84AX", "archive"), ("A84FK", "fsck"),
-                   ("A84C7", "uname whoami hostname which keys selftest")):
+                   ("A84C7", "uname whoami hostname which keys selftest"),
+                   ("A84C8", "cut tr nl seq"), ("A84C9", "test [ expr")):
     for _n in _names.split():
         LAZY[_n] = _m
 
