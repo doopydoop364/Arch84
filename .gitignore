@@ -3,3 +3,4 @@ __pycache__/
 fsbackup_*/
 .claude/
 evo_usb.py
+.coverage
