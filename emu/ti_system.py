@@ -34,6 +34,7 @@ def get_key(mode=None):
 getKey = get_key
 
 
+CUT = None          # power cut: SystemExit when this many stores have happened
 LISTDIR = None      # lists live in files, NOT on the MicroPython heap: on the
                     # device they are calculator (list) memory, not Python heap
 import struct
@@ -46,6 +47,8 @@ def store_list(name, data):
     n = len(data)
     if n > 100:
         raise ValueError("List length > 100.")
+    if CUT is not None and STORES >= CUT:
+        raise SystemExit
     _BUF[0] = n
     i = 0
     for x in data:

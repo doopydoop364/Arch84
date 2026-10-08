@@ -37,3 +37,4 @@ if __name__ == "__main__":
             fails += 1
             print("FAIL", f)
     print("keyfuzz: %d runs, %d failures" % (count, fails))
+    sys.exit(1 if fails else 0)

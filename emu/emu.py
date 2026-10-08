@@ -46,6 +46,8 @@ def keys_for_text(text):
     for ch in text:
         if "a" <= ch <= "z":
             out += [ALPHA, LET[ord(ch) - 97]]
+        elif "A" <= ch <= "Z":
+            out += [ALPHA, SECOND, LET[ord(ch) - 65]]       # alpha, 2nd = shift, letter
         elif ch in NORM:
             out.append(NORM[ch])
         elif ch in SEC:
@@ -78,7 +80,7 @@ class Emu:
         self.listdir = os.path.join(self._tmp.name, "lists")
         os.makedirs(self.listdir)
 
-    def run(self, lines=None, keys=None, heap=None, fresh=False, shots=False,
+    def run(self, lines=None, keys=None, heap=None, fresh=False, shots=False, cut=None,
             exit_at_end=True):
         """Boot Arch84 and type `lines` (+ `exit` unless exit_at_end False).
         Lists persist between calls on this Emu unless fresh=True."""
@@ -103,7 +105,10 @@ class Emu:
                 resource.setrlimit(resource.RLIMIT_CPU, (self.cpu_s, self.cpu_s))
                 m = self.as_mb << 20
                 resource.setrlimit(resource.RLIMIT_AS, (m, m))
-            p = subprocess.run(cmd, cwd=ROOT, preexec_fn=lim, capture_output=True, stdin=subprocess.DEVNULL,
+            env = dict(os.environ)
+            if cut is not None:
+                env["A84_CUT"] = str(cut)
+            p = subprocess.run(cmd, env=env, cwd=ROOT, preexec_fn=lim, capture_output=True, stdin=subprocess.DEVNULL,
                                text=True, timeout=self.cpu_s * 2)
             rep = {}
             if os.path.exists(rf):

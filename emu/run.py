@@ -16,6 +16,13 @@ import ti_draw
 kf, lf, rf = sys.argv[1], sys.argv[2], sys.argv[3]
 ti_system.KFILE = open(kf)
 ti_system.LISTDIR = lf
+try:
+    import os
+    c = os.getenv("A84_CUT")
+    if c:
+        ti_system.CUT = int(c)
+except AttributeError:
+    pass
 rep = {"imports": []}
 gc.collect()
 rep["heap_total"] = gc.mem_free() + gc.mem_alloc()
