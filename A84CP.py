@@ -48,8 +48,7 @@ class Completer:
         quote = ""
         if word[:1] == "'" or word[:1] == '"':
             quote = word[:1]
-            word = word[1:]
-            start += 1
+            word = word[1:]     # start stays on the quote: candidates carry it
         word = word.replace("\\ ", " ")
         prev = ""
         if words:

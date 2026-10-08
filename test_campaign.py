@@ -146,5 +146,31 @@ class SyncRetryTests(unittest.TestCase):
         self.assertEqual(walk(Kernel(ms).vfs)["/tmp/x"], "old")
 
 
+class QuotedCompletionTests(unittest.TestCase):
+    """Completing inside an open quote used to keep the opening quote AND
+    insert a candidate that carries it: `cat "my f<Tab>` -> `cat ""my file`."""
+
+    def setUp(self):
+        k = Kernel(MemStorage())
+        self.sh = Shell(k, type("T", (), {"write": lambda s, x: None, "post": lambda s, x, p=False: None})())
+        self.sh.vfs.write("/home/evo/my file.txt", "x")
+
+    def tab(self, text):
+        ed = self.sh.new_editor()
+        for ch in text:
+            ed.feed(ch)
+        ed.feed("tab")
+        return ed.buf
+
+    def test_double_quote(self):
+        self.assertEqual(self.tab('cat "my f'), 'cat "my file.txt')
+
+    def test_single_quote(self):
+        self.assertEqual(self.tab("cat 'my"), "cat 'my file.txt")
+
+    def test_unquoted_still_escapes(self):
+        self.assertEqual(self.tab("cat my"), "cat my\\ file.txt")
+
+
 if __name__ == "__main__":
     unittest.main()
