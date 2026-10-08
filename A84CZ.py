@@ -364,9 +364,8 @@ class Rd:
         if sp + n <= len(sb):
             self.sp = sp + n
             return sb[sp:sp + n]
-        out = bytearray(n)
-        got = 0
-        while got < n:
+        out = bytearray()           # extend, not slice assignment: older ports lack it
+        while len(out) < n:
             if self.sp >= len(self.sb):
                 try:
                     self.sb = next(self.src)
@@ -374,11 +373,10 @@ class Rd:
                     raise ValueError("stream truncated")
                 self.sp = 0
                 continue
-            k = n - got
+            k = n - len(out)
             if k > len(self.sb) - self.sp:
                 k = len(self.sb) - self.sp
-            out[got:got + k] = self.sb[self.sp:self.sp + k]
-            got += k
+            out.extend(self.sb[self.sp:self.sp + k])
             self.sp += k
         return out
 

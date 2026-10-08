@@ -57,7 +57,7 @@ def unpack5(nums):
     out = bytearray(len(nums) * ELEM_BYTES)
     i = 0
     for x in nums:
-        if x < 0 or x >= 1099511627776:
+        if x < 0 or x >= 1099511627776.0:
             raise StorageError("element out of range")
         hi = int(x * 9.5367431640625e-07)       # x / 2^20, exact
         lo = int(x - hi * 1048576.0)
