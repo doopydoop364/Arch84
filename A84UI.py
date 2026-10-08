@@ -2,7 +2,7 @@
 # Verified on a TI-84 Evo (OS 7.0): get_key(1) blocks and returns the
 # positional key code, get_key(0) returns 0 when no key is down,
 # disp_at(row, text, align) with rows 1..10 and 31 columns.
-from A84FS import ERR, now_ms
+from A84FS import ERR, ms_since, now_ms
 
 ROWS = 10
 COLS = 31
@@ -221,8 +221,8 @@ class TiTerm:
                 return True
             if tick is not None:
                 tick()
-            t1 = now_ms()
-            if t0 is None or t1 is None or t1 - t0 > 500:
+            d = ms_since(t0)        # ticks_diff: correct across a counter wrap
+            if d is None or d > 500:
                 return False
 
     def busy(self):

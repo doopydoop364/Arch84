@@ -172,5 +172,36 @@ class QuotedCompletionTests(unittest.TestCase):
         self.assertEqual(self.tab("cat my"), "cat my\\ file.txt")
 
 
+class ClockWrapTests(unittest.TestCase):
+    def test_safe_key_window_survives_counter_wrap(self):
+        # ticks_ms wraps; a raw `t1 - t0 > 500` never ended after a wrap
+        import A84FS
+        import A84UI
+
+        class FakeTime:
+            vals = [2 ** 30 - 100]      # t0 just before the wrap, then time runs on
+            n = 0
+            @staticmethod
+            def ticks_ms():
+                v = FakeTime.vals[0] + FakeTime.n * 150
+                FakeTime.n += 1
+                return v % 2 ** 30
+
+            @staticmethod
+            def ticks_diff(a, b):
+                d = (a - b) % 2 ** 30
+                return d - 2 ** 30 if d >= 2 ** 29 else d
+        real = A84FS._time
+        A84FS._time = FakeTime
+        try:
+            class TI:
+                def get_key(self, m):
+                    return 0
+            t = A84UI.TiTerm(TI())
+            self.assertFalse(t.safe_key())      # returns (instead of looping forever)
+        finally:
+            A84FS._time = real
+
+
 if __name__ == "__main__":
     unittest.main()

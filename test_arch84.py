@@ -1096,12 +1096,15 @@ class SpinnerTests(unittest.TestCase):
                 self.polls += 1
                 return 0
         import A84UI
+        import A84FS
         real = A84UI.now_ms
+        real_fs = A84FS.now_ms
         clock = [0]
         def fake():
             clock[0] += 100
             return clock[0]
         A84UI.now_ms = fake
+        A84FS.now_ms = fake         # ms_since() reads the clock from A84FS
         try:
             ti = T()
             term = TiTerm(ti)
@@ -1114,6 +1117,7 @@ class SpinnerTests(unittest.TestCase):
             self.assertTrue(TiTerm(ti2).safe_key(lambda: None))      # CLEAR held
         finally:
             A84UI.now_ms = real
+            A84FS.now_ms = real_fs
 
     def test_every_frame_is_coloured_on_the_gfx_terminal(self):
         for f in SPIN:
