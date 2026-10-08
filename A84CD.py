@@ -108,12 +108,14 @@ def cmd_touch(sh, args):
 
 
 def cmd_cat(sh, args):
+    if not args and sh.stdin is not None:
+        args = ["-"]
     if not need(sh, "cat", args):
         return 1
     st = 0
     for a in args:
         try:
-            for line in sh.vfs.lines(sh.resolve(a)):    # streamed: never the whole file
+            for line in sh.lines(a):    # streamed: never the whole file
                 sh.out(line + "\n")
         except VFSError as e:
             st = fail(sh, "cat", a, e)
@@ -265,6 +267,8 @@ def head_tail(sh, name, args):
         else:
             files.append(a)
         i += 1
+    if not files and sh.stdin is not None:
+        files = ["-"]
     if not need(sh, name, files):
         return 1
     st = 0
@@ -272,7 +276,7 @@ def head_tail(sh, name, args):
         n = 0
     for a in files:
         try:
-            it = sh.vfs.lines(sh.resolve(a))
+            it = sh.lines(a)
         except VFSError as e:
             st = fail(sh, name, a, e)
             continue
@@ -288,6 +292,8 @@ def head_tail(sh, name, args):
         if name == "tail":
             lines = lines[-n:] if n > 0 else []
         if len(files) > 1:
+            if a == "-":
+                a = "standard input"
             sh.out("==> " + a + " <==\n")
         for line in lines:
             sh.out(line + "\n")
@@ -326,7 +332,7 @@ COMMANDS = {
 LAZY = {}
 for _m, _names in (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname"),
                    ("A84C4", "du df free mount umount uptime"),
-                   ("A84C5", "date reboot poweroff")):
+                   ("A84C5", "date reboot poweroff"), ("A84C6", "uniq tee")):
     for _n in _names.split():
         LAZY[_n] = _m
 

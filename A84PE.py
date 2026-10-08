@@ -25,18 +25,23 @@ def expand(line, i, env):
         return env.get(line[j + 1:k], ""), k + 1
     if j < n and line[j] == "?":
         return env.get("?", "0"), j + 1
+    if j < n and "0" <= line[j] <= "9":
+        return env.get(line[j], ""), j + 1     # $0..$9: one digit (script arguments)
     k = j
-    while k < n and isname(line[k]) and not (k == j and "0" <= line[k] <= "9"):
+    while k < n and isname(line[k]):
         k += 1
     if k == j:
         return "$", j
     return env.get(line[j:k], ""), k
 
 
-def parse(line, env, home):
-    # -> (words, redir) ; redir is None or (">" | ">>", target)
+def parse(line, env, home, pipes=False):
+    # pipes False -> (words, redir); redir is None or (">" | ">>", target); "|" and "<" are errors.
+    # pipes True  -> [(words, redir, infile), ...] one entry per pipeline stage.
+    stages = []
     words = []
     redir = None
+    infile = None
     pending = None   # redirection operator waiting for its target
     cur = []
     started = False
@@ -46,10 +51,15 @@ def parse(line, env, home):
         c = ""
         if i < n:
             c = line[i]
-        if c == "" or c == " " or c == "\t":
+        if c == "" or c == " " or c == "\t" or (pipes and c == "|"):
             if started:
                 w = "".join(cur)
-                if pending is not None:
+                if pending == "<":
+                    if infile is not None:
+                        raise ParseError("only one input redirection allowed")
+                    infile = w
+                    pending = None
+                elif pending is not None:
                     if redir is not None:
                         raise ParseError("only one redirection allowed")
                     redir = (pending, w)
@@ -58,6 +68,13 @@ def parse(line, env, home):
                     words.append(w)
                 cur = []
                 started = False
+            if c == "|":
+                if pending is not None or (not words and redir is None and infile is None):
+                    raise ParseError("syntax error near |")
+                stages.append((words, redir, infile))
+                words = []
+                redir = None
+                infile = None
             i += 1
         elif c == "'":
             k = line.find("'", i + 1)
@@ -97,16 +114,16 @@ def parse(line, env, home):
             t, i = expand(line, i, env)
             cur.append(t)
             started = True
-        elif c == ">":
+        elif c == ">" or (pipes and c == "<"):
             if started:
-                raise ParseError("put a space before >")
+                raise ParseError("put a space before " + c)
             if pending is not None:
-                raise ParseError("syntax error near >")
-            if i + 1 < n and line[i + 1] == ">":
+                raise ParseError("syntax error near " + c)
+            if c == ">" and i + 1 < n and line[i + 1] == ">":
                 pending = ">>"
                 i += 2
             else:
-                pending = ">"
+                pending = c
                 i += 1
         elif c == "~" and not started and (i + 1 == n or line[i + 1] in " \t/>"):
             cur.append(home)
@@ -122,7 +139,12 @@ def parse(line, env, home):
             i += 1
     if pending is not None:
         raise ParseError("missing file after " + pending)
-    return words, redir
+    if not pipes:
+        return words, redir
+    if stages and not words and redir is None and infile is None:
+        raise ParseError("syntax error near |")
+    stages.append((words, redir, infile))
+    return stages
 
 
 # ---------------------------------------------------------- line editor

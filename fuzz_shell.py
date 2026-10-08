@@ -68,6 +68,11 @@ def mkline(r):
     for _ in range(r.n(4)):
         args.append(r.pick(NAMES) if r.n(3) else r.pick(WORDS))
     line = cmd + " " + " ".join(args)
+    p = r.n(6)
+    if p == 0:
+        line += " | " + r.pick(["sort", "wc -l", "head -n 2", "grep a", "uniq -c", "tail -n 1", "cat", "tee " + r.pick(NAMES), "sort -r | uniq"])
+    elif p == 1:
+        line += " < " + r.pick(NAMES)
     k = r.n(8)
     if k == 0:
         line += " > " + r.pick(NAMES)

@@ -8,6 +8,7 @@ from A84CD import all_commands
 ARGKIND = {
     "cd": "d", "rmdir": "d", "ls": "p", "cat": "p", "rm": "p", "cp": "p",
     "mv": "p", "head": "p", "tail": "p", "touch": "p", "mkdir": "p",
+    "tee": "p", "uniq": "p", "grep": "p", "sort": "p", "wc": "p",
     "which": "c", "help": "c", "export": "v", "unalias": "a", "uname": "o",
 }
 
@@ -32,6 +33,10 @@ class Completer:
                 if wstart < 0:
                     wstart = i
                 i += 1
+            elif c == "|":
+                # a new command starts after a pipe
+                del words[:]
+                wstart = -1
             elif c == " " or c == "\t":
                 if wstart >= 0:
                     words.append(text[wstart:i])
@@ -60,7 +65,7 @@ class Completer:
             cands = ["$" + n for n in self.match_names(list(self.k.env.keys()), word[1:])]
         else:
             kind = ARGKIND.get(words[0], "")
-            if prev == ">" or prev == ">>":
+            if prev == ">" or prev == ">>" or prev == "<":
                 kind = "p"
             if kind == "d" or kind == "p":
                 cands = self.path_cands(word, kind == "d")

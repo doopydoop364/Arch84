@@ -154,6 +154,7 @@ def cmd_keys(sh, args):
            "Y=\" window' zoom$ trace> graph=\n"
            "math or trace = >  2nd+()-+={}[]\n"
            "x^=^ /*-+ . , ( )\n"
+           "sin=<  x^-1=|  x^2=\\\n"
            "2nd+up/down = scroll\n")
 
 

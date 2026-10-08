@@ -42,14 +42,16 @@ def cmd_sort(sh, args):
                     return 2
         else:
             files.append(a)
+    if not files and sh.stdin is not None:
+        files = ["-"]
     if not files:
-        sh.err("usage: sort [-rnu] FILE... (no pipes yet)")
+        sh.err("usage: sort [-rnu] [FILE...]")
         return 2
     lines = []
     st = 0
     for f in files:
         try:
-            for line in sh.vfs.lines(sh.resolve(f)):
+            for line in sh.lines(f):
                 lines.append(line)
         except VFSError as e:
             sh.err("sort: " + f + ": " + str(e))
@@ -84,8 +86,12 @@ def cmd_wc(sh, args):
                     return 2
         else:
             files.append(a)
+    implicit = False
+    if not files and sh.stdin is not None:
+        files = ["-"]
+        implicit = True
     if not files:
-        sh.err("usage: wc [-lwc] FILE... (no pipes yet)")
+        sh.err("usage: wc [-lwc] [FILE...]")
         return 2
     one = len(flags) == 1
     if flags == "":
@@ -94,8 +100,8 @@ def cmd_wc(sh, args):
     st = 0
     for f in files:
         try:
-            it = sh.vfs.lines(sh.resolve(f))
-            nchars = sh.vfs.size(sh.resolve(f))
+            it = sh.lines(f)
+            nchars = sh.fsize(f)
         except VFSError as e:
             sh.err("wc: " + f + ": " + str(e))
             st = 1
@@ -114,7 +120,10 @@ def cmd_wc(sh, args):
                     row += str(v[k])
                 else:
                     row += pad(v[k], 7)
-        sh.out(row + " " + f + "\n")
+        if implicit:
+            sh.out(row + "\n")         # standard input has no name
+        else:
+            sh.out(row + " " + f + "\n")
     if len(files) > 1:
         row = ""
         for k in range(3):

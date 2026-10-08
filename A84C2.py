@@ -35,8 +35,10 @@ def cmd_grep(sh, args):
                     return 2
         else:
             rest.append(a)
+    if len(rest) == 1 and sh.stdin is not None:
+        rest.append("-")
     if len(rest) < 2:
-        sh.err("usage: grep [-ivnc] PATTERN FILE... (no pipes yet)")
+        sh.err("usage: grep [-ivnc] PATTERN [FILE...]")
         return 2
     pat = rest[0]
     if ci:
@@ -45,7 +47,7 @@ def cmd_grep(sh, args):
     st = 1
     for f in files:
         try:
-            it = sh.vfs.lines(sh.resolve(f))
+            it = sh.lines(f)
         except VFSError as e:
             sh.err("grep: " + f + ": " + str(e))
             st = 2

@@ -15,7 +15,7 @@ from A84GX import *
 import A84TS
 import A84KN
 from testutil import FakeTI, ti_store, save_vfs, put_v1, bad_version
-import A84C2, A84C3, A84C4, A84C5
+import A84C2, A84C3, A84C4, A84C5, A84C6
 from A84C5 import days_from_civil, civil_from_days
 from A84CD import *
 from A84SH import *
@@ -1142,11 +1142,11 @@ class SpinnerTests(unittest.TestCase):
         self.assertEqual(term.prev[1][1], ("  OK  ", "g"))
 
 
-LAZYMODS = ("A84C2", "A84C3", "A84C4", "A84C5")
+LAZYMODS = ("A84C2", "A84C3", "A84C4", "A84C5", "A84C6")
 
 
 class LazyCommandTests(unittest.TestCase):
-    NAMES = "true false grep find sort wc basename dirname du df free mount umount uptime date reboot poweroff".split()
+    NAMES = "true false grep find sort wc basename dirname du df free mount umount uptime date reboot poweroff uniq tee".split()
 
     def unload(self):
         # make the state the calculator starts in: A84C2 not imported yet
@@ -1482,7 +1482,7 @@ class Phase5Tests(unittest.TestCase):
         self.assertIn("only listing", self.r("mount x"))
 
     def test_commands_have_no_pipe_surprise(self):
-        self.assertIn("unsupported syntax", self.r("grep a f | sort"))
+        self.assertIn("unsupported syntax", self.r("grep a f; sort"))
 
     def test_new_commands_all_registered(self):
         for c in ("grep find sort wc basename dirname true false du df free "

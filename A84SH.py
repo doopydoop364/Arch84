@@ -1,6 +1,6 @@
 # A84SH: shell (Arch84 module 9/10)
 
-from A84FS import ERR, HOME, StorageError, VFSError, normalize
+from A84FS import ERR, HOME, StorageError, VFSError, dappend, dlen, iter_lines, normalize
 from A84PE import LineEditor, ParseError, parse
 from A84UI import PlainTerm
 from A84CD import COMMANDS, LAZY, load_command
@@ -29,8 +29,25 @@ class Shell(Completer):
         self._rpath = None
         self._rname = ""
         self._rfail = False
+        self.stdin = None       # canonical file data of the pipe/`<` feeding this command
+        self._cap = None        # canonical data collecting the output of a non-final stage
 
     # -- helpers used by commands
+    def lines(self, arg):
+        # lines of FILE, or of standard input for "-"
+        if arg == "-":
+            if self.stdin is None:
+                return iter_lines("")
+            return iter_lines(self.stdin)
+        return self.vfs.lines(self.resolve(arg))
+
+    def fsize(self, arg):
+        if arg == "-":
+            if self.stdin is None:
+                return 0
+            return dlen(self.stdin)
+        return self.vfs.size(self.resolve(arg))
+
     def out(self, text):
         # output is flushed in ~512 B batches (on a line boundary), so a command
         # that prints a big file never builds one big string
@@ -43,7 +60,9 @@ class Shell(Completer):
         text = "".join(self._out)
         self._out = []
         self._outn = 0
-        if self._rpath is not None:
+        if self._rpath is None and self._cap is not None:
+            self._cap = dappend(self._cap, text)       # a pipe: kept in pieces, never one big string
+        elif self._rpath is not None:
             try:
                 self.vfs.append(self._rpath, text)
             except VFSError as e:
@@ -90,12 +109,35 @@ class Shell(Completer):
         env = dict(self.k.env)
         env["?"] = str(self.status)
         try:
-            words, redir = parse(self.expand_alias(line), env,
-                                 self.k.env.get("HOME", HOME))
+            stages = parse(self.expand_alias(line), env,
+                           self.k.env.get("HOME", HOME), True)
         except ParseError as e:
             self.err("ash: " + str(e))
             self.status = 2
             return
+        n = len(stages)
+        stdin = None
+        try:
+            for i in range(n):
+                words, redir, infile = stages[i]
+                if infile is not None:
+                    try:
+                        stdin = self.vfs._file(self.resolve(infile)).data   # shared, not copied
+                    except VFSError as e:
+                        self.err("ash: " + infile + ": " + str(e))
+                        self.status = 1
+                        return
+                self.stdin = stdin
+                self._cap = None
+                if i < n - 1:
+                    self._cap = ""
+                self.run_stage(words, redir)
+                stdin = self._cap       # "" (empty pipe) is still an input
+        finally:
+            self.stdin = None
+            self._cap = None
+
+    def run_stage(self, words, redir):
         if not words:
             if redir is not None:
                 self.redirect(redir, "")
