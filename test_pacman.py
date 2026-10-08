@@ -469,6 +469,89 @@ class MakepkgTests(unittest.TestCase):
         self.assertIn("No package owns", self.r("pacman -Qo /etc/hostname"))
 
 
+class RepoTests(unittest.TestCase):
+    def setUp(self):
+        self.sh, self.t = mk()
+        self.v = self.sh.vfs
+
+    def r(self, line):
+        return run(self.sh, self.t, line)
+
+    def make(self, name, ver, deps="", desc="d"):
+        self.v.mkdir("/tmp/%s%s" % (name, ver)) if not self.v.exists("/tmp/%s%s" % (name, ver)) else None
+        base = "/tmp/%s%s" % (name, ver)
+        for d in (base + "/usr", base + "/usr/bin"):
+            if not self.v.exists(d):
+                self.v.mkdir(d)
+        self.v.write(base + "/usr/bin/" + name, "echo %s %s\n" % (name, ver))
+        self.assertIn("built", self.r("makepkg %s %s %s %s %s" % (deps, base, name, ver, desc)))
+
+    def test_lock_blocks_and_is_released(self):
+        self.make("aa", "1")
+        self.assertIn("installed aa 1", self.r("pacman -S aa"))
+        self.assertFalse(self.v.exists("/var/lib/pacman/pacman.lock"))
+        self.assertIn("removed aa", self.r("pacman -R aa"))
+        self.assertFalse(self.v.exists("/var/lib/pacman/pacman.lock"))
+        self.v.write("/var/lib/pacman/pacman.lock", "x")
+        out = self.r("pacman -S aa")
+        self.assertIn("unable to lock database", out)
+        self.assertIn("rm /var/lib/pacman/pacman.lock", out)
+        self.assertTrue(self.v.exists("/var/lib/pacman/pacman.lock"))     # not ours: left alone
+        self.assertFalse(self.v.exists("/usr/bin/aa"))
+        self.assertEqual(self.r("pacman -Q"), "")                         # queries ignore the lock
+        self.r("rm /var/lib/pacman/pacman.lock")
+        self.assertIn("installed aa", self.r("pacman -S aa"))
+
+    def test_fsck_clears_stale_lock(self):
+        self.r("pacman -Q")
+        self.v.mkdir("/var/lib/pacman") if not self.v.isdir("/var/lib/pacman") else None
+        self.v.write("/var/lib/pacman/pacman.lock", "pacman\n")
+        self.assertIn("stale pacman lock\n", self.r("fsck"))
+        self.assertIn("stale pacman lock removed", self.r("fsck -r"))
+        self.assertFalse(self.v.exists("/var/lib/pacman/pacman.lock"))
+        self.assertIn("no problems found", self.r("fsck"))
+
+    def test_lock_released_after_failure(self):
+        self.assertIn("target not found", self.r("pacman -S nothere"))
+        self.assertFalse(self.v.exists("/var/lib/pacman/pacman.lock"))
+        self.assertIn("not found", self.r("pacman -R nothere"))
+        self.assertFalse(self.v.exists("/var/lib/pacman/pacman.lock"))
+
+    def test_index_search_info_and_staleness(self):
+        self.make("aa", "1", desc="the first tool")
+        self.make("bb", "2", "-d aa", "second")
+        self.assertFalse(self.v.exists("/var/lib/pacman/sync/repo.db"))   # makepkg drops it
+        self.assertEqual(self.r("pacman -Sy"), "synchronized 2 packages\n")
+        self.assertTrue(self.v.isfile("/var/lib/pacman/sync/repo.db"))
+        self.assertEqual(self.r("pacman -Sl"), "aa 1\nbb 2\n")
+        self.assertEqual(self.r("pacman -Ss first"), "aa 1\n    the first tool\n")
+        self.assertIn("Depends On  : aa", self.r("pacman -Si bb"))
+        self.assertIn("not found", self.r("pacman -Si zz"))
+        # a file added behind the index's back is noticed
+        self.v.write("/var/cache/pacman/pkg/junk.ar84", "not a package")
+        self.assertEqual(self.r("pacman -Sl"), "aa 1\nbb 2\n")
+        self.assertIn("(1 skipped)", self.r("pacman -Sy"))
+        self.assertIn("installed aa 1", self.r("pacman -S bb").replace("installed bb 2", ""))
+        self.assertEqual(self.r("pacman -Q"), "aa 1\nbb 2\n")
+        self.v.remove("/var/lib/pacman/sync/repo.db")                     # missing index: rebuilt
+        self.assertEqual(self.r("pacman -Sl"), "aa 1\nbb 2\n")
+
+    def test_upgrade(self):
+        self.make("aa", "1")
+        self.make("cc", "1")
+        self.r("pacman -S aa cc")
+        self.assertEqual(self.r("pacman -Qu"), "")
+        self.make("aa", "1.1")
+        self.make("cc", "0.9")
+        self.assertEqual(self.r("pacman -Qu"), "aa 1 -> 1.1\n")
+        out = self.r("pacman -Syu")
+        self.assertIn("upgraded aa 1 -> 1.1", out)
+        self.assertEqual(self.r("pacman -Qu"), "")
+        self.assertEqual(self.r("aa"), "aa 1.1\n")
+        self.assertEqual(self.r("pacman -Su"), "nothing to do\n")
+        self.assertFalse(self.v.exists("/var/lib/pacman/pacman.lock"))
+
+
 class TabAndHelpTests(unittest.TestCase):
     def test_commands_are_lazy_and_listed(self):
         from A84CD import LAZY, all_commands

@@ -1,9 +1,9 @@
 # A84PB: building packages (makepkg) and the local repository (pacman -S) for
 # pacman (Arch84 module, lazily loaded). No output here: A84PX prints.
-from A84FS import dlen, dpieces
-from A84PM import (CHUNK, DBDIR, MAGIC, REPO, PkgError, Sum, esc, ok_name, ok_path,
+from A84FS import VFSError, dlen, dpieces, unesc
+from A84PM import (CHUNK, DBDIR, MAGIC, REPO, SYNCDB, PkgError, Sum, esc, ok_name, ok_path,
                    ok_ver, scan, vkey)
-from A84PD import mkdirs
+from A84PD import db_names, db_read, mkdirs
 
 
 def build(vfs, src, name, version, desc, depends):
@@ -76,20 +76,80 @@ def build(vfs, src, name, version, desc, depends):
                     buf = ""
     buf += "END\t" + str(len(dirs) + len(files)) + "\t" + tot.hex() + "\n"
     vfs.append(out, buf)
+    if vfs.isfile(SYNCDB):
+        vfs.remove(SYNCDB)
     return out, len(files), nbytes
 
 
 def repo(vfs):
-    # [(name, version, path)] for every NAME-VERSION.ar84 in the local repository
-    out = []
+    # [(name, version, path, depends, desc)] for every NAME-VERSION.ar84 in the
+    # local repository, from the index when it matches the directory
+    files = []
     if vfs.isdir(REPO):
         for f in vfs.listdir(REPO):
-            if f.endswith(".ar84") and "-" in f:
-                k = f.rfind("-")
-                n = f[:k]
-                v = f[k + 1:-5]
-                if ok_name(n) and ok_ver(v):
-                    out.append((n, v, REPO + "/" + f))
+            if f.endswith(".ar84"):
+                files.append(f)
+    rows = []
+    if vfs.isfile(SYNCDB):
+        for line in vfs.lines(SYNCDB):
+            f = line.split("\t")
+            if len(f) == 5:
+                rows.append((f[0], f[1], REPO + "/" + f[2], f[3].split(), unesc(f[4])))
+    if len(rows) != len(files):
+        return sync(vfs)[0]
+    for r in rows:
+        if r[2][len(REPO) + 1:] not in files:
+            return sync(vfs)[0]
+    return rows
+
+
+def sync(vfs):
+    # rescans the repository and rewrites the index -> (rows, number skipped)
+    rows = []
+    bad = 0
+    if vfs.isdir(REPO):
+        for f in vfs.listdir(REPO):
+            if not f.endswith(".ar84"):
+                continue
+            try:
+                m = scan(vfs, REPO + "/" + f)
+            except (PkgError, VFSError):
+                bad += 1
+                continue
+            if f != m["name"] + "-" + m["version"] + ".ar84":
+                bad += 1
+                continue
+            rows.append((m["name"], m["version"], REPO + "/" + f, m["depends"], m["desc"]))
+    mkdirs(vfs, SYNCDB[:SYNCDB.rfind("/")], [])
+    vfs.write(SYNCDB, "")
+    buf = ""
+    for n, v, p, d, ds in rows:
+        buf += n + "\t" + v + "\t" + p[len(REPO) + 1:] + "\t" + " ".join(d) + "\t" + esc(ds) + "\n"
+        if len(buf) > 400:
+            vfs.append(SYNCDB, buf)
+            buf = ""
+    if buf != "":
+        vfs.append(SYNCDB, buf)
+    return rows, bad
+
+
+def newest(vfs, name):
+    # (version, path, depends, desc) of the newest repository version, or None
+    best = None
+    for n, v, p, d, ds in repo(vfs):
+        if n == name and (best is None or vkey(v) > vkey(best[0])):
+            best = (v, p, d, ds)
+    return best
+
+
+def upgrades(vfs):
+    # [(name, installed version, new version, path)] for installed packages
+    out = []
+    for n in db_names(vfs):
+        m = db_read(vfs, n)
+        b = newest(vfs, n)
+        if m is not None and b is not None and vkey(b[0]) > vkey(m["version"]):
+            out.append((n, m["version"], b[0], b[1]))
     return out
 
 
@@ -99,14 +159,11 @@ def plan(vfs, name, order, seen, depth=0):
         raise PkgError("dependency loop at " + name)
     if vfs.isdir(DBDIR + "/" + name):
         return
-    best = None
-    for n, v, p in repo(vfs):
-        if n == name and (best is None or vkey(v) > vkey(best[0])):
-            best = (v, p)
+    best = newest(vfs, name)
     if best is None:
         raise PkgError("target not found: " + name)
     seen.append(name)
-    for dep in scan(vfs, best[1])["depends"]:
+    for dep in best[2]:
         plan(vfs, dep, order, seen, depth + 1)
     seen.pop()
     if best[1] not in order:

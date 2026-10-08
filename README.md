@@ -24,7 +24,9 @@ folder (it is not part of this repository).
 * Scripts: a file on `PATH` (or run with a `/`) executes line by line with `$1..$9`, `$#`.
 * `.ar84` packages: `makepkg [-d DEP] DIR NAME VERSION [DESC]` packs a staging tree (DIR mirrors `/`) into
   `/var/cache/pacman/pkg/NAME-VERSION.ar84`; `pacman -U FILE` installs, `-S NAME` installs from that
-  repository with dependencies, `-R` removes, `-Q`/`-Qi`/`-Ql`/`-Qk`/`-Qo`/`-Qp` query and verify, `-Sl` lists.
+  repository with dependencies, `-R` removes, `-Q`/`-Qi`/`-Ql`/`-Qk`/`-Qo`/`-Qp` query and verify, `-Sl`/`-Ss`/`-Si` list, search and describe the
+  repository (index `/var/lib/pacman/sync/repo.db`, rebuilt by `-Sy` or when stale), `-Su`/`-Qu` upgrade/list
+  upgradable. Changing operations hold `/var/lib/pacman/pacman.lock` (stale after a power cut: `fsck -r` or `rm`).
   Format and rules: header of `A84PM.py`.
 * `archive create NAME PATH...` packs files/dirs into compressed calculator lists and removes them from RAM
   (frees the Python heap, which is what limits the filesystem; Python cannot reach the flash Archive itself);

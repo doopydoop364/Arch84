@@ -13,11 +13,16 @@
 #                                       line above it. File sums cover the file text.
 # sum = "%x-%x" % (b, a) of an Adler-32 style checksum over the characters.
 # Installed packages live in /var/lib/pacman/local/<name>/ (desc, files).
+# The repository index is /var/lib/pacman/sync/repo.db (one line per package:
+# name, version, file, depends, desc; rebuilt by pacman -Sy and when stale).
+# Changing operations hold /var/lib/pacman/pacman.lock while they run.
 from A84FS import VFSError, dpieces, normalize, unesc
 
 MAGIC = "AR84 1"
 DBDIR = "/var/lib/pacman/local"
 REPO = "/var/cache/pacman/pkg"
+LOCK = "/var/lib/pacman/pacman.lock"
+SYNCDB = "/var/lib/pacman/sync/repo.db"
 CHUNK = 256
 MAXENTRIES = 300
 MAXFILE = 20000

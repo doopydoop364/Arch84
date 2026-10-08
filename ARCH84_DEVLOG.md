@@ -622,3 +622,12 @@ run on the calculator yet.
   `test_manpages.py` fails if a command has no page or a page names an unknown command.
 * **Resident memory** again: the lazy-command table is one string per module (class `Lazy`), and the v1 text
   reader (`decode_fs`) lives in A84V1, loaded only when a v1 save is found: free heap at the prompt 45.0 KB.
+
+## pacman: lock file, repository index, upgrades
+- `pacman.lock` (/var/lib/pacman/pacman.lock) is taken by -U/-S/-R and released in a `finally`; an existing
+  lock aborts with a hint and is never removed by the loser. `fsck` reports it as stale, `fsck -r` removes it.
+- /var/lib/pacman/sync/repo.db: one line per repository package (name, version, file, depends, desc). Used by
+  -S (dependency planning no longer scans every package), -Sl, -Ss, -Si, -Qu, -Su. Rebuilt by -Sy, when the
+  file list of the repository differs from the index, or when missing; makepkg deletes it. It is regenerable, so
+  it is never trusted over the package files (install still validates the package).
+- -Su/-Syu upgrade installed packages that have a newer repository version; -Qu lists them.

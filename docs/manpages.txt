@@ -33,7 +33,7 @@ mkdir	mkdir [-p] DIR...	make directories; -p makes parents too and accepts exist
 mount	mount	show the root filesystem and where it is stored
 mv	mv SRC... DEST	move or rename
 nl	nl [FILE...]	number lines
-pacman	pacman -U FILE | -S NAME | -R NAME | -Q[ilkop] [ARG] | -Sl	.ar84 packages. -U install a file, -S install from /var/cache/pacman/pkg with its dependencies, -R remove, -Q list, -Qi info, -Ql files, -Qk verify files, -Qo owner of a path, -Qp inspect a package file, -Sl list the repository
+pacman	pacman -U FILE | -S[yu] [NAME] | -R NAME | -Sl|-Ss W|-Si N | -Q[ilkopu] [ARG]	.ar84 packages. -U file, -S repo (+deps), -Sy index, -Su upgrade, -R remove, -Sl/-Ss/-Si repo list/search/info, -Qi/-Ql/-Qk/-Qo/-Qp query, -Qu upgradable. Holds /var/lib/pacman/pacman.lock; rm it if stale
 poweroff	poweroff	save and leave Arch84
 pwd	pwd	print the current directory
 reboot	reboot	save and restart Arch84

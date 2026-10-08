@@ -59,9 +59,17 @@ def check_archives(sh, out, repair):
     return bad
 
 
-def check_packages(sh, out):
+def check_packages(sh, out, repair):
     bad = 0
     vfs = sh.vfs
+    lock = "/var/lib/pacman/pacman.lock"
+    if vfs.isfile(lock):
+        # nothing else runs while fsck does, so a lock file is left over
+        bad += 1
+        out.append("stale pacman lock" + (" removed" if repair else ""))
+        if repair:
+            vfs.remove(lock)
+            bad -= 1
     if not vfs.isdir(DBDIR):
         return 0
     names = vfs.listdir(DBDIR)
@@ -113,7 +121,7 @@ def run(sh, args):
     try:
         bad += check_main(sh, out)
         bad += check_archives(sh, out, repair)
-        bad += check_packages(sh, out)
+        bad += check_packages(sh, out, repair)
     except (VFSError, StorageError) as e:
         out.append("error: " + str(e))
         bad += 1

@@ -2,18 +2,20 @@
 # Registers itself into COMMANDS.
 #   pacman -U FILE...   install package files      pacman -R NAME...   remove
 #   pacman -S NAME...   install from /var/cache/pacman/pkg (with dependencies)
-#   pacman -Sl          list that repository
+#   pacman -Sy          rebuild the repository index   -Su  upgrade installed packages
+#   pacman -Sl          list that repository   -Ss WORD  search   -Si NAME  info
+#   pacman -Qu          list packages the repository has newer versions of
 #   pacman -Q [NAME]    list installed    -Qi NAME info    -Ql [NAME] files
 #   pacman -Qk [NAME]   verify files      -Qo PATH owner   -Qp FILE  inspect a file
 #   makepkg [-d DEP]... DIR NAME VERSION [DESCRIPTION...]
 from A84FS import VFSError, dpieces
 from A84CD import COMMANDS
-from A84PM import DBDIR, PkgError, Sum, scan
-from A84PD import db_names, db_read, owner
+from A84PM import DBDIR, LOCK, PkgError, Sum, scan
+from A84PD import db_names, db_read, mkdirs, owner
 from A84PI import install, remove
-from A84PB import build, plan, repo
+from A84PB import build, newest, plan, repo, sync, upgrades
 
-USAGE = ("usage: pacman -U FILE | -R NAME | -S NAME | -Sl | -Q[ilkop] [ARG]\n"
+USAGE = ("usage: pacman -U FILE | -R NAME | -S[yu] [NAME] | -Sl|-Ss|-Si | -Q[ilkopu] [ARG]\n"
          "       makepkg [-d DEP]... DIR NAME VERSION [DESC]\n")
 
 
@@ -111,6 +113,70 @@ def query(sh, mods, args):
     return st
 
 
+def take_lock(vfs):
+    if vfs.exists(LOCK):
+        raise PkgError("unable to lock database (" + LOCK + " exists)\n"
+                       "if no pacman is running, remove it: rm " + LOCK)
+    mkdirs(vfs, LOCK[:LOCK.rfind("/")], [])
+    vfs.write(LOCK, "pacman\n")
+
+
+def search(sh, mods, rest):
+    rows = repo(sh.vfs)
+    rows.sort()
+    if "l" in mods:
+        for n, v, p, d, ds in rows:
+            sh.out(n + " " + v + "\n")
+        return 0
+    if not rest:
+        sh.err("error: no targets specified")
+        return 1
+    st = 0
+    if "i" in mods:
+        for t in rest:
+            b = newest(sh.vfs, t)
+            if b is None:
+                sh.err("error: package '" + t + "' was not found")
+                st = 1
+            else:
+                sh.out("Name        : " + t + "\nVersion     : " + b[0] + "\nDescription : " + b[3]
+                       + "\nDepends On  : " + (" ".join(b[2]) or "None") + "\nFile        : " + b[1] + "\n")
+        return st
+    w = rest[0].lower()
+    for n, v, p, d, ds in rows:
+        if w in n or w in ds.lower():
+            sh.out(n + " " + v + "\n    " + ds + "\n")
+    return 0
+
+
+def change(sh, op, mods, rest):
+    vfs = sh.vfs
+    if op == "R":
+        for n in rest:
+            m = remove(vfs, n)
+            sh.out("removed " + n + " " + m["version"] + "\n")
+        return 0
+    files = []
+    if op == "U":
+        for a in rest:
+            files.append(sh.resolve(a))
+    else:
+        if "y" in mods:
+            rows, bad = sync(vfs)
+            sh.out("synchronized " + str(len(rows)) + " packages" + (" (" + str(bad) + " skipped)" if bad else "") + "\n")
+        if "u" in mods:
+            for n, o, v, p in upgrades(vfs):
+                files.append(p)
+        for n in rest:
+            plan(vfs, n, files, [])
+    for f in files:
+        meta, old = install(vfs, f)
+        show(sh, meta, old)
+    if not files and "y" not in mods:
+        sh.out("nothing to do\n")
+    return 0
+
+
 def cmd_pacman(sh, args):
     if not args or args[0][:1] != "-" or len(args[0]) < 2:
         sh.err(USAGE.rstrip())
@@ -121,35 +187,26 @@ def cmd_pacman(sh, args):
     vfs = sh.vfs
     try:
         if op == "Q":
+            if "u" in mods:
+                for n, o, v, p in upgrades(vfs):
+                    sh.out(n + " " + o + " -> " + v + "\n")
+                return 0
             return query(sh, mods, rest)
-        if op == "S" and "l" in mods:
-            rows = repo(vfs)
-            rows.sort()
-            for n, v, p in rows:
-                sh.out(n + " " + v + "\n")
-            return 0
+        if op == "S" and ("l" in mods or "s" in mods or "i" in mods):
+            return search(sh, mods, rest)
         if op == "U" or op == "S" or op == "R":
-            if not rest:
+            if op == "S" and "y" not in mods and "u" not in mods and not rest:
                 sh.err("error: no targets specified")
                 return 1
-            if op == "R":
-                for n in rest:
-                    m = remove(vfs, n)
-                    sh.out("removed " + n + " " + m["version"] + "\n")
-                return 0
-            files = []
-            if op == "U":
-                for a in rest:
-                    files.append(sh.resolve(a))
-            else:
-                for n in rest:
-                    plan(vfs, n, files, [])
-            for f in files:
-                meta, old = install(vfs, f)
-                show(sh, meta, old)
-            if not files:
-                sh.out("nothing to do\n")
-            return 0
+            if op != "S" and not rest:
+                sh.err("error: no targets specified")
+                return 1
+            take_lock(vfs)
+            try:
+                return change(sh, op, mods, rest)
+            finally:
+                if vfs.isfile(LOCK):
+                    vfs.remove(LOCK)
     except PkgError as e:
         sh.err("error: " + str(e))
         return 1

@@ -47,7 +47,7 @@ PAGES = (
         'mount\tmount\tshow the root filesystem and where it is stored\n'
         'mv\tmv SRC... DEST\tmove or rename\n'
         'nl\tnl [FILE...]\tnumber lines\n'
-        'pacman\tpacman -U FILE | -S NAME | -R NAME | -Q[ilkop] [ARG] | -Sl\t.ar84 packages. -U install a file, -S install from /var/cache/pacman/pkg with its dependencies, -R remove, -Q list, -Qi info, -Ql files, -Qk verify files, -Qo owner of a path, -Qp inspect a package file, -Sl list the repository\n'
+        'pacman\tpacman -U FILE | -S[yu] [NAME] | -R NAME | -Sl|-Ss W|-Si N | -Q[ilkopu] [ARG]\t.ar84 packages. -U file, -S repo (+deps), -Sy index, -Su upgrade, -R remove, -Sl/-Ss/-Si repo list/search/info, -Qi/-Ql/-Qk/-Qo/-Qp query, -Qu upgradable. Holds /var/lib/pacman/pacman.lock; rm it if stale\n'
     ),
     (
         'poweroff\tpoweroff\tsave and leave Arch84\n'
