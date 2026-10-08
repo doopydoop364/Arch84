@@ -1,6 +1,6 @@
 # Driver executed BY MICROPYTHON:
 #   micropython -X heapsize=N emu/run.py KEYSFILE LISTSFILE REPORTFILE
-# KEYSFILE: key codes, whitespace separated. LISTSFILE: json of stored lists
+# KEYSFILE: key codes, one per line. LISTSFILE: json of stored lists
 # (read at start if present, written at exit). REPORTFILE: json report.
 import sys
 import gc
@@ -14,9 +14,7 @@ import ti_system
 import ti_draw
 
 kf, lf, rf = sys.argv[1], sys.argv[2], sys.argv[3]
-f = open(kf)
-ti_system.KEYS = [int(x) for x in f.read().split()]
-f.close()
+ti_system.KFILE = open(kf)
 try:
     f = open(lf)
     d = json.load(f)
@@ -26,7 +24,7 @@ try:
 except OSError:
     pass
 
-rep = {"imports": [], "keys": len(ti_system.KEYS)}
+rep = {"imports": []}
 gc.collect()
 rep["heap_total"] = gc.mem_free() + gc.mem_alloc()
 rep["free_start"] = gc.mem_free()

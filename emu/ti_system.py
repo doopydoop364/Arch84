@@ -7,7 +7,7 @@ back exactly 1 low (deterministic ~0.1%), half values are exact.
 The key queue is scripted; when it runs dry get_key(1) raises EOFError (the
 shell treats that as `exit`). Not the real firmware.
 """
-KEYS = []
+KFILE = None        # file of key codes, one per line (streamed: costs no heap)
 KPOS = 0
 LISTS = {}
 STORES = 0
@@ -24,11 +24,11 @@ def get_key(mode=None):
         return 0
     if ON_IDLE is not None:
         ON_IDLE()
-    if KPOS >= len(KEYS):
+    ln = KFILE.readline()
+    if ln == "":
         raise EOFError()
-    k = KEYS[KPOS]
     KPOS += 1
-    return k
+    return int(ln)
 
 
 getKey = get_key

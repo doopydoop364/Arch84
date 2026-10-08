@@ -59,40 +59,57 @@ def factory_vfs(ver):
 # groups of 8 items behind a control byte (bit set = literal byte, clear =
 # 2-byte match: 12-bit distance-1, 4-bit length-3)
 
+LZ_HASH = 1024      # match table entries (2 bytes each)
+
+
 def lz_compress(d):
+    # Fixed memory: a 2 KB hash table (last position of each 3-byte hash,
+    # pos+1 in 2 bytes, 0 = empty; candidates are verified) and a pre-sized
+    # output. The earlier dict-per-position version grew to >10 KB of
+    # fragmenting reallocations on incompressible frames.
     n = len(d)
-    out = bytearray()
-    idx = {}
+    out = bytearray(n + (n >> 3) + 2)
+    tab = bytearray(LZ_HASH * 2)
+    mask = LZ_HASH - 1
+    o = 0
     i = 0
     pos = 0
     ctl = 0
     nbit = 0
     while i < n:
         if nbit == 0:
-            pos = len(out)
-            out.append(0)
+            pos = o
+            o += 1
             ctl = 0
         ln = 0
-        off = 0
         if i + 2 < n:
-            j = idx.get((d[i] << 16) | (d[i + 1] << 8) | d[i + 2], -1)
-            if j >= 0 and i - j <= 4096:
+            h = ((d[i] * 5 + d[i + 1] * 31 + d[i + 2] * 131) & mask) * 2
+            j = (tab[h] | (tab[h + 1] << 8)) - 1
+            if j >= 0 and i - j <= 4096 and d[j] == d[i] and d[j + 1] == d[i + 1] \
+                    and d[j + 2] == d[i + 2]:
                 ln = 3
                 while ln < 18 and i + ln < n and d[j + ln] == d[i + ln]:
                     ln += 1
-                off = i - j
-        if ln >= 3:
-            v = off - 1
-            out.append(v & 255)
-            out.append(((v >> 8) << 4) | (ln - 3))
+        if ln:
+            v = i - j - 1
+            out[o] = v & 255
+            out[o + 1] = ((v >> 8) << 4) | (ln - 3)
+            o += 2
             step = ln
         else:
             ctl |= 1 << nbit
-            out.append(d[i])
+            out[o] = d[i]
+            o += 1
             step = 1
-        for p in range(i, i + step):
-            if p + 2 < n:
-                idx[(d[p] << 16) | (d[p + 1] << 8) | d[p + 2]] = p
+        p = i
+        e = i + step
+        if e > n - 2:
+            e = n - 2
+        while p < e:
+            h = ((d[p] * 5 + d[p + 1] * 31 + d[p + 2] * 131) & mask) * 2
+            tab[h] = (p + 1) & 255
+            tab[h + 1] = (p + 1) >> 8
+            p += 1
         i += step
         nbit += 1
         if nbit == 8:
@@ -100,7 +117,7 @@ def lz_compress(d):
             nbit = 0
     if nbit:
         out[pos] = ctl
-    return bytes(out)
+    return bytes(out[:o])
 
 
 def lz_decompress(c, rawlen):

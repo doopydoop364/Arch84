@@ -22,6 +22,9 @@ def find_mp():
     p = os.environ.get("A84_MICROPYTHON")
     if p and os.access(p, os.X_OK):
         return p
+    for c in ("/tmp/a84-micropython", os.path.join(HERE, "micropython")):
+        if os.access(c, os.X_OK):
+            return c
     return None
 
 
@@ -84,7 +87,7 @@ class Emu:
             ks += keys_for_lines(["exit"])
         with tempfile.TemporaryDirectory() as d:
             kf, lf, rf = (os.path.join(d, n) for n in ("k", "l", "r"))
-            open(kf, "w").write(" ".join(map(str, ks)))
+            open(kf, "w").write("\n".join(map(str, ks)) + "\n")
             if lists is not None:
                 open(lf, "w").write(lists)
             elif self.lists is not None and not fresh:
