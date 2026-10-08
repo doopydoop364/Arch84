@@ -388,5 +388,62 @@ class RmOptionTests(unittest.TestCase):
         self.assertEqual(self.run_("rm /tmp/g2"), "")
 
 
+class EvictionTests(unittest.TestCase):
+    def test_memoryerror_while_loading_a_command_evicts_idle_modules_and_retries(self):
+        import builtins
+        import sys
+        from A84CD import COMMANDS
+        sh = Shell(Kernel(MemStorage()), type("T", (), {"write": lambda s, x: None,
+                                                        "post": lambda s, x, p=False: None,
+                                                        "busy": lambda s: None})())
+        out = []
+        sh.term.write = out.append
+        sh.execute("pacman -Q")                 # A84PX and its helpers are now resident
+        self.assertIn("A84PX", sys.modules)
+        real = builtins.__import__
+        fails = [1]
+
+        def flaky(name, *a, **k):
+            if name == "A84FK" and fails:
+                fails.pop()
+                raise MemoryError()
+            return real(name, *a, **k)
+        builtins.__import__ = flaky
+        try:
+            sh.execute("fsck")
+        finally:
+            builtins.__import__ = real
+        self.assertNotIn("A84PX", sys.modules)      # evicted to make room
+        self.assertNotIn("pacman", COMMANDS)
+        self.assertTrue(any("no problems" in s for s in out), out)
+        sh.execute("pacman -Q")                     # and it loads again on demand
+        self.assertIn("pacman", COMMANDS)
+
+    def test_persistent_memory_shortage_reports_out_of_memory(self):
+        import builtins
+        sh = Shell(Kernel(MemStorage()), type("T", (), {"write": lambda s, x: None,
+                                                        "post": lambda s, x, p=False: None,
+                                                        "busy": lambda s: None})())
+        out = []
+        sh.term.write = out.append
+        import sys
+        from A84CD import COMMANDS
+        sys.modules.pop("A84FK", None)
+        COMMANDS.pop("fsck", None)
+        real = builtins.__import__
+
+        def never(name, *a, **k):
+            if name == "A84FK":
+                raise MemoryError()
+            return real(name, *a, **k)
+        builtins.__import__ = never
+        try:
+            sh.execute("fsck")
+        finally:
+            builtins.__import__ = real
+        self.assertTrue(any("out of memory loading A84FK" in s for s in out), out)
+        self.assertEqual(sh.status, 1)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -588,3 +588,20 @@ run on the calculator yet.
   87.8 KB -> 90.2 KB min heap. The new commands are lazy modules (each <= ~8 KB source).
 * **Tests**: test_pipes.py, test_editor.py, test_pacman.py (damaged-package fuzz, rollback sweep), fuzz_pkg.py
   (CPython == MicroPython), emu/edtest.py; selftest gained 13 cases.
+
+
+---
+# archive and fsck (autonomous follow-up session)
+
+* **Why not the real Archive**: the probed `ti_system` API has `store_list`/`recall_list` only; nothing moves data into
+  the flash Archive from Python. The saved filesystem already lives in list memory, off the Python heap; what runs
+  out is the heap, because the whole tree is loaded at boot. `archive` therefore keeps selected files only in lists.
+* **Format/commit**: stream `Q1` + records (68 dir / 70 file, varint path, varint data) in the usual compressed
+  frames (512-byte raw frames: smaller buffers fit a fragmented heap), lists `Q<id><nnn>` (ids 0-9), catalogue in
+  `/var/lib/archive/index`. Create writes + reads back the lists, removes the files from RAM, then saves; extract
+  restores in RAM, saves, and only then clears the old lists; a failed save is a warning ("run sync"), never data loss.
+* **Modules** (all lazy): A84AX (command line, list/check/delete), A84AI (catalogue helpers), A84AR (create),
+  A84AE (extract), A84FK (fsck). They unload themselves before the save so their code is not resident while saving.
+* **Eviction**: `A84CD.evict()` drops every idle lazy module when loading the next one hits MemoryError, then retries.
+  (MicroPython keeps interned names after a module is dropped, so the first use of a module still costs a few KB.)
+* Emulator: with 5 files of ~1.4 KB, `archive create` frees about 6.4 KB net of the heap; 6 files 10.9 KB.

@@ -17,7 +17,7 @@ def sh(name, cmd, **kw):
         print((r.stdout + r.stderr)[-600:])
     return r
 
-for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor", "test_pacman") + (() if quick else ("test_bigfiles",)):
+for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor", "test_pacman", "test_archive") + (() if quick else ("test_bigfiles",)):
     sh(t, [sys.executable, t + ".py"])
 n = 15 if quick else 60
 bad = 0
@@ -37,11 +37,17 @@ pb = subprocess.run([MP, "-X", "heapsize=3000000", "fuzz_pkg.py", "1", "60"], cw
 print("%-34s %s" % ("fuzz_pkg CPython==MicroPython", "ok" if pa == pb and "dirty 0" in pa else "FAIL"))
 if not (pa == pb and "dirty 0" in pa):
     fails.append("fuzz_pkg")
+fa = subprocess.run([sys.executable, "fuzz_archive.py", "1", "40"], cwd=ROOT, capture_output=True, text=True).stdout
+fb = subprocess.run([MP, "-X", "heapsize=3000000", "fuzz_archive.py", "1", "40"], cwd=ROOT, capture_output=True, text=True).stdout
+print("%-34s %s" % ("fuzz_archive CPython==MicroPython", "ok" if fa == fb and "bad 0" in fa else "FAIL"))
+if not (fa == fb and "bad 0" in fa):
+    fails.append("fuzz_archive")
 print("%-34s %s" % ("codec_fuzz identical streams", "ok" if a == b and "bad 0" in a else "FAIL"))
 if not (a == b and "bad 0" in a):
     fails.append("codec_fuzz")
 sh("keyfuzz", [sys.executable, "emu/keyfuzz.py", "1", "5" if quick else "20", "1500"])
 sh("editor on emulated device", [sys.executable, "emu/edtest.py"])
+sh("archive on emulated device", [sys.executable, "emu/archtest.py"])
 sh("powercut (40 files)", [sys.executable, "emu/powercut.py", "40"])
 if not quick:
     r = sh("leak check", [sys.executable, "emu/leak.py"])

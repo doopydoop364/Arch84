@@ -3,7 +3,7 @@
 from A84FS import ERR, HOME, VFSError, dappend, dlen, iter_lines, normalize
 from A84PE import LineEditor, ParseError, parse
 from A84UI import PlainTerm
-from A84CD import COMMANDS, LAZY, load_command
+from A84CD import COMMANDS, LAZY, evict, load_command
 from A84CP import Completer
 from A84SD import Lifecycle
 import A84CE    # registers its commands into COMMANDS
@@ -143,7 +143,11 @@ class Shell(Completer, Lifecycle):
     def script(self, name):
         # a file on PATH (or named with a "/") runs as a script: A84SC, loaded on demand
         try:
-            import A84SC
+            try:
+                import A84SC
+            except MemoryError:
+                evict()
+                import A84SC
         except (ImportError, MemoryError):
             return None
         sp = A84SC.script_path(self, name)

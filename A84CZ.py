@@ -195,16 +195,18 @@ class Out:
         self.buf = bytearray()
         self.stats = stats
         self.count = 0
+        self.chunk = CHUNK      # raw bytes per frame (the archive packer uses smaller ones)
 
     def frames(self, final):
         buf = self.buf
         n = len(buf)
         off = 0
         out = []
-        while n - off >= CHUNK or (final and n - off > 0):
+        ch = self.chunk
+        while n - off >= ch or (final and n - off > 0):
             take = n - off
-            if take > CHUNK:
-                take = CHUNK
+            if take > ch:
+                take = ch
             out.append(make_frame(bytes(buf[off:off + take]), self.stats))
             off += take
         if off:

@@ -26,3 +26,7 @@ folder (it is not part of this repository).
   `/var/cache/pacman/pkg/NAME-VERSION.ar84`; `pacman -U FILE` installs, `-S NAME` installs from that
   repository with dependencies, `-R` removes, `-Q`/`-Qi`/`-Ql`/`-Qk`/`-Qo`/`-Qp` query and verify, `-Sl` lists.
   Format and rules: header of `A84PM.py`.
+* `archive create NAME PATH...` packs files/dirs into compressed calculator lists and removes them from RAM
+  (frees the Python heap, which is what limits the filesystem; Python cannot reach the flash Archive itself);
+  `archive extract [-k] NAME`, `archive list`, `archive check`, `archive delete NAME`. Needs ~25 KB of free
+  heap to run. `fsck [-r]` checks the saved copy, archives, packages and system files and clears leftover lists.

@@ -332,7 +332,7 @@ COMMANDS = {
 LAZY = {}
 for _m, _names in (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname"),
                    ("A84C4", "du df free mount umount uptime"),
-                   ("A84C5", "date reboot poweroff"), ("A84C6", "uniq tee"), ("A84EV", "edit"), ("A84PX", "pacman makepkg")):
+                   ("A84C5", "date reboot poweroff"), ("A84C6", "uniq tee"), ("A84EV", "edit"), ("A84PX", "pacman makepkg"), ("A84AX", "archive"), ("A84FK", "fsck")):
     for _n in _names.split():
         LAZY[_n] = _m
 
@@ -345,8 +345,43 @@ def all_commands():
     return names
 
 
+# library modules the lazy commands import; evicted together with them
+HELPERS = ("A84PM", "A84PD", "A84PI", "A84PB", "A84AI", "A84AR", "A84AE", "A84ED")
+
+
+def unload(command, *mods):
+    # a rarely used command drops its own modules when it finishes, so the RAM it
+    # freed (archive) is not immediately spent on its code
+    import sys
+    import gc
+    COMMANDS.pop(command, None)
+    for m in mods:
+        sys.modules.pop(m, None)
+    gc.collect()
+
+
+def evict():
+    # Lazy command modules stay resident once loaded. When the heap is too full to
+    # compile the next one, drop them all (they reload on demand) and collect.
+    import sys
+    import gc
+    gone = 0
+    for n in LAZY:
+        COMMANDS.pop(n, None)
+    for m in list(LAZY.values()) + list(HELPERS):
+        if m != "A84SC" and m in sys.modules:
+            del sys.modules[m]
+            gone += 1
+    gc.collect()
+    return gone
+
+
 def load_command(name):
     # the command function, importing its module first if needed (None if unknown)
     if name not in COMMANDS and name in LAZY:
-        __import__(LAZY[name])
+        try:
+            __import__(LAZY[name])
+        except MemoryError:
+            evict()
+            __import__(LAZY[name])
     return COMMANDS.get(name)

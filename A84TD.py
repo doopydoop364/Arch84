@@ -151,5 +151,8 @@ CASES = [
     ("pacman usage", ["pacman"], "~usage: pacman"),
     ("pacman roundtrip", ["mkdir /tmp/s", "mkdir /tmp/s/usr", "echo hi > /tmp/s/usr/t", "makepkg /tmp/s t 1",
                           "pacman -U /var/cache/pacman/pkg/t-1.ar84", "pacman -Q"], "t 1\n"),
+    ("archive roundtrip", ["mkdir /tmp/d", "echo hi > /tmp/d/f", "archive create t /tmp/d", "archive extract t",
+                           "cat /tmp/d/f"], "hi\n"),
+    ("fsck", ["fsck"], "~no problems found"),
     ("tee <", ["echo q > f", "tee g < f", "cat g"], "q\n"),
 ]
