@@ -13,3 +13,16 @@ management on top of a small persistent VFS.
 
 Deploying needs `evo_usb.py` from https://github.com/Evo-Programming/evo_usb_py placed in this
 folder (it is not part of this repository).
+
+## Using it
+
+* Pipes and redirection: `cat f | grep x | sort | uniq -c > out`, `wc < f`, `tee`. Typeable on the
+  calculator: `|` = x^-1 key, `<` = sin key, `\` = x^2 key (`keys` lists them).
+* `edit FILE` is a small full-screen editor. CLEAR opens a command line: `w` save, `q` quit,
+  `qq` quit without saving, `wq`, `N` go to line, `/text` find, `n`, `d` `y` `p` line cut/copy/paste,
+  `s/old/new/` and `%s/old/new/`.
+* Scripts: a file on `PATH` (or run with a `/`) executes line by line with `$1..$9`, `$#`.
+* `.ar84` packages: `makepkg [-d DEP] DIR NAME VERSION [DESC]` packs a staging tree (DIR mirrors `/`) into
+  `/var/cache/pacman/pkg/NAME-VERSION.ar84`; `pacman -U FILE` installs, `-S NAME` installs from that
+  repository with dependencies, `-R` removes, `-Q`/`-Qi`/`-Ql`/`-Qk`/`-Qo`/`-Qp` query and verify, `-Sl` lists.
+  Format and rules: header of `A84PM.py`.

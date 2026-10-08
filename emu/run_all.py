@@ -17,7 +17,7 @@ def sh(name, cmd, **kw):
         print((r.stdout + r.stderr)[-600:])
     return r
 
-for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor") + (() if quick else ("test_bigfiles",)):
+for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor", "test_pacman") + (() if quick else ("test_bigfiles",)):
     sh(t, [sys.executable, t + ".py"])
 n = 15 if quick else 60
 bad = 0
@@ -32,6 +32,11 @@ if bad:
     fails.append("fuzz_shell")
 a = subprocess.run([sys.executable, "codec_fuzz.py", "1", "100"], cwd=ROOT, capture_output=True, text=True).stdout
 b = subprocess.run([MP, "-X", "heapsize=3000000", "codec_fuzz.py", "1", "100"], cwd=ROOT, capture_output=True, text=True).stdout
+pa = subprocess.run([sys.executable, "fuzz_pkg.py", "1", "60"], cwd=ROOT, capture_output=True, text=True).stdout
+pb = subprocess.run([MP, "-X", "heapsize=3000000", "fuzz_pkg.py", "1", "60"], cwd=ROOT, capture_output=True, text=True).stdout
+print("%-34s %s" % ("fuzz_pkg CPython==MicroPython", "ok" if pa == pb and "dirty 0" in pa else "FAIL"))
+if not (pa == pb and "dirty 0" in pa):
+    fails.append("fuzz_pkg")
 print("%-34s %s" % ("codec_fuzz identical streams", "ok" if a == b and "bad 0" in a else "FAIL"))
 if not (a == b and "bad 0" in a):
     fails.append("codec_fuzz")

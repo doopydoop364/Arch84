@@ -195,5 +195,57 @@ class KeyTests(unittest.TestCase):
         self.assertEqual(term.translate(52), "e")
 
 
+
+class ScriptTests(unittest.TestCase):
+    def setUp(self):
+        self.sh, self.t = mk()
+        self.sh.vfs.write("/usr/bin/hello", "# greet\necho hello $1 $#\necho second\n")
+
+    def r(self, line):
+        return run(self.sh, self.t, line)
+
+    def test_runs_from_path_with_arguments(self):
+        self.assertEqual(self.r("hello world"), "hello world 1\nsecond\n")
+        self.assertEqual(self.r("hello"), "hello  0\nsecond\n")
+        self.assertEqual(self.r("/usr/bin/hello a b"), "hello a 2\nsecond\n")
+
+    def test_output_goes_through_pipes_and_redirects(self):
+        self.assertEqual(self.r("hello x | wc -l"), "2\n")
+        self.assertEqual(self.r("hello x | grep sec"), "second\n")
+        self.assertEqual(self.r("hello q > /tmp/o"), "")
+        self.assertEqual(self.sh.vfs.read("/tmp/o"), "hello q 1\nsecond\n")
+        self.assertEqual(self.r("hello q >> /tmp/o"), "")
+        self.assertEqual(self.sh.vfs.read("/tmp/o").count("second"), 2)
+
+    def test_arguments_do_not_leak(self):
+        self.r("hello a")
+        self.assertNotIn("1", self.sh.k.env)
+        self.assertNotIn("#", self.sh.k.env)
+        self.assertEqual(self.r("echo $1 end"), " end\n")
+
+    def test_nested_scripts_and_depth_limit(self):
+        self.sh.vfs.write("/usr/bin/outer", "hello inner\n")
+        self.assertEqual(self.r("outer"), "hello inner 1\nsecond\n")
+        self.sh.vfs.write("/usr/bin/rec", "rec\n")
+        self.assertIn("nested too deeply", self.r("rec"))
+
+    def test_exit_is_refused_inside_scripts(self):
+        self.sh.vfs.write("/usr/bin/bad", "exit\necho after\n")
+        out = self.r("bad")
+        self.assertIn("not allowed in scripts", out)
+        self.assertIn("after\n", out)
+        self.assertTrue(self.sh.running)
+
+    def test_status_of_last_command(self):
+        self.sh.vfs.write("/usr/bin/f", "false\n")
+        self.r("f")
+        self.assertEqual(self.sh.status, 1)
+
+    def test_directory_and_missing_are_not_scripts(self):
+        self.assertIn("command not found", self.r("nosuch"))
+        self.assertIn("command not found", self.r("./nosuch"))
+        self.sh.vfs.mkdir("/usr/bin/adir")
+        self.assertIn("command not found", self.r("adir"))
+
 if __name__ == "__main__":
     unittest.main()

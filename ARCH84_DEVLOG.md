@@ -559,3 +559,32 @@ Reproduced in the emulator: the doubling works, but `sync`/`df` then fail with
   of that size (`cat a a > b`, ~18 KB total) are still over the limit: the
   whole filesystem lives in RAM, so keep the total file data under ~12 KB on
   the device. Use `cat a >> a` to double a file; it needs one copy only.
+
+
+---
+# Pipes, stdin, editor, scripts and .ar84 packages (campaign follow-up)
+
+All of this was developed and tested on the desktop and in the MicroPython emulator (emu/); none of it has
+run on the calculator yet.
+
+* **Pipes / stdin**: `parse(..., pipes=True)` returns stages `[(words, redir, infile)]`; `Shell.execute` runs them
+  in order, keeping each non-final stage's output as canonical file data (pieces, never one big string) and feeding
+  it as `sh.stdin`. `<` shares the file's own pieces. `cat head tail grep sort wc` read stdin (or `-`);
+  new lazy module A84C6: `uniq`, `tee`. Aliases expand only on the first word of the line; `;` and `&` are still
+  unsupported. `$0..$9` and `$#` expand (so `$5.00` now prints `.00`, like sh).
+* **Keys**: the calculator had no `|`, `<` or `\`: now x^-1, sin and x^2 (A84UI.NORM; `keys` lists them).
+* **edit**: A84ED (pure state machine) + A84EV (terminal driver), both lazy. Whole file as a list of lines
+  (limit 20000 chars / 1500 lines); saving builds the new data first and swaps it in (`VFS.put`), so a failed save
+  leaves the old file. `qq` discards because `!` has no key.
+* **Scripts**: A84SC, loaded when a command is not built in: PATH lookup, `$1..$9 $#`, output goes through the
+  caller's pipe/redirect, `exit/reboot/poweroff` refused, nesting limit 4. No control flow yet.
+* **.ar84 packages / pacman / makepkg**: A84PM (format, validation), A84PD (database in
+  `/var/lib/pacman/local/NAME/{desc,files}`), A84PI (install/remove with rollback), A84PB (build, local repository
+  `/var/cache/pacman/pkg`), A84PX (commands). Packages may only write under /usr /opt /etc /home /var, never the
+  system files or the pacman database; everything is validated (paths, sizes, per-file and whole-package checksums)
+  before anything is written; a failure mid-install restores the previous state. Packages are plain text, so they
+  can be written by hand or built on the device; there is no download path yet (the calculator has no network).
+* **Memory**: resident heap after boot 47.1 KB -> 44.7 KB (parser, pipeline executor, hooks); boot compile peak
+  87.8 KB -> 90.2 KB min heap. The new commands are lazy modules (each <= ~8 KB source).
+* **Tests**: test_pipes.py, test_editor.py, test_pacman.py (damaged-package fuzz, rollback sweep), fuzz_pkg.py
+  (CPython == MicroPython), emu/edtest.py; selftest gained 13 cases.

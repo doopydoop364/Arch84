@@ -1,19 +1,17 @@
 # A84SH: shell (Arch84 module 9/10)
 
-from A84FS import ERR, HOME, StorageError, VFSError, dappend, dlen, iter_lines, normalize
+from A84FS import ERR, HOME, VFSError, dappend, dlen, iter_lines, normalize
 from A84PE import LineEditor, ParseError, parse
 from A84UI import PlainTerm
 from A84CD import COMMANDS, LAZY, load_command
 from A84CP import Completer
+from A84SD import Lifecycle
 import A84CE    # registers its commands into COMMANDS
 
 
 # ----------------------------------------------------- shell + commands
 
-NOSTARTUP = ("exit", "reboot", "poweroff")
-
-
-class Shell(Completer):
+class Shell(Completer, Lifecycle):
     def __init__(self, kernel, term):
         self.k = kernel
         if kernel.log is None:
@@ -31,6 +29,8 @@ class Shell(Completer):
         self._rfail = False
         self.stdin = None       # canonical file data of the pipe/`<` feeding this command
         self._cap = None        # canonical data collecting the output of a non-final stage
+        self._tee = None        # canonical data collecting terminal output while a script runs
+        self._depth = 0         # nesting of scripts
 
     # -- helpers used by commands
     def lines(self, arg):
@@ -70,7 +70,10 @@ class Shell(Completer):
                 self._rfail = True
                 self._rpath = None
         elif text != "":
-            self.term.write(text)
+            if self._tee is not None:
+                self._tee = dappend(self._tee, text)
+            else:
+                self.term.write(text)
 
     def err(self, text):
         self.term.write(ERR + text + "\n")
@@ -137,6 +140,17 @@ class Shell(Completer):
             self.stdin = None
             self._cap = None
 
+    def script(self, name):
+        # a file on PATH (or named with a "/") runs as a script: A84SC, loaded on demand
+        try:
+            import A84SC
+        except (ImportError, MemoryError):
+            return None
+        sp = A84SC.script_path(self, name)
+        if sp is None:
+            return None
+        return lambda sh, a: A84SC.run_script(sh, sp, [name] + a)
+
     def run_stage(self, words, redir):
         if not words:
             if redir is not None:
@@ -154,6 +168,8 @@ class Shell(Completer):
                 self.err("ash: " + words[0] + ": module " + LAZY[words[0]] + " is not installed")
                 self.status = 127
                 return
+        if fn is None:
+            fn = self.script(words[0])
         if fn is None:
             self.err("ash: command not found: " + words[0])
             self.status = 127
@@ -198,79 +214,6 @@ class Shell(Completer):
         except VFSError as e:
             self.err("ash: " + target + ": " + str(e))
             self.status = 1
-
-    # -- completion: returns (start_index, [replacement, ...])
-    def startup(self):
-        # /etc/profile, ~/.profile, ~/.ashrc: one command per line.
-        # exit/reboot/poweroff are refused here so a bad file cannot lock
-        # the user out (there is no editor on the device yet).
-        t = self.term
-        home = self.k.env.get("HOME", HOME)
-        for path in ("/etc/profile", home + "/.profile", home + "/.ashrc"):
-            if not self.vfs.isfile(path):
-                continue
-            self.k.spin("Running " + path)
-            errs = 0
-            for line in self.vfs.read(path).split("\n"):
-                line = line.strip()
-                if line == "" or line[:1] == "#":
-                    continue
-                if line.split(" ")[0] in NOSTARTUP:
-                    errs += 1
-                    t.write(ERR + path + ": '" + line.split(" ")[0] + "' not allowed\n")
-                    continue
-                self.k.tick()
-                self.execute(line)
-                if self.status != 0:
-                    errs += 1
-            self.status = 0
-            if errs:
-                t.post("[ WARN ] " + path + ": " + str(errs) + " errors\n")
-            else:
-                t.post("[  OK  ] Ran " + path + "\n")
-
-    def shutdown(self, kind):
-        # kind: "exit", "poweroff" or "reboot". Shows each real task like
-        # the boot does. Returns False only if a reboot was aborted.
-        t = self.term
-        ok = "[  OK  ] "
-        errs = 0
-        self.k.spin("Saving command history")
-        try:
-            self.k.save_history()
-            t.post(ok + "Saved command history\n")
-        except VFSError as e:
-            errs += 1
-            t.post("[FAILED] History: " + str(e) + "\n")
-        if self.vfs.dirty:
-            if self.k.sync_ok:
-                self.k.spin("Syncing filesystem")
-                try:
-                    self.k.sync()
-                    t.post(ok + "Synced filesystem\n")
-                except StorageError as e:
-                    t.post("[FAILED] Sync: " + str(e) + "\n")
-                    if kind == "reboot":
-                        t.post("[ WARN ] Reboot aborted\n")
-                        return False
-                    errs += 1
-            else:
-                errs += 1
-                t.post("[ WARN ] Unsaved changes NOT synced\n")
-        else:
-            t.post(ok + "Filesystem already synced\n")
-        if errs:
-            t.post("[ WARN ] Shutdown finished with errors\n")
-        elif kind == "reboot":
-            t.post(ok + "Reached target Reboot\n")
-        elif kind == "poweroff":
-            t.post(ok + "Reached target Power-Off\n")
-        else:
-            t.post(ok + "Reached target Shutdown\n")
-        self.running = False
-        if kind == "reboot":
-            self.reboot = True
-        return True
 
     def run(self):
         t = self.term

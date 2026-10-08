@@ -147,5 +147,9 @@ CASES = [
     ("uniq -c", ["echo a > f", "echo a >> f", "uniq -c f"], "      2 a\n"),
     ("tee", ["echo q | tee f", "cat f"], "q\n"),
     ("edit (no terminal)", ["edit f"], "edit: needs the calculator terminal\n"),
+    ("makepkg usage", ["makepkg"], "usage: makepkg [-d DEP]... DIR NAME VERSION [DESCRIPTION...]\n"),
+    ("pacman usage", ["pacman"], "~usage: pacman"),
+    ("pacman roundtrip", ["mkdir /tmp/s", "mkdir /tmp/s/usr", "echo hi > /tmp/s/usr/t", "makepkg /tmp/s t 1",
+                          "pacman -U /var/cache/pacman/pkg/t-1.ar84", "pacman -Q"], "t 1\n"),
     ("tee <", ["echo q > f", "tee g < f", "cat g"], "q\n"),
 ]

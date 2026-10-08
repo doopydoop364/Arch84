@@ -23,8 +23,8 @@ def expand(line, i, env):
         if k < 0:
             raise ParseError("unterminated ${")
         return env.get(line[j + 1:k], ""), k + 1
-    if j < n and line[j] == "?":
-        return env.get("?", "0"), j + 1
+    if j < n and (line[j] == "?" or line[j] == "#"):
+        return env.get(line[j], "0"), j + 1
     if j < n and "0" <= line[j] <= "9":
         return env.get(line[j], ""), j + 1     # $0..$9: one digit (script arguments)
     k = j
