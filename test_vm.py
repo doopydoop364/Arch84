@@ -21,5 +21,9 @@ def run(be, name):
 
 run(MemBackend(), "mem")
 d = tempfile.mkdtemp(); os.chdir(d)
-run(FileBackend(open, os.remove, page=256, seg=2048), "file")
-print("segments left", sorted(f for f in os.listdir(".")))
+fb = FileBackend(open, os.remove, page=256, seg=2048)
+run(fb, "file")
+fb.close()
+print("segments left", sorted(os.listdir(".")), "live", fb.live)
+assert sum(os.path.getsize(f) for f in os.listdir(".")) <= 40 * 256
+

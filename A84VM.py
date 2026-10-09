@@ -6,6 +6,7 @@ import gc
 
 PAGE = 1024
 SEG = 32768
+ZERO = -2                         # loc of an all-zero page (nothing stored)
 
 
 class MemBackend:
@@ -33,52 +34,93 @@ class MemBackend:
 
 
 class FileBackend:
-    # log-structured swap files swap0.dat, swap1.dat ... of <= SEG bytes. loc = seg*1048576+off.
-    # A page is appended to the current segment; a superseded copy only counts as garbage, and a
-    # segment whose pages are all garbage is deleted. `opener`/`remover` are open and os.remove.
+    # swap files swap0.dat, swap1.dat ... of <= SEG bytes, each a fixed array of page slots.
+    # loc = seg*1048576 + slot*page. A freed slot is reused in place (r+b), so the files never
+    # grow past the peak number of live pages and need no compaction; a segment file is created
+    # when the first slot in it is used and deleted when its last live page goes. One handle is
+    # kept open per call pattern (the last segment written / read) to avoid open+close per page.
+    # An all-zero page is not stored at all (loc ZERO).
     def __init__(self, opener, remover, page=PAGE, seg=SEG, prefix="swap"):
         self.op = opener
         self.rm = remover
         self.page = page
         self.per = seg // page
         self.prefix = prefix
-        self.cur = 0
-        self.used = 0
-        self.live = {}
+        self.top = 0                    # slots handed out so far (next fresh slot)
+        self.free = []                  # freed locs, reused first
+        self.live = {}                  # segment -> live page count
+        self.made = {}                  # segment -> file exists
+        self.h = None
+        self.hs = -1
         self.reads = 0
         self.writes = 0
 
     def name(self, s):
         return self.prefix + str(s) + ".dat"
 
+    def handle(self, s, create):
+        if self.hs != s:
+            self.close()
+            if create and s not in self.made:
+                f = self.op(self.name(s), "wb")
+                f.close()
+                self.made[s] = 1
+            self.h = self.op(self.name(s), "r+b")
+            self.hs = s
+        return self.h
+
+    def close(self):
+        if self.h is not None:
+            self.h.close()
+            self.h = None
+            self.hs = -1
+
     def put(self, data, old):
-        if old >= 0:
-            self.drop(old)
-        if self.used >= self.per:
-            self.cur += 1
-            self.used = 0
-        f = self.op(self.name(self.cur), "wb" if self.used == 0 else "ab")
+        if old == ZERO:
+            old = -1
+        if not any(data):
+            if old >= 0:
+                self.drop(old)
+            return ZERO
+        if old < 0:
+            if self.free:
+                old = min(self.free)        # lowest first: the high segments drain and go
+                self.free.remove(old)
+            else:
+                old = (self.top // self.per) * 1048576 + (self.top % self.per) * self.page
+                self.top += 1
+            s = old >> 20
+            self.live[s] = self.live.get(s, 0) + 1
+        f = self.handle(old >> 20, True)
+        f.seek(old & 1048575)
         f.write(data)
-        f.close()
-        loc = self.cur * 1048576 + self.used * self.page
-        self.used += 1
-        self.live[self.cur] = self.live.get(self.cur, 0) + 1
         self.writes += 1
-        return loc
+        return old
 
     def get(self, loc, buf):
-        f = self.op(self.name(loc >> 20), "rb")
+        if loc == ZERO:
+            for i in range(len(buf)):
+                buf[i] = 0
+            return
+        f = self.handle(loc >> 20, False)
         f.seek(loc & 1048575)
         f.readinto(buf)
-        f.close()
         self.reads += 1
 
     def drop(self, loc):
+        if loc == ZERO:
+            return
         s = loc >> 20
         self.live[s] -= 1
-        if self.live[s] == 0 and s != self.cur:
+        if self.live[s] == 0:
             del self.live[s]
+            if self.hs == s:
+                self.close()
+            del self.made[s]
             self.rm(self.name(s))
+            self.free = [x for x in self.free if x >> 20 != s]
+        else:
+            self.free.append(loc)
 
 
 class ListBackend:
@@ -181,14 +223,15 @@ class Pager:
             self.faults += 1
             self._make_room()
             b = bytearray(self.page)
-            if load and self.loc[pid] >= 0:
+            if load and self.loc[pid] != -1 and self.loc[pid] != ZERO:
                 self.be.get(self.loc[pid], b)
             self.res[pid] = b
         self._touch(pid)
         return b
 
     def read(self, pid, off, n):
-        return bytes(memoryview(self.page_in(pid))[off:off + n])
+        b = self.page_in(pid)
+        return bytes(memoryview(b)[off:off + n])
 
     def write(self, pid, off, data):
         b = self.page_in(pid, off != 0 or len(data) < self.page)
