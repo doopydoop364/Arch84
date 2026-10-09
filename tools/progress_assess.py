@@ -25,6 +25,7 @@ SUITES = (
     ("parser", "Shell parser regression", ["-m", "unittest", "test_arch84.ParserTests"]),
     ("vfs", "Storage and persistence regression", ["test_storage.py"]),
     ("install", "Chunked-file regression", ["test_bigfiles.py"]),
+    ("pkg_accept", "Archive corruption and truncated persistence regression", ["-m", "unittest", "test_progress_storage_acceptance"]),
 )
 
 # Strictly scoped evidence: the specific parser regression suite demonstrates
@@ -34,6 +35,7 @@ AUTO_CRITERIA = {
     "vm": {
         "Dirty page write failures preserve data": "vm_accept",
     },
+    "install": {"Truncated and corrupted archives rejected safely": "pkg_accept"},
 }
 
 
