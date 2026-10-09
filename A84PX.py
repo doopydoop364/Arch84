@@ -56,7 +56,8 @@ def drop_net():
     # (desktop Python keeps it: reloading would only slow the tests)
     if getattr(sys.implementation, "name", "") == "micropython":
         sys.modules.pop("A84PN", None)
-        sys.modules.pop("A84NT", None)
+        if "A84NC" not in sys.modules:
+            sys.modules.pop("A84NT", None)
     gc.collect()
 
 
@@ -195,7 +196,7 @@ def change(sh, op, mods, rest):
     return 0
 
 
-def cmd_pacman(sh, args):
+def run_pacman(sh, args):
     HOMEDIR[0] = sh.k.env.get("HOME", "/home/evo")
     if not args or args[0][:1] != "-" or len(args[0]) < 2:
         sh.err(USAGE.rstrip())
@@ -239,7 +240,7 @@ def cmd_pacman(sh, args):
     return 1
 
 
-def cmd_makepkg(sh, args):
+def run_makepkg(sh, args):
     deps = []
     rest = []
     i = 0
@@ -260,6 +261,38 @@ def cmd_makepkg(sh, args):
         return 1
     sh.out("built " + out + " (" + str(nf) + " files, " + str(nb) + " chars)\n")
     return 0
+
+
+PKG_MODULES = ("A84PX", "A84PB", "A84PD", "A84PI", "A84PS", "A84PQ", "A84PM", "A84PL", "A84PN", "A84BM")
+
+
+def unload_pacman():
+    # The package tools are about 30 KB of heap once loaded and are rarely used: on the calculator they
+    # leave again when the command ends and the next pacman/makepkg loads them afresh (desktop Python
+    # keeps them: the tests hold references to these modules).
+    if getattr(sys.implementation, "name", "") != "micropython":
+        return
+    COMMANDS.pop("pacman", None)
+    COMMANDS.pop("makepkg", None)
+    for m in PKG_MODULES:
+        sys.modules.pop(m, None)
+    if "A84NC" not in sys.modules:          # (the network commands hold on to their copy of A84NT)
+        sys.modules.pop("A84NT", None)
+    gc.collect()
+
+
+def cmd_pacman(sh, args):
+    try:
+        return run_pacman(sh, args)
+    finally:
+        unload_pacman()
+
+
+def cmd_makepkg(sh, args):
+    try:
+        return run_makepkg(sh, args)
+    finally:
+        unload_pacman()
 
 
 COMMANDS["pacman"] = cmd_pacman

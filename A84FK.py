@@ -171,7 +171,10 @@ def run(sh, args):
     bad = check_system(sh, out, repair)
     try:
         bad += check_main(sh, out)
-        bad += check_blobs(sh, out)
+        try:
+            bad += check_blobs(sh, out)
+        except MemoryError:
+            out.append("files in lists: not enough memory to check them")
         bad += check_archives(sh, out, repair)
         bad += check_packages(sh, out, repair)
     except (VFSError, StorageError) as e:

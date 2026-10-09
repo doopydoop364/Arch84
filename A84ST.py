@@ -120,6 +120,8 @@ class ListStore:
     def _recall(self, name):
         try:
             v = self.get(name)
+        except MemoryError:
+            raise         # not "no such list": callers report out of memory, never damage
         except Exception:
             return None   # a missing list raises on some firmwares
         if v is None:

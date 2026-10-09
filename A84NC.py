@@ -60,6 +60,7 @@ def cmd_wget(sh, args):
         return 1
     sh.k.stop_spin()
     sh.vfs.externalize(path, 300)       # a big download lives in lists, not the heap
+    A84NT.drop("A84BM")
     if not quiet:
         sh.out("saved " + path + " (" + str(n) + " bytes)\n")
 

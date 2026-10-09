@@ -125,6 +125,13 @@ def new_seq(salt=0):
 _n = [0]
 
 
+def drop(name):
+    # on the calculator a module that is only needed for a moment leaves again (desktop Python keeps it)
+    import sys
+    if getattr(sys.implementation, "name", "") == "micropython":
+        sys.modules.pop(name, None)
+
+
 def utf8_split(data):
     # (complete, rest): rest is the start of a character that is not all here yet
     n = len(data)

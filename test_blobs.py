@@ -418,5 +418,60 @@ class RandomTests(unittest.TestCase):
             self.run_seed(seed)
 
 
+class CalculatorModeTests(unittest.TestCase):
+    """On the calculator the package tools, the codec writer and the network code unload after use.
+    Pretend to be MicroPython and run commands across many unload/reload cycles."""
+    def setUp(self):
+        import types
+        self.real = sys.implementation
+        sys.implementation = types.SimpleNamespace(name="micropython", version=self.real.version, cache_tag=None)
+
+    def tearDown(self):
+        sys.implementation = self.real
+
+    def test_packages_files_in_lists_and_saves_across_reloads(self):
+        ti = FakeTI()
+        k = Kernel(ti_store(ti))
+        sh = T.Shell(k, T.CaptureTerm())
+        t = sh.term
+        r = lambda line: T.run(sh, t, line)
+        r("mkdir -p pk/usr/bin")
+        r("seq 150 > pk/usr/bin/nums")
+        r("echo 'echo hi' > pk/usr/bin/hi")
+        r("makepkg pk demo 1.0 demo package")
+        self.assertNotIn("A84PX", sys.modules)                         # unloaded after the command
+        self.assertNotIn("makepkg", __import__("A84CD").COMMANDS)
+        r("pacman -U /var/cache/pacman/pkg/demo-1.0.ar84")
+        self.assertNotIn("A84PB", sys.modules)
+        self.assertEqual(r("pacman -Q"), "demo 1.0\n")                # loads everything again
+        self.assertEqual(r("wc -l /usr/bin/nums"), "150 /usr/bin/nums\n")
+        k.sync()
+        self.assertNotIn("A84CY", sys.modules)                         # the codec writer left again
+        self.assertEqual(r("pacman -Qk demo"), "demo: 2 total files, 0 altered files\n")
+        self.assertEqual(r("fsck").count("DAMAGED"), 0)
+        r("pacman -R demo")
+        r("makepkg pk demo 1.1 again")
+        r("pacman -U /var/cache/pacman/pkg/demo-1.1.ar84")
+        k.sync()
+        k2 = Kernel(ti_store(ti))
+        sh2 = T.Shell(k2, T.CaptureTerm())
+        self.assertEqual(T.run(sh2, sh2.term, "pacman -Q"), "demo 1.1\n")
+        self.assertEqual(T.run(sh2, sh2.term, "wc -l /usr/bin/nums"), "150 /usr/bin/nums\n")
+
+    def test_the_blob_module_is_never_unloaded_and_old_nodes_still_count(self):
+        sh, t = mk()
+        sh.vfs.write("/home/evo/f", TEXT)
+        sh.vfs.externalize("/home/evo/f")
+        ids = set(A84BL.used_ids(sh.vfs))
+        self.assertTrue(ids)
+        old_module = sys.modules.pop("A84BL")                          # even a second copy of the module...
+        try:
+            import importlib
+            new_module = importlib.import_module("A84BL")
+            self.assertEqual(new_module.used_ids(sh.vfs), ids)         # ...still sees the files of the first one
+        finally:
+            sys.modules["A84BL"] = old_module
+
+
 if __name__ == "__main__":
     unittest.main()

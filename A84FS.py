@@ -359,7 +359,7 @@ class VFS:
             return False
         if dlen(d) < minlen:
             return False
-        from A84BL import make
+        from A84BM import make          # the writing half: only loaded while storing
         e = make(self, dpieces(d))
         if e is None:
             return False
