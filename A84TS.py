@@ -5,7 +5,7 @@ from A84ST import MemStorage
 from A84KN import Kernel
 from A84SH import Shell
 from A84CD import all_commands
-from A84FS import ERR
+from A84UI import strip
 
 PARTS = 4
 PARTMODS = ("A84T1", "A84T2", "A84T3", "A84T4")     # literal names: the BAK copies rename them
@@ -21,7 +21,7 @@ class Cap:
         self.cleared = 0
 
     def write(self, t):
-        self.text += t.replace(ERR, "")
+        self.text += strip(t)
         if t != "" and not t.endswith("\n"):
             self.text += "\n"
 

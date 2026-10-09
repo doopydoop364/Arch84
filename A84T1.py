@@ -40,4 +40,5 @@ CASES = [
     ('uname -a', ['uname -a'], 'Arch84 arch84 0.0.7 evo Python\n'),
     ('uname -r', ['uname -r'], '0.0.7\n'),
     ('whoami', ['whoami'], 'evo\n'),
+    ('hostname', ['hostname'], 'arch84\n'),
 ]

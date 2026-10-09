@@ -57,4 +57,5 @@ CASES2 = [
     ("list: extract brings files back", _ARC + ["archive extract -k demo", "cat projects/demo/f"], "hi\n"),
     ("list: archive delete", _ARC + ["archive delete demo", "archive list"], ""),
     ("list: fsck", ["fsck"], "~no problems found"),
+    ("list: neofetch", ["neofetch"], "~OS Arch84"),
 ]

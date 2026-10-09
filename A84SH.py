@@ -258,10 +258,24 @@ class Shell(Completer, Lifecycle):
             except MemoryError:
                 pass
 
+    def greet(self):
+        # the login greeting (A84NF, "neofetch"); ~/.hushlogin turns it off. Never fatal:
+        # a greeting that cannot load (low memory) is simply not shown.
+        try:
+            if self.vfs.isfile(self.k.env.get("HOME", HOME) + "/.hushlogin"):
+                return
+            fn = load_command("neofetch")
+            if fn is not None:
+                fn(self, [])
+                self.flush_out()
+        except Exception:
+            pass
+
     def run(self):
         t = self.term
         self.k.spin("Startup (hold CLEAR to skip)")
-        if t.safe_key(self.k.tick):
+        skipped = t.safe_key(self.k.tick)
+        if skipped:
             t.post("[ WARN ] Startup files skipped\n")
         else:
             self.startup()
@@ -275,6 +289,8 @@ class Shell(Completer, Lifecycle):
             t.post("[FAILED] Shell: bad cwd, using /\n")
         t.post(self.k.hostname() + " login: " + self.k.env["USER"]
                + " (auto)\n")
+        if not skipped:
+            self.greet()
         memerr = 0
         eofs = 0
         while self.running:

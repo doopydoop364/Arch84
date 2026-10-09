@@ -117,6 +117,7 @@ class ShellSurvivesMemoryErrorsTests(unittest.TestCase):
     def test_oom_message_that_itself_runs_out_of_memory(self):
         t = self.make(["boom", "echo alive"], 1)
         sh = Shell(Kernel(MemStorage()), t)
+        sh.vfs.write("/home/evo/.hushlogin", "")      # no greeting: this test counts the first write
         import A84CD
 
         def boom(sh_, args):

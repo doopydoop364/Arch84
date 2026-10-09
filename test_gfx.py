@@ -273,6 +273,43 @@ class FlickerTests(unittest.TestCase):
                 self.assertLessEqual(e[3], 10 * CW)
 
 
+class BlockTests(unittest.TestCase):
+    # solid colour blocks (neofetch's palette): filled rectangles, never text
+    def test_a_block_is_a_filled_rectangle_in_the_terminals_own_colour(self):
+        from A84FS import CLR, BLK
+        t, td = new_term()
+        t.post(CLR + "r" + BLK + BLK + CLR + "g" + BLK + "ab\n")
+        fills = [e for e in td.log if e[0] == "fill" and e[5] != (0, 0, 0)]
+        self.assertEqual(fills[0][1:], (0, 0, 2 * CW, CURH, COL["r"]))
+        self.assertEqual(fills[1][1:], (2 * CW, 0, CW, CURH, COL["g"]))
+        texts = [e for e in td.log if e[0] == "text"]
+        self.assertEqual([e[3] for e in texts], ["ab"])
+        self.assertEqual(texts[0][1], 3 * CW)             # the text starts after the three blocks
+        check(self, t, td)
+
+    def test_blocks_and_text_rows_repaint_cleanly(self):
+        from A84FS import CLR, BLK
+        t, td = new_term()
+        t.post(CLR + "bxy" + CLR + "n" + BLK * 4 + "\n")
+        t.post("[*     ] working\n", True)
+        t.post("[  OK  ] working\n")
+        t.post(CLR + "rz" + CLR + "y" + BLK * 2 + "\n")
+        check(self, t, td)
+
+    def test_the_palette_is_the_terminals_real_colour_table(self):
+        t, td = new_term()
+        pal = t.palette()
+        self.assertGreaterEqual(len(pal), 7)
+        for c in pal:
+            self.assertIn(c, COL)
+        self.assertEqual(len(set(COL[c] for c in pal)), len(pal))      # every block looks different
+
+    def test_text_terminals_show_blocks_as_hash(self):
+        from A84FS import CLR, BLK
+        from A84UI import strip
+        self.assertEqual(strip(CLR + "r" + BLK * 3 + "x"), "###x")
+
+
 class CostTests(unittest.TestCase):
     """The same boot, painted by the previous GfxTerm (from git) and by this one."""
     @classmethod

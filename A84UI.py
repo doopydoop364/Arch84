@@ -2,10 +2,20 @@
 # Verified on a TI-84 Evo (OS 7.0): get_key(1) blocks and returns the
 # positional key code, get_key(0) returns 0 when no key is down,
 # disp_at(row, text, align) with rows 1..10 and 31 columns.
-from A84FS import ERR, ms_since, now_ms
+from A84FS import BLK, CLR, ERR, ms_since, now_ms
 
 ROWS = 10
 COLS = 31
+
+
+def strip(s):
+    # a line as plain text: no error mark, no colour markers
+    s = s.replace(ERR, "")
+    i = s.find(CLR)
+    while i >= 0:
+        s = s[:i] + s[i + 2:]
+        i = s.find(CLR)
+    return s.replace(BLK, "#")
 
 
 def wrap(s, cols):
@@ -22,7 +32,7 @@ def wrap(s, cols):
 class PlainTerm:
     # print()/input() fallback: works anywhere, no editing features
     def write(self, text):
-        text = text.replace(ERR, "")
+        text = strip(text)
         if text != "" and not text.endswith("\n"):
             text += "\n"
         print(text, end="")
@@ -89,6 +99,9 @@ class TiTerm:
             mark = ERR
             text = text[1:]
         for line in text.split("\n"):
+            if CLR in line and len(strip(line)) <= self.cols:
+                self.lines.append(mark + line)      # coloured line: it fits, keep its markers whole
+                continue
             for part in wrap(line, self.cols):
                 self.lines.append(mark + part)
         if text.endswith("\n"):
@@ -111,7 +124,7 @@ class TiTerm:
     def close(self):
         self.reset()
         for line in self.lines[-(self.rows - 1):]:
-            print(line.replace(ERR, ""))
+            print(strip(line))
 
     def translate(self, k):
         # raw key code -> char / action name, or None (modifier or unknown)
@@ -185,7 +198,7 @@ class TiTerm:
             crow = (len(prompt) + ed.pos) // self.cols
             end = max(crow + 1, maxin)
             inrows = inrows[end - maxin:end]
-        out = [l.replace(ERR, "") for l in self.shown(area - len(inrows))]
+        out = [strip(l) for l in self.shown(area - len(inrows))]
         out.extend(inrows)
         while len(out) < area:
             out.append("")
@@ -212,7 +225,7 @@ class TiTerm:
         else:
             self.write(text)
             out = self.lines[-self.rows:]
-        out = [l.replace(ERR, "") for l in out]
+        out = [strip(l) for l in out]
         while len(out) < self.rows:
             out.append("")
         self.paint(out)
@@ -232,7 +245,7 @@ class TiTerm:
     def busy(self):
         # a command is running: show the submitted line and a cursor on a
         # fresh line below it
-        out = [l.replace(ERR, "") for l in self.lines[-(self.rows - 1):]]
+        out = [strip(l) for l in self.lines[-(self.rows - 1):]]
         out.append("|")
         while len(out) < self.rows:
             out.append("")

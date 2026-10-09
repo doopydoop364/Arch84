@@ -5,8 +5,8 @@
 # glyph sits 2 px below its row top Y when y = Y + 20; descenders end ~Y+17.
 # fill_rect(x, y, w, h), draw_text(x, y_baseline, text), set_color(r, g, b);
 # draw calls show immediately (paint_buffer/show_draw are not usable).
-from A84FS import ERR
-from A84UI import PlainTerm, TiTerm
+from A84FS import BLK, CLR, ERR
+from A84UI import PlainTerm, TiTerm, strip
 
 try:
     import ti_system as TI
@@ -25,7 +25,11 @@ CH = 18     # row pitch; descenders (p y g j q) reach ~Y+17, so rows clear 18 px
 CURH = 16   # cursor block height (glyph box without the descender)
 # w white, g green, r red, y yellow, b blue, d dim gray, c = cursor cell
 COL = {"w": (225, 225, 225), "g": (0, 200, 0), "r": (235, 60, 60),
-       "y": (230, 200, 0), "b": (90, 150, 255), "d": (125, 125, 125)}
+       "y": (230, 200, 0), "b": (90, 150, 255), "d": (125, 125, 125),
+       "m": (200, 80, 220), "n": (0, 190, 200)}      # m magenta, n cyan
+# the palette neofetch shows (the colours this terminal really draws with, in this order)
+PALETTE = "rgybmnw"
+# a segment whose colour is "#x" is a solid block of colour x (text: spaces)
 TAGS = {"[  OK  ]": "g", "[FAILED]": "r", "[ WARN ]": "y",
         "[ FIX  ]": "y"}
 
@@ -46,10 +50,42 @@ def mode_segs(mod, up):
     return out
 
 
+def block_runs(text, c):
+    # text with BLK cells -> [(text, colour)]: each run of BLK cells becomes a solid block
+    # ("#c" colour, spaces), the rest keeps colour c
+    out = []
+    i = 0
+    while i < len(text):
+        j = i
+        blk = text[i] == BLK
+        while j < len(text) and (text[j] == BLK) == blk:
+            j += 1
+        if blk:
+            out.append((" " * (j - i), "#" + c))
+        else:
+            out.append((text[i:j], c))
+        i = j
+    return out
+
+
 def line_segs(line):
     # one scrollback/prompt line -> [(text, color)]
     if line[:1] == ERR:
         return [(line[1:], "r")]
+    if CLR in line:
+        parts = line.split(CLR)
+        segs = []
+        if parts[0] != "":
+            segs.append((parts[0], "w"))
+        for p in parts[1:]:
+            c = p[:1]
+            if c not in COL:
+                c = "w"
+            if BLK in p:
+                segs.extend(block_runs(p[1:], c))
+            elif p[1:] != "":
+                segs.append((p[1:], c))
+        return segs
     inner = line[1:7]
     if line[:1] == "[" and line[7:8] == "]" and "*" in inner and inner.strip(" *") == "":
         return [("[", "w"), (inner, "r"), ("]", "w"), (line[8:], "w")]
@@ -124,7 +160,11 @@ class GfxTerm(TiTerm):
     def close(self):
         self.ti.disp_clr()
         for line in self.lines[-(self.rows - 1):]:
-            print(line.replace(ERR, ""))
+            print(strip(line))
+
+    def palette(self):
+        # the colours this terminal can really draw (neofetch shows them as blocks)
+        return PALETTE
 
     def setc(self, c):
         if self.col != c:
@@ -149,6 +189,11 @@ class GfxTerm(TiTerm):
             if n == 0:
                 continue
             key = c
+            if c[0] == "#":
+                self.setc(COL[c[1]])
+                td.fill_rect(k * CW, y, CW * n, CURH)
+                k += n
+                continue
             if c == "c":
                 self.setc((225, 225, 225))
                 td.fill_rect(k * CW, y, CW * n, CURH)
@@ -174,7 +219,8 @@ class GfxTerm(TiTerm):
         if len(old) != len(r):
             return False
         for j in range(len(r)):
-            if len(old[j][0]) != len(r[j][0]) or old[j][1] == "c" or r[j][1] == "c":
+            if len(old[j][0]) != len(r[j][0]) or old[j][1] == "c" or r[j][1] == "c" \
+                    or old[j][1][0] == "#" or r[j][1][0] == "#":
                 return False
         px = 0
         for j in range(len(r)):

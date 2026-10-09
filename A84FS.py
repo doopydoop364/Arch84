@@ -6,6 +6,8 @@ VERSION = "0.0.7"
 FS_VERSION = 1
 HOME = "/home/evo"
 ERR = "\x01"   # prefix of error lines sent to the terminal (drawn red)
+CLR = "\x03"   # inside a line: CLR + a colour letter (w g r y b d) colours the text that follows
+BLK = "\x04"   # inside a line: one solid cell in the current colour (a "#" on text terminals)
 
 try:
     import ti_system as _ti

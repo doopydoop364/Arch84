@@ -32,6 +32,7 @@ man	man [COMMAND | -k WORD]	manual page of a command; -k lists pages mentioning 
 mkdir	mkdir [-p] DIR...	make directories; -p makes parents too and accepts existing ones
 mount	mount	show the root filesystem and where it is stored
 mv	mv SRC... DEST	move or rename
+neofetch	neofetch	show the Arch84 logo and system facts (the login greeting; create ~/.hushlogin to turn that off)
 nl	nl [FILE...]	number lines
 pacman	pacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]	.ar84 packages. -U file, -S repo (+deps), -Sy sync, -Su upgrade, -Sc drop cached files not installed (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'
 poweroff	poweroff	save and leave Arch84
