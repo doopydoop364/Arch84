@@ -1,7 +1,30 @@
 # A84PS: reading .ar84 packages - record parser and validator (library for pacman,
 # lazily loaded). Format: see A84PM.
-from A84FS import unesc
+from A84FS import dpieces, unesc
 from A84PM import (MAGIC, MAXENTRIES, MAXFILE, PkgError, Sum, ok_dep, ok_name, ok_path, ok_ver)
+
+MAX_RECORD = 1024
+
+
+def bounded_lines(pieces):
+    # Avoid assembling an unbounded line before the package parser can reject it.
+    carry = ""
+    for piece in pieces:
+        pos = 0
+        while pos < len(piece):
+            end = piece.find("\n", pos)
+            if end < 0:
+                if len(carry) + len(piece) - pos > MAX_RECORD:
+                    raise PkgError("package record too long")
+                carry += piece[pos:]
+                break
+            if len(carry) + end - pos > MAX_RECORD:
+                raise PkgError("package record too long")
+            yield carry + piece[pos:end]
+            carry = ""
+            pos = end + 1
+    if carry:
+        yield carry
 
 
 def records(vfs, path):
@@ -12,9 +35,13 @@ def records(vfs, path):
     if path[:4] == "mod:":
         from A84PL import flash_lines
         src = flash_lines(path)
+    elif hasattr(vfs, "_file"):
+        src = bounded_lines(dpieces(vfs._file(path).data))
     else:
-        src = vfs.lines(path)
+        src = vfs.lines(path)       # desktop repository builders supply a text view
     for line in src:
+        if len(line) > MAX_RECORD:
+            raise PkgError("package record too long")
         if seen_end:
             raise PkgError("data after END")
         if first:
@@ -31,7 +58,7 @@ def records(vfs, path):
             if f[2] != total.hex():
                 raise PkgError("checksum mismatch (damaged package)")
             seen_end = True
-            yield "E", f[1], None, None
+            yield "E", f[1], None, f[2]
             continue
         total.add(line + "\n")
         if k == "D" and len(f) == 2:
@@ -126,6 +153,7 @@ def scan(vfs, path):
                 raise PkgError("bad END record")
             if n != entries:
                 raise PkgError("entry count mismatch")
+            meta["_archive_sum"] = z
     for p in meta["files"]:
         paths[p[0]] = "F"
     for d in meta["depends"]:

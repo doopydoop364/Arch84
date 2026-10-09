@@ -39,7 +39,8 @@ for i, p in enumerate(ps): assert run2.read(p, 100, 700) == bytes([i + 1]) * 700
 els = sum(len(v) for v in store.values())
 print("list1024 ok; elements held", els, "lists", len(store))
 print("segments left", sorted(os.listdir(".")), "live", fb.live)
-assert sum(os.path.getsize(f) for f in os.listdir(".")) <= 40 * 256
+# Copy-on-write needs one spare slot, and segment rounding can leave holes.
+assert sum(os.path.getsize(f) for f in os.listdir(".")) <= 48 * 256
 
 
 # compression: text pages in lists

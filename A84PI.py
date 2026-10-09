@@ -35,23 +35,6 @@ def check(vfs, meta):
         raise PkgError("missing dependency: " + ", ".join(bad))
 
 
-def rollback(vfs, undo, created):
-    for i in range(len(undo) - 1, -1, -1):
-        u = undo[i]
-        try:
-            if u[0] == "n":
-                vfs.remove(u[1])
-            else:
-                vfs.put(u[1], u[2])
-        except VFSError:
-            pass
-    for i in range(len(created) - 1, -1, -1):
-        try:
-            vfs.remove(created[i])
-        except VFSError:
-            pass
-
-
 def deepest_first(dirs):
     out = list(dirs)
     out.sort(key=len)
@@ -59,40 +42,44 @@ def deepest_first(dirs):
     return out
 
 
-def finish(cur):
+def finish(vfs, cur):
     if cur is not None and (cur[4] != cur[1] or cur[3].hex() != cur[2]):
         raise PkgError("file changed while installing: " + cur[0])
+    if cur is not None and cur[5] is not None:
+        ext = cur[5].finish()
+        vfs.put(cur[0], ext)
+        vfs.ext = True
 
 
-def apply(vfs, path):
-    undo = []
+def apply(vfs, path, meta):
     created = []
     cur = None
-    try:
-        for kind, x, y, z in records(vfs, path):
-            if kind == "D":
-                mkdirs(vfs, x, created)
-            elif kind == "F" or kind == "E":
-                finish(cur)
-                cur = None
-                if kind == "F":
-                    mkdirs(vfs, x[:x.rfind("/")], created)
-                    node = vfs.get(x)
-                    if node is None:
-                        undo.append(("n", x))
-                    else:
-                        undo.append(("f", x, node.data))
-                    vfs.write(x, "")
-                    cur = [x, int(y), z, Sum(), 0]
-            elif kind == "+":
-                text = unesc(x)
+    for kind, x, y, z in records(vfs, path):
+        if kind == "D":
+            mkdirs(vfs, x, created)
+        elif kind == "F" or kind == "E":
+            finish(vfs, cur)
+            cur = None
+            if kind == "E" and z != meta["_archive_sum"]:
+                raise PkgError("package changed between validation and install")
+            if kind == "F":
+                mkdirs(vfs, x[:x.rfind("/")], created)
+                vfs.write(x, "")
+                writer = None
+                if int(y) >= 1024 and vfs.store is not None:
+                    from A84BM import BlobWriter
+                    writer = BlobWriter(vfs)
+                    vfs._tx.add_blob(writer.ext)
+                cur = [x, int(y), z, Sum(), 0, writer]
+        elif kind == "+":
+            text = unesc(x)
+            if cur[5] is None:
                 vfs.append(cur[0], text)
-                cur[3].add(text)
-                cur[4] += len(text)
-    except Exception as e:
-        rollback(vfs, undo, created)
-        raise PkgError(str(e) + " (rolled back)")
-    return undo, created
+            else:
+                cur[5].feed(text)
+            cur[3].add(text)
+            cur[4] += len(text)
+    return created
 
 
 def install(vfs, path, reason=None):
@@ -102,28 +89,29 @@ def install(vfs, path, reason=None):
     old = db_read(vfs, meta["name"])
     check(vfs, meta)
     meta["reason"] = reason or (old["reason"] if old is not None else "explicit")
-    undo, created = apply(vfs, path)
-    keep = []
-    if old is not None:
-        new = {}
-        for p, size, s in meta["files"]:
-            new[p] = 1
-        for p, size, s in old["files"]:
-            if p not in new and vfs.isfile(p):
-                vfs.remove(p)
-        for d in deepest_first(old["dirs"]):
-            if vfs.isdir(d):
-                if vfs.listdir(d) == [] and d not in meta["dirs"]:
-                    vfs.remove(d)
-                else:
-                    keep.append(d)
-    meta["dirs"] = keep + created
+    tx = vfs.begin_transaction()
     try:
+        created = apply(vfs, path, meta)
+        keep = []
+        if old is not None:
+            new = {}
+            for p, size, s in meta["files"]:
+                new[p] = 1
+            for p, size, s in old["files"]:
+                if p not in new and vfs.isfile(p):
+                    vfs.remove(p)
+            for d in deepest_first(old["dirs"]):
+                if vfs.isdir(d):
+                    if vfs.listdir(d) == [] and d not in meta["dirs"]:
+                        vfs.remove(d)
+                    else:
+                        keep.append(d)
+        meta["dirs"] = keep + created
         db_write(vfs, meta)
+        tx.commit()
     except Exception as e:
-        rollback(vfs, undo, created)
-        db_remove(vfs, meta["name"])
-        raise PkgError("cannot write the package database: " + str(e))
+        tx.rollback()
+        raise PkgError(str(e) + " (rolled back)")
     if old is None:
         return meta, None
     return meta, old["version"]
@@ -185,11 +173,17 @@ def remove(vfs, name):
     meta = db_read(vfs, name)
     if meta is None:
         raise PkgError("target not found: " + name)
-    for p, size, s in meta["files"]:
-        if vfs.isfile(p):
-            vfs.remove(p)
-    for d in deepest_first(meta["dirs"]):
-        if vfs.isdir(d) and vfs.listdir(d) == []:
-            vfs.remove(d)
-    db_remove(vfs, name)
+    tx = vfs.begin_transaction()
+    try:
+        for p, size, s in meta["files"]:
+            if vfs.isfile(p):
+                vfs.remove(p)
+        for d in deepest_first(meta["dirs"]):
+            if vfs.isdir(d) and vfs.listdir(d) == []:
+                vfs.remove(d)
+        db_remove(vfs, name)
+        tx.commit()
+    except Exception as e:
+        tx.rollback()
+        raise PkgError(str(e) + " (rolled back)")
     return meta

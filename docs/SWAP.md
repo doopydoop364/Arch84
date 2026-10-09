@@ -1,7 +1,8 @@
 # A84VM: paged swap (virtual memory)
 
 `A84VM.py` is a pager: pages of `page` bytes are resident in RAM (at most `window`) or in a backend.
-Page table dicts: `loc[pid]` (backend location, -1 never stored, -2 all-zero), `res`, `dirty`, `use`.
+Page table dicts: `loc[pid]` (backend location, -1 never stored, -2 all-zero), `res`, and `use`
+(last-use tick plus dirty bit). `pins` contains only pinned resident pages.
 LRU eviction by linear scan (no `sorted()`), write-back only of dirty pages, `gc.collect()` after each
 eviction, optional eviction while `gc.mem_free() < low`.
 
@@ -17,12 +18,15 @@ eviction, optional eviction while `gc.mem_free() < low`.
   * time follows the element count, not the list count
 * So `ListBackend` stores 5 bytes/element, one list per 495-byte chunk, only up to the last non-zero byte
   (element 0 = head + length), all-zero pages not at all; freed slots are shrunk to one element and reused.
+  New slots are checked before writing so a foreign `V` list is skipped. A replacement is written to a new
+  slot before the old one is dropped. A failed write leaves the old slot authoritative and the resident page dirty.
 * Measured with it: 990-byte pages (400 used) fault in ~207 ms, flush 6 pages in 258 ms. Use small pages
   (128-256 B => ~35-60 ms per fault); 30-80 ms for 1-2 KB is not reachable with lists.
 * Lists live in user RAM, which shrinks the Python heap (~0.31 per KB): swapping only pays off for data that
   is large and cold. Net heap gain per KB moved is ~0.44 KB.
 
-Tests: `python3 test_vm.py` (also runs under the built MicroPython with `MICROPYPATH=.:emu`).
+Tests: `python3 test_vm.py`, `python3 test_vm_reliability.py`, and small-heap MicroPython
+`MICROPYPATH=.:emu <micropython> -X heapsize=292000 test_vm_pressure.py`.
 
 ## Where the time goes (device, 495-byte page, 99 elements)
 * `recall_list` ~111 ms (TI float conversion), `unpack5` 12 ms, `lz_decompress` 12 ms, `lz_compress` 48 ms.
@@ -42,6 +46,11 @@ Tests: `python3 test_vm.py` (also runs under the built MicroPython with `MICROPY
   `MemoryError` one least-recently-used page is written out (if dirty), `gc.collect()` runs, retry;
 * `pager.guard(f, *args)` does the same for any other code, `pager.make_room(n)` frees n bytes up front.
 When nothing resident is left to evict the `MemoryError` is raised (the swap cannot help any more).
+`pin_page`/`unpin_page` keep a page resident; allocating beyond a fully pinned window fails with a controlled
+`MemoryError`. `pressure_level()` reports normal/elevated/critical from configured thresholds. Optional
+`release` and `unload` callbacks are each called at most once in a guarded recovery attempt; nested recovery
+does not recurse. `stats()` reports resident/dirty/pinned pages, faults, evictions, backend I/O and failures.
+These controls apply when a caller uses the pager; Arch84 does not instantiate a resident pager at boot.
 `test_vm_pressure.py` (small-heap MicroPython): 385 KB of pages through a 292 KB heap, all read back,
 and a 73 KB request satisfied by eviction. Bookkeeping per page is one `loc` entry plus, while resident,
 one `res` and one `use` entry (tick*2+dirty bit).
