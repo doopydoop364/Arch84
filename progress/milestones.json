@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "notes": "Criteria are marked verified only after human review and a link to specific evidence. GitHub Actions passing alone is not proof of feature completion.",
+  "milestones": [
+    {
+      "id": "vm",
+      "name": "A84VM 2.0 — Virtual Memory Manager",
+      "criteria": [
+        {
+          "label": "Existing pager and backends audited",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Memory budgets and bounded page residency tested",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Dirty page write failures preserve data",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Constrained-heap paging benchmarks recorded",
+          "verified": false,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "pressure",
+      "name": "Memory Pressure Controller",
+      "criteria": [
+        {
+          "label": "Existing low-heap eviction audited",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Bounded recovery and retry behavior tested",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Fragmentation-sensitive cases evaluated",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Graceful failure verified under constrained heap",
+          "verified": false,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "install",
+      "name": "Streaming .ar84 Package Installer",
+      "criteria": [
+        {
+          "label": "Archive extraction path audited",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Bounded-buffer streaming extraction implemented",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Truncated and corrupted archives rejected safely",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Install interruption and rollback tested",
+          "verified": false,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "parser",
+      "name": "Allocation-Minimized Shell Parser",
+      "criteria": [
+        {
+          "label": "Existing shell grammar captured in regression tests",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Allocation-reducing parser changes implemented",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Behavior parity verified",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Memory and latency benchmarks recorded",
+          "verified": false,
+          "evidence": null
+        }
+      ]
+    },
+    {
+      "id": "vfs",
+      "name": "Transactional VFS + Recovery",
+      "criteria": [
+        {
+          "label": "Existing double-buffered persistence audited",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Transaction and recovery guarantees documented",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Interrupted write and commit tests pass",
+          "verified": false,
+          "evidence": null
+        },
+        {
+          "label": "Legacy filesystem data remains readable",
+          "verified": false,
+          "evidence": null
+        }
+      ]
+    }
+  ]
+}
