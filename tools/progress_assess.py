@@ -21,6 +21,7 @@ RUN_URL = BASE + "/actions/runs/" + RUN if RUN else None
 # These are existing tests, not assertions that entire milestones are finished.
 SUITES = (
     ("vm", "Pager and backend regression", ["test_vm.py"]),
+    ("vm_accept", "Bounded pager residency and dirty-write recovery", ["-m", "unittest", "test_progress_acceptance"]),
     ("parser", "Shell parser regression", ["-m", "unittest", "test_arch84.ParserTests"]),
     ("vfs", "Storage and persistence regression", ["test_storage.py"]),
     ("install", "Chunked-file regression", ["test_bigfiles.py"]),
@@ -28,7 +29,13 @@ SUITES = (
 
 # Strictly scoped evidence: the specific parser regression suite demonstrates
 # that shell grammar is covered by tests. It does NOT verify allocation reductions.
-AUTO_CRITERIA = {"parser": {"Existing shell grammar captured in regression tests": "parser"}}
+AUTO_CRITERIA = {
+    "parser": {"Existing shell grammar captured in regression tests": "parser"},
+    "vm": {
+        "Memory budgets and bounded page residency tested": "vm_accept",
+        "Dirty page write failures preserve data": "vm_accept",
+    },
+}
 
 
 def main():
