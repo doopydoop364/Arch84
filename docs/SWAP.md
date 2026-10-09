@@ -34,3 +34,14 @@ Tests: `python3 test_vm.py` (also runs under the built MicroPython with `MICROPY
   screen), there is no string store in `ti_system`, complex elements are inexact, 43+ bit reals lose the .5.
 * A 6-byte/element encoding using the decimal exponent (sign + 13-digit mantissa + 16 exponents = 48 bits)
   is possible on paper (+20%), but decoding needs a threshold search per element and would cost more than it saves.
+
+## Automatic eviction under memory pressure
+`Pager` evicts by itself, no caller bookkeeping needed:
+* free heap < `low` (default 3072 bytes) before a page is allocated -> LRU pages go to the backend first;
+* any allocation the pager makes (page buffer, its own dict growth) is wrapped in `guard()`: on
+  `MemoryError` one least-recently-used page is written out (if dirty), `gc.collect()` runs, retry;
+* `pager.guard(f, *args)` does the same for any other code, `pager.make_room(n)` frees n bytes up front.
+When nothing resident is left to evict the `MemoryError` is raised (the swap cannot help any more).
+`test_vm_pressure.py` (small-heap MicroPython): 385 KB of pages through a 292 KB heap, all read back,
+and a 73 KB request satisfied by eviction. Bookkeeping per page is one `loc` entry plus, while resident,
+one `res` and one `use` entry (tick*2+dirty bit).

@@ -216,15 +216,26 @@ class ListBackend:
                 self.p(self.lname(loc * self.k + c), [self.HEAD + 0.5])
 
 
+def free_heap():
+    try:
+        return gc.mem_free()
+    except AttributeError:
+        return 1 << 30                  # not MicroPython: no heap to run out of
+
+
 class Pager:
-    def __init__(self, backend, page=PAGE, window=10, low=0):
+    # Memory pressure is handled here: when free heap falls under `low` bytes, or an allocation
+    # raises MemoryError, the least recently used resident pages go to the backend until it fits.
+    # guard(f, ...) gives any other code the same treatment, make_room(n) asks for n bytes up front.
+    # Tables: loc[pid] backend location (-1 never stored, ZERO all-zero); res[pid] resident
+    # bytearray; use[pid] = last-use tick * 2 + dirty bit (one dict for both).
+    def __init__(self, backend, page=PAGE, window=10, low=3072):
         self.be = backend
         self.page = page
         self.window = window
-        self.low = low                  # also evict while gc.mem_free() < low (0: off)
-        self.loc = {}                   # pid -> backend location, -1 = not on disk
-        self.res = {}                   # pid -> bytearray (resident pages)
-        self.dirty = {}
+        self.low = low                  # reserve: evict while free heap < low (0: off)
+        self.loc = {}
+        self.res = {}
         self.use = {}
         self.tick = 0
         self.nxt = 0
@@ -234,11 +245,11 @@ class Pager:
     def new_page(self):
         pid = self.nxt
         self.nxt += 1
-        self.loc[pid] = -1
         self._make_room()
-        self.res[pid] = bytearray(self.page)
-        self.dirty[pid] = 1
-        self._touch(pid)
+        self.guard(self.loc.__setitem__, pid, -1)
+        b = self._alloc()
+        self._touch(pid, 1)             # use first, res second: evict() only walks res
+        self.guard(self.res.__setitem__, pid, b)
         return pid
 
     def free_page(self, pid):
@@ -247,18 +258,37 @@ class Pager:
         del self.loc[pid]
         if pid in self.res:
             del self.res[pid]
-        if pid in self.dirty:
-            del self.dirty[pid]
-        if pid in self.use:
             del self.use[pid]
 
-    def _touch(self, pid):
+    def _touch(self, pid, dirty=0):
         self.tick += 1
-        self.use[pid] = self.tick
+        d = self.use.get(pid, 0) & 1
+        self.guard(self.use.__setitem__, pid, (self.tick << 1) | d | dirty)
 
     def _make_room(self):
-        while len(self.res) >= self.window or (self.low and len(self.res) > 1 and gc.mem_free() < self.low):
-            self.evict()
+        while len(self.res) >= self.window or (self.low and self.res and free_heap() < self.low):
+            if not self.evict():
+                break
+
+    def make_room(self, nbytes):
+        # evict LRU pages until nbytes (plus the reserve) are free; False if swap is all that is left
+        gc.collect()
+        while free_heap() < nbytes + self.low:
+            if not self.evict():
+                return False
+        return True
+
+    def guard(self, f, *args):
+        # f(*args), and on MemoryError one LRU page goes to swap and f is tried again
+        while True:
+            try:
+                return f(*args)
+            except MemoryError:
+                if not self.evict():
+                    raise
+
+    def _alloc(self):
+        return self.guard(bytearray, self.page)
 
     def evict(self):
         best = -1
@@ -270,10 +300,10 @@ class Pager:
                 bt = t
         if best < 0:
             return False
-        if best in self.dirty:
+        if bt & 1:
             self.loc[best] = self.be.put(self.res[best], self.loc[best])
-            del self.dirty[best]
         del self.res[best]
+        del self.use[best]
         gc.collect()
         self.evicts += 1
         return True
@@ -283,11 +313,13 @@ class Pager:
         if b is None:
             self.faults += 1
             self._make_room()
-            b = bytearray(self.page)
+            b = self._alloc()
             if load and self.loc[pid] != -1 and self.loc[pid] != ZERO:
                 self.be.get(self.loc[pid], b)
-            self.res[pid] = b
-        self._touch(pid)
+            self._touch(pid)
+            self.guard(self.res.__setitem__, pid, b)
+        else:
+            self._touch(pid)
         return b
 
     def read(self, pid, off, n):
@@ -297,9 +329,10 @@ class Pager:
     def write(self, pid, off, data):
         b = self.page_in(pid, off != 0 or len(data) < self.page)
         b[off:off + len(data)] = data
-        self.dirty[pid] = 1
+        self._touch(pid, 1)
 
     def flush(self):
-        for pid in list(self.dirty):
-            self.loc[pid] = self.be.put(self.res[pid], self.loc[pid])
-        self.dirty.clear()
+        for pid in self.res:
+            if self.use[pid] & 1:
+                self.loc[pid] = self.be.put(self.res[pid], self.loc[pid])
+                self.use[pid] &= ~1
