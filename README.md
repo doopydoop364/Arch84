@@ -17,7 +17,7 @@ folder (it is not part of this repository).
 ## Using it
 
 * Pipes and redirection: `cat f | grep x | sort | uniq -c > out`, `wc < f`, `tee`. Typeable on the
-  calculator: `|` = x^-1 key, `<` = sin key, `\` = x^2 key (`keys` lists them).
+  calculator: `|` = sin key, `<` = cos key, `;` = tan key, `\` = x^2 key, `&` = vars key (`keys` lists them).
 * `edit FILE` is a small full-screen editor. CLEAR opens a command line: `w` save, `q` quit,
   `qq` quit without saving, `wq`, `N` go to line, `/text` find, `n`, `d` `y` `p` line cut/copy/paste,
   `s/old/new/` and `%s/old/new/`.

@@ -1,0 +1,60 @@
+# A84TY: selftest cases mirroring the hand-test list (Arch84 module; loaded by selftest)
+# Same commands, same order as the list given to the user: system info, files,
+# pipes/lists/filters, environment/scripts, packages, archive/fsck. Each case is
+# (label, [command lines], expected output of the last line); see A84TD for the
+# format of the expected value.
+
+_DEMO = ["mkdir -p projects/demo", "cd projects/demo", "echo hello > a.txt",
+         "echo world >> a.txt"]
+_PKG = ["mkdir -p pk/usr/bin", "echo 'echo from a package' > pk/usr/bin/hello",
+        "makepkg pk hello 1.0 demo",
+        "pacman -U /var/cache/pacman/pkg/hello-1.0.ar84"]
+_ARC = ["mkdir -p projects/demo", "echo hi > projects/demo/f", "archive create demo projects"]
+
+CASES2 = [
+    ("list: /proc/version", ["cat /proc/version"], "~Arch84 "),
+    ("list: /proc/uptime", ["cat /proc/uptime"], "~."),
+    ("list: mkdir -p, cd", _DEMO[:2] + ["pwd"], "/home/evo/projects/demo\n"),
+    ("list: > and >>", _DEMO + ["cat a.txt"], "hello\nworld\n"),
+    ("list: cp, mv, ls -l", _DEMO + ["cp a.txt b.txt", "mv b.txt c.txt", "ls -l"],
+     "    12 a.txt\n    12 c.txt\n"),
+    ("list: rm", _DEMO + ["cp a.txt c.txt", "rm c.txt", "ls"], "a.txt\n"),
+    ("list: seq | sort -r", ["seq 5 | sort -r"], "5\n4\n3\n2\n1\n"),
+    ("list: cat | wc -l", _DEMO + ["cat a.txt | wc -l"], "2\n"),
+    ("list: tr | sort | uniq -c", ["echo b a b | tr ' ' '\\n' | sort | uniq -c"],
+     "      1 a\n      2 b\n"),
+    ("list: seq | head", ["seq 10 | head -3"], "1\n2\n3\n"),
+    ("list: ;", ["echo one; echo two"], "one\ntwo\n"),
+    ("list: &&", ["true && echo yes"], "yes\n"),
+    ("list: ||", ["false || echo no"], "no\n"),
+    ("list: && stops", ["false && echo yes"], ""),
+    ("list: | grep", _DEMO + ["cat a.txt | grep wor"], "world\n"),
+    ("list: | sed", ["echo hello world | sed 's/world/arch84/'"], "hello arch84\n"),
+    ("list: | tee", ["seq 3 | tee out.txt", "cat out.txt"], "1\n2\n3\n"),
+    ("list: nl", ["seq 2 > o", "nl o"], "     1\t1\n     2\t2\n"),
+    ("list: rev", ["echo abc > o", "rev o"], "cba\n"),
+    ("list: expr", ["expr 2 + 3"], "5\n"),
+    ("list: test -f", ["touch f", "test -f f && echo exists"], "exists\n"),
+    ("list: setenv", ["setenv GREETING=hi", "echo $GREETING"], "hi\n"),
+    ("list: /etc/environment", ["setenv GREETING=hi", "cat /etc/environment"], "~GREETING=hi"),
+    ("list: printenv NAME", ["setenv GREETING=hi", "printenv GREETING"], "hi\n"),
+    ("list: unsetenv", ["setenv GREETING=hi", "unsetenv GREETING", "echo [$GREETING]"], "[]\n"),
+    ("list: script with $1", ["echo 'echo hello $1' > /usr/bin/hi", "hi world"], "hello world\n"),
+    ("list: date -s, date", ["date -s '2026-10-08 12:00'", "date"], "^Thu Oct  8 12:00:0"),
+    ("list: makepkg", _PKG[:3], "built /var/cache/pacman/pkg/hello-1.0.ar84 (1 files, 20 chars)\n"),
+    ("list: pacman -U, run", _PKG + ["hello"], "from a package\n"),
+    ("list: pacman -Q", _PKG + ["pacman -Q"], "hello 1.0\n"),
+    ("list: pacman -Qi", _PKG + ["pacman -Qi hello"], "~Name        : hello"),
+    ("list: pacman -Ql", _PKG + ["pacman -Ql hello"], "hello /usr/bin/hello\n"),
+    ("list: pacman -Qk", _PKG + ["pacman -Qk hello"], "hello: 1 total files, 0 altered files\n"),
+    ("list: pacman -R", _PKG + ["pacman -R hello"], "removed hello 1.0\n"),
+    ("list: removed cmd is gone", _PKG + ["pacman -R hello", "hello"], "ash: command not found: hello\n"),
+    ("list: archive create", _ARC, "^archived 1 files"),
+    ("list: archive list", _ARC + ["archive list"], "~demo: 1 files"),
+    ("list: archive check", _ARC + ["archive check"], "demo: ok\n"),
+    ("list: archive takes files out", _ARC + ["ls"], ""),
+    ("list: archive extract -k", _ARC + ["archive extract -k demo"], "restored 1 files from demo\n"),
+    ("list: extract brings files back", _ARC + ["archive extract -k demo", "cat projects/demo/f"], "hi\n"),
+    ("list: archive delete", _ARC + ["archive delete demo", "archive list"], ""),
+    ("list: fsck", ["fsck"], "~no problems found"),
+]

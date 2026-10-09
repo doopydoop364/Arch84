@@ -60,7 +60,7 @@ NORM = {
     11: '"', 12: "'", 13: "$", 14: ">", 15: "=", 33: "~", 41: ">", 51: "^",
     55: "/", 62: ",", 63: "(", 64: ")", 65: "*", 72: "7", 73: "8",
     74: "9", 75: "-", 82: "4", 83: "5", 84: "6", 85: "+", 92: "1",
-    53: "<", 52: "|", 61: "\\", 54: ";",
+    53: "<", 52: "|", 61: "\\", 54: ";", 44: "&",
     93: "2", 94: "3", 95: " ", 102: "0", 103: ".", 104: "_",
 }
 ACT = {22: "tab", 23: "bs", 24: "left", 25: "up", 26: "right", 34: "down",
@@ -80,8 +80,10 @@ class TiTerm:
         self.mod = ""
         self.up = False
         self.prev = []
+        self.nw = 0     # lines added by the last write()
 
     def write(self, text):
+        n0 = len(self.lines)
         mark = ""
         if text.startswith(ERR):
             mark = ERR
@@ -91,6 +93,7 @@ class TiTerm:
                 self.lines.append(mark + part)
         if text.endswith("\n"):
             self.lines.pop()
+        self.nw = len(self.lines) - n0
         self.lines = self.lines[-self.rows * 8:]
         self.off = 0
 

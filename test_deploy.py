@@ -65,6 +65,17 @@ class BackupTests(unittest.TestCase):
             self.assertIn("Reached target Shutdown", p.stdout)
             self.assertEqual(p.stderr, "")
 
+    def test_archive_modules_flag_keeps_only_the_launcher_in_ram(self):
+        p = subprocess.run([sys.executable, os.path.join(HERE, "deploy.py"), "--dry-run",
+                            "--archive-modules", "--no-bak"],
+                           capture_output=True, text=True, timeout=30)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        rows = [l.split() for l in p.stdout.splitlines() if l.strip()]
+        ram = [r[1] for r in rows if r[0] == "RAM"]
+        arc = [r[1] for r in rows if r[0] == "ARC*"]
+        self.assertEqual(ram, [deploy.LAUNCHER])
+        self.assertEqual(sorted(arc), sorted(deploy.MODULES))
+
     def test_dry_run_lists_everything(self):
         p = subprocess.run([sys.executable, os.path.join(HERE, "deploy.py"), "--dry-run"],
                            capture_output=True, text=True, timeout=30)

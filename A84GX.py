@@ -83,48 +83,165 @@ def wrap_segs(segs, cols):
     return rows
 
 
+POST_STEP = 5   # boot view: when full, scroll this many lines at once (not one by one)
+
+
+def rlen(r):
+    n = 0
+    for t, c in r:
+        n += len(t)
+    return n
+
+
 class GfxTerm(TiTerm):
+    # Every ti_draw call costs real time on the calculator, so painting is
+    # frugal: unchanged rows are skipped; a row that only changed a few cells
+    # (the spinner, "[***   ]" -> "[  OK  ]") redraws just those cells, so
+    # nothing flickers; a full row costs one erase plus ONE draw_text per
+    # colour (the font is monospace, other colours' cells are spaces); a row
+    # that was blank (or never drawn after reset) is not erased at all.
     def __init__(self, ti, td):
         TiTerm.__init__(self, ti)
         self.td = td
         self.rows = GX_ROWS
         self.cols = GX_COLS
+        self.col = None     # colour last set
+        self.vis = None     # boot view: how many of the newest lines are on screen
+        self.stale = False  # the display refused something: next paint starts from a clean screen
 
     def reset(self):
         self.td.set_color(0, 0, 0)
         self.td.fill_rect(0, 0, 320, 240)
+        self.col = (0, 0, 0)
         self.prev = []
+        self.vis = None
+        self.stale = False
+
+    def clear(self):
+        TiTerm.clear(self)
+        self.vis = None
 
     def close(self):
         self.ti.disp_clr()
         for line in self.lines[-(self.rows - 1):]:
             print(line.replace(ERR, ""))
 
-    def paint(self, rows):
+    def setc(self, c):
+        if self.col != c:
+            self.td.set_color(c[0], c[1], c[2])
+            self.col = c
+
+    def fill(self, x, y, w, h):
+        # ti_draw raises "Width cannot be negative" for an empty rectangle (a blank
+        # row has nothing to erase), so never ask for one
+        if w <= 0 or h <= 0:
+            return
+        self.setc((0, 0, 0))
+        self.td.fill_rect(x, y, w, h)
+
+    def draw_row(self, y, r):
         td = self.td
+        groups = {}
+        order = []
+        k = 0
+        for text, c in r:
+            n = len(text)
+            if n == 0:
+                continue
+            key = c
+            if c == "c":
+                self.setc((225, 225, 225))
+                td.fill_rect(k * CW, y, CW * n, CURH)
+                key = "k"           # black text on the cursor block
+            g = groups.get(key)
+            if g is None:
+                g = [k, ""]
+                groups[key] = g
+                order.append(key)
+            g[1] = g[1] + " " * (k - g[0] - len(g[1])) + text
+            k += n
+        for key in order:
+            g = groups[key]
+            if key == "k":
+                self.setc((0, 0, 0))
+            else:
+                self.setc(COL[key])
+            td.draw_text(g[0] * CW, y + TEXT_DY, g[1])
+
+    def cells(self, y, old, r):
+        # same layout, some cells differ: redraw only those cells. False if the
+        # layout changed (different segments/lengths) or a cursor is involved.
+        if len(old) != len(r):
+            return False
+        for j in range(len(r)):
+            if len(old[j][0]) != len(r[j][0]) or old[j][1] == "c" or r[j][1] == "c":
+                return False
+        px = 0
+        for j in range(len(r)):
+            ot = old[j][0]
+            oc = old[j][1]
+            nt = r[j][0]
+            nc = r[j][1]
+            n = len(nt)
+            if oc != nc:
+                self.fill(px, y, n * CW, CH)
+                if nt.strip() != "":
+                    self.setc(COL[nc])
+                    self.td.draw_text(px, y + TEXT_DY, nt)
+            elif ot != nt:
+                i = 0
+                while i < n:
+                    if ot[i] == nt[i]:
+                        i += 1
+                        continue
+                    e = i
+                    while e < n and ot[e] != nt[e]:
+                        e += 1
+                    self.fill(px + i * CW, y, (e - i) * CW, CH)
+                    if nt[i:e].strip() != "":
+                        self.setc(COL[nc])
+                        self.td.draw_text(px + i * CW, y + TEXT_DY, nt[i:e])
+                    i = e
+            px += n * CW
+        return True
+
+    def paint(self, rows):
+        # A drawing error must not take the system down: recover by clearing the
+        # screen and painting everything once more; if the display keeps refusing,
+        # give up quietly (each later paint tries again from a clean screen).
+        for attempt in (0, 1):
+            try:
+                if self.stale:
+                    self.td.set_color(0, 0, 0)
+                    self.td.fill_rect(0, 0, 320, 240)
+                    self.col = (0, 0, 0)
+                    self.prev = []
+                    self.stale = False
+                self.paint_rows(rows)
+                return
+            except Exception:
+                self.stale = True
+
+    def paint_rows(self, rows):
+        prev = self.prev
         for i in range(self.rows):
             r = rows[i]
-            if i < len(self.prev) and self.prev[i] == r:
+            old = None
+            if i < len(prev):
+                old = prev[i]
+            if old == r:
                 continue
             y = i * CH
-            td.set_color(0, 0, 0)
-            td.fill_rect(0, y, 320, CH)
-            x = 0
-            for text, c in r:
-                if text == "":
-                    continue
-                if c == "c":
-                    td.set_color(225, 225, 225)
-                    td.fill_rect(x, y, CW * len(text), CURH)
-                    td.set_color(0, 0, 0)
-                else:
-                    rgb = COL[c]
-                    td.set_color(rgb[0], rgb[1], rgb[2])
-                td.draw_text(x, y + TEXT_DY, text)
-                x += CW * len(text)
+            if old and self.cells(y, old, r):
+                continue
+            if old:
+                self.fill(0, y, CW * rlen(old), CH)     # blank/new rows need no erase
+            if r:
+                self.draw_row(y, r)
         self.prev = rows
 
     def draw(self, prompt, ed):
+        self.vis = None
         buf = ed.buf
         pos = ed.pos
         cur = " "
@@ -157,6 +274,7 @@ class GfxTerm(TiTerm):
 
     def busy(self):
         # a command is running: submitted line stays, cursor on a new line
+        self.vis = None
         ls = self.lines[-(self.rows - 2):]
         out = [line_segs(l) for l in ls]
         out.append([(" ", "c")])
@@ -165,11 +283,39 @@ class GfxTerm(TiTerm):
         self.paint(out)
 
     def post(self, text, pending=False):
-        if pending:
-            ls = self.lines[-(self.rows - 1):] + [text.rstrip("\n")[:self.cols]]
-        else:
+        # Boot/progress view: lines fill the screen from the top. When it is
+        # full it scrolls by POST_STEP lines at once, so most new lines only
+        # draw their own row instead of repainting the whole screen.
+        if not pending:
             self.write(text)
-            ls = self.lines[-self.rows:]
+            if self.vis is None:
+                self.vis = len(self.lines)
+                if self.vis > self.rows:
+                    self.vis = self.rows
+            else:
+                self.vis += self.nw
+                if self.vis > self.rows:
+                    keep = self.rows - POST_STEP
+                    if self.nw > keep:
+                        keep = self.nw
+                        if keep > self.rows:
+                            keep = self.rows
+                    self.vis = keep
+            if self.vis > len(self.lines):
+                self.vis = len(self.lines)
+        vis = self.vis
+        if vis is None:
+            vis = len(self.lines)
+            if vis > self.rows:
+                vis = self.rows
+        if pending:
+            if vis > self.rows - 1:
+                vis = self.rows - 1
+        ls = []
+        if vis > 0:
+            ls = self.lines[len(self.lines) - vis:]
+        if pending:
+            ls = ls + [text.rstrip("\n")[:self.cols]]
         out = [line_segs(l) for l in ls]
         while len(out) < self.rows:
             out.append([])

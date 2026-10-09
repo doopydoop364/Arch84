@@ -3,6 +3,7 @@ These run on desktop CPython with fake ti_system objects; they do NOT prove
 calculator compatibility."""
 import unittest
 
+import os
 import sys
 sys.path.insert(0, ".")
 from A84FS import *
@@ -707,12 +708,12 @@ class TiTermTests(unittest.TestCase):
         self.assertEqual(out, 'echo' [:0] + 'echo 12",')
 
     def test_lock_and_uppercase(self):
-        keys = [21, 31, 41, 42, 21, 43, 31, 44, 105]   # lock: a b ; 2nd c ; unlock ; a? (nonalpha: 41 normal -> none)
+        keys = [21, 31, 41, 42, 21, 43, 31, 32, 105]   # lock: a b ; 2nd c ; unlock ; a? (nonalpha: 41 normal -> none)
         out, term, *_ = self.line(keys)
         self.assertEqual(out, "abC")
 
     def test_alpha_one_shot(self):
-        out, *_ = self.line([31, 41, 44, 72, 105])      # a then math(no char), 7
+        out, *_ = self.line([31, 41, 32, 72, 105])      # a then math(no char), 7
         self.assertEqual(out, "a7")
 
     def test_second_layer_and_actions(self):
@@ -1145,6 +1146,41 @@ class SpinnerTests(unittest.TestCase):
 LAZYMODS = ("A84C2", "A84C3", "A84C4", "A84C5", "A84C6")
 
 
+class KeyHelpTests(unittest.TestCase):
+    """The `keys` help text must describe the real key table (it once said sin='<' while the table had '|')."""
+    PHYSICAL = {"sin": 52, "cos": 53, "tan": 54, "x^2": 61, "vars": 44, "x^": 51,
+                "Y=": 11, "window": 12, "zoom": 13, "trace": 14, "graph": 15, "stat": 33,
+                "(-)": 104, "mem": 95}
+
+    def keys_text(self):
+        sh, t = mk()
+        return run(sh, t, "keys")
+
+    def test_every_symbol_in_the_help_is_what_the_key_really_types(self):
+        text = self.keys_text()
+        term = TiTerm(TiTermTests.T([]))
+        claims = {"sin": "|", "cos": "<", "tan": ";", "x^2": "\\", "vars": "&", "x^": "^",
+                  "Y=": '"', "window": "'", "zoom": "$", "trace": ">", "graph": "=", "stat": "~",
+                  "(-)": "_", "mem": " "}
+        for name, ch in claims.items():
+            self.assertEqual(term.translate(self.PHYSICAL[name]), ch, name)
+        for frag in ("sin=|", "cos=<", "tan=;", "x^2=\\", "vars=&", "stat=~", "(-)=_", "x^=^"):
+            self.assertIn(frag, text, frag)
+
+    def test_ampersand_does_not_depend_on_the_2nd_layer(self):
+        term = TiTerm(TiTermTests.T([]))
+        self.assertEqual(term.translate(44), "&")                 # vars, no 2nd needed
+        term.translate(21)
+        self.assertEqual(term.translate(52), "&")                 # the old 2nd+sin still works too
+
+    def test_help_lines_fit_the_screen(self):
+        for line in self.keys_text().split("\n"):
+            self.assertLessEqual(len(line), 32, line)
+
+    def test_no_stale_x_inverse_claims(self):
+        self.assertNotIn("x^-1", self.keys_text())
+
+
 class LazyCommandTests(unittest.TestCase):
     NAMES = "true false grep find sort wc basename dirname du df free mount umount uptime date reboot poweroff uniq tee".split()
 
@@ -1491,11 +1527,30 @@ class Phase5Tests(unittest.TestCase):
         self.assertNotIn("yes", COMMANDS)             # needs interruptible jobs (phase 8)
 
 
+def real_total():
+    # every selftest item: the storage checks plus the generated cases
+    import A84TX
+    n = len(A84TX.CHECKS)
+    for q in range(1, A84TS.PARTS + 1):
+        n += len(__import__(A84TS.PARTMODS[q - 1]).CASES)
+    return n
+
+
 class SelfTestTests(unittest.TestCase):
+    def test_generated_parts_match_their_sources(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools"))
+        import gen_selftest
+        for name, text in gen_selftest.generate().items():
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), name)) as f:
+                self.assertEqual(f.read(), text, name + ": run tools/gen_selftest.py")
+        self.assertEqual(gen_selftest.NCHECKS, len(__import__("A84TX").CHECKS))
+
     def test_selftest_all_pass_and_full_coverage(self):
         sh, t = mk()
         out = run(sh, t, "selftest")
-        self.assertIn("selftest: %d/%d passed, 0 lowmem, 0 untested" % (len(A84TS.CASES) + len(A84TS.CHECKS), len(A84TS.CASES) + len(A84TS.CHECKS)), out)
+        total = real_total()
+        self.assertEqual(total, 192)
+        self.assertIn("selftest: %d/%d passed, 0 lowmem, 0 untested" % (total, total), out)
         self.assertNotIn("FAIL", out)
         self.assertEqual(sh.status, 0)
         self.assertTrue(sh.running)               # sandbox 'exit' must not stop the real shell
@@ -1545,7 +1600,7 @@ class SelfTestTests(unittest.TestCase):
         try:
             sh, t = mk()
             out = run(sh, t, "selftest")
-            n = len(A84TS.CASES)
+            n = real_total() - len(__import__('A84TX').CHECKS)
         finally:
             A84TS.CHECKS, A84TS.CASES = real
         self.assertIn("LOWMEM needs ram", out)
@@ -1748,12 +1803,14 @@ class GfxTests(unittest.TestCase):
                 self.assertTrue(o[2] - 3 <= top + CH)      # descender room
 
     def test_rows_clear_enough_for_descenders(self):
-        # every text row is cleared by a rect that reaches Y+17 (descender depth)
+        # whenever a row IS erased (a row that already held text), the erase is a full
+        # row high: descenders (p y g j q) reach Y+17 and would otherwise be left behind
         term, ti, td = self.term([])
-        term.post("gypsy jumps\n")
-        clears = [o for o in td.ops if o[0] == "rect" and o[3] == 320]
-        self.assertTrue(clears)
-        for o in clears:
+        for i in range(14):                      # fills the screen and scrolls: rows get erased
+            term.post("gypsy jumps quickly %d\n" % i)
+        erases = [o for o in td.ops if o[0] == "rect" and o[5] == (0, 0, 0) and o[3] != 320]
+        self.assertTrue(erases)
+        for o in erases:
             self.assertGreaterEqual(o[4], 18)
         self.assertLessEqual(11 * CH, 209)        # all rows inside the canvas
 

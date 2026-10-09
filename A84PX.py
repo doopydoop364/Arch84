@@ -32,7 +32,16 @@ def show(sh, meta, old):
 def mod(name):
     # a lazily loaded helper module; collecting first gives the compiler a clean heap
     gc.collect()
-    return __import__(name)
+    try:
+        return __import__(name)
+    except BaseException:
+        # MicroPython keeps a module whose import failed (out of memory) half-built, and
+        # the helpers it had pulled in with it: later uses would hit "no attribute"
+        from A84CD import HELPERS
+        for m in HELPERS:
+            sys.modules.pop(m, None)
+        sys.modules.pop(name, None)
+        raise
 
 
 def take_lock(vfs):
@@ -181,7 +190,7 @@ def cmd_pacman(sh, args):
                 return change(sh, op, mods, rest)
             finally:
                 pl = sys.modules.get("A84PL")
-                if pl is not None:
+                if pl is not None and hasattr(pl, "free_modules"):    # (a module that failed to load is half-built)
                     pl.free_modules()
                 if vfs.isfile(LOCK):
                     vfs.remove(LOCK)

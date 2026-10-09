@@ -677,3 +677,49 @@ run on the calculator yet.
   `Kernel.sync` now also evicts lazy modules before its retry (a save after `pacman -S` used to fail out of memory).
 - `emu/flashtest.py` runs the whole flow on the emulated device (sync, list, info, install with a dependency and a
   multi-part package, verify, run, remove); `test_flashrepo.py` has 15 unit tests.
+
+## 2026-10-08 (late): key injection and a smaller selftest
+
+- `evo_usb.py --key/--keys` send TI-84 CE scancodes (Enter 9, `)` 0x15, prgm 0x1F, 2nd 0x36, mode 0x37);
+  get_key reports the positional code Arch84 already uses (all 49 keys verified). `tools/type.py` turns text
+  into key presses using the A84UI tables (`test_type.py` checks the round trip), so commands can be typed
+  into the calculator from the PC. On/home cannot be injected. From the home screen, prgm, down, enter,
+  enter starts ARCH84; 2nd+mode, enter quits the Python app. Always screenshot first: keys sent to the
+  wrong screen (the apps menu) cleared RAM twice.
+- selftest was resetting the calculator (hard reset, RAM cleared): the ~25 KB of test data left ~21 KB of
+  heap, too little for the lazy command modules. The cases are now generated into A84T1..A84T4
+  (`tools/gen_selftest.py` from A84TD + A84TY) and loaded one quarter at a time: `selftest N [-r] [-p] [name]`.
+  Parts 2 and 3 pass (48/48, 47/48). Part 4 (pacman, archive, fsck) reports LOWMEM for most cases even at
+  50 KB free: the heap is fragmented; pacman itself works from a fresh launch (makepkg, -U, run, -Q by hand).
+- Do not run selftest after `reboot`: the reboot leaves less usable heap (lazy commands fail to load).
+- A failed import leaves a half-built module in sys.modules on MicroPython; `mod()` in A84PX now drops the
+  helper modules on failure (before, makepkg/pacman raised "no attribute" until the next launch).
+
+### Measured heap use (device, fresh launch, 2026-10-08)
+Heap 167 KB total; 103 KB used at the prompt, ~64 KB free. Resident cost of each boot module
+(gc.mem_alloc delta): A84FS 21k, A84CZ 9k, A84ST 6k, A84KN 7k, A84CD 9k, A84CE 10k, A84UI 5k,
+A84SH 10k, A84GX 5k (~82 KB; the rest is interpreter, terminal and the saved filesystem tree).
+Lazy modules add: A84C4 (free/mount/...) and A84C2 ~+3 KB each, pacman+archive ~+14 KB, date ~+3 KB.
+Candidates to shrink: A84FS (21k), A84CE (10k, env commands: could be lazy), A84CZ (9k: only boot/sync),
+A84SH (10k).
+
+### Does evict() free memory? (device probe, 2026-10-08)
+A temporary `memprobe` command loaded a lazy module and evicted it: A84C8 +2992 B -> 240 B left; A84PX
+(pacman) +9936 B -> 1408 B left (and 1312 B after a stack scrub). So eviction does release the code; the
+selftest LOWMEMs are heap FRAGMENTATION (free bytes exist but no block big enough to compile a module),
+not leaks. Also: the per-module boot costs above include the modules each one imports first (A84CE's
+10k mostly was A84PE), so splitting A84CE into a lazy part saved nothing (tried, reverted).
+Tried: on a failed lazy load, release the kernel's 3 KB spare block and retry (A84SH.run_stage): no change
+(selftest part 4 still 33/48, 14 LOWMEM), reverted. Module sources are small (A84PX 8 KB, A84AX/A84PB < 8 KB),
+so the compile peak is not what fails; the pacman/archive cases run out of memory while WORKING (packing,
+scanning, hashing) next to the test harness. They pass by hand from a fresh launch.
+
+### Hand verification on the device, 2026-10-08 (fresh launch, typed with tools/type.py)
+makepkg, pacman -U / -Q / -Qi / -Ql / -Qk / -R (removed command is gone), archive create / list / check /
+extract -k / delete (files really leave and come back), fsck ("no problems found"), & typed from the vars
+key, echo > file / cat: all correct. selftest parts 1-3 pass except memory-induced failures; the pacman/
+archive/fsck cases of part 4 report LOWMEM inside selftest (the sandbox leaves too little contiguous heap:
+A84PX imports fine with 40 KB free in a clean heap but not at 47 KB next to the harness).
+Tried a lighter selftest harness (no spare block in the throwaway kernels, the real shell's block released
+while testing): part 4 still 33/48 with 14 LOWMEM, reverted. Pacman/archive/fsck are verified by hand
+(see above); selftest reports them as LOWMEM on the device.

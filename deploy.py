@@ -5,6 +5,13 @@
   python3 deploy.py --no-bak    RAM copies only
   python3 deploy.py --bak-only  Archive backups only
   python3 deploy.py --dry-run   show what would be sent
+  python3 deploy.py --archive-modules   modules go to the Archive, only the launcher to RAM
+
+--archive-modules: the Python heap is sized from the calculator's FREE RAM
+(measured: heap ~ 0.31 x free RAM), so 45 programs in RAM leave an 82 KB heap
+and the launcher cannot even compile its modules. Modules can be IMPORTED from
+the Archive (only running one directly needs RAM), so only ARCH84 stays in RAM.
+It also means a RAM clear only costs the 1.5 KB launcher.
 
 Backups live in the calculator's Archive, so they survive a RAM clear. Each
 backup is a complete second system: its imports are renamed (A84FS ->
@@ -24,7 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 MODULES = ["A84FS", "A84V1", "A84CZ", "A84ST", "A84PE", "A84KN", "A84UI", "A84GX", "A84CD", "A84CE", "A84CP", "A84C2", "A84C3", "A84C4", "A84C5", "A84C6", "A84C7", "A84C8", "A84C9", "A84CA", "A84CB", "A84MN", "A84PF", "A84ED", "A84EV", "A84PM", "A84PS", "A84PQ", "A84PD", "A84PI", "A84PB", "A84PL", "A84PX", "A84AI", "A84AR", "A84AE", "A84AX", "A84FK", "A84SC", "A84SD",
-           "A84SH", "A84TD", "A84TX", "A84TS"]
+           "A84SH", "A84T1", "A84T2", "A84T3", "A84T4", "A84TX", "A84TS"]
 LAUNCHER = "ARCH84"
 BAK_LAUNCHER = "ARC84BAK"
 STATE = os.path.join(HERE, ".deploy_state.json")
@@ -54,13 +61,17 @@ def main(argv):
     no_bak = "--no-bak" in argv
     bak_only = "--bak-only" in argv
     dry = "--dry-run" in argv
+    arch_mods = "--archive-modules" in argv
     names = MODULES + [LAUNCHER]
     for n in names:
         if not os.path.isfile(os.path.join(HERE, n + ".py")):
             sys.exit("missing source: " + n + ".py")
     if dry:
         for n in names:
-            print(("RAM  " if not bak_only else "-    ") + n + "  ->  "
+            where = "RAM  "
+            if arch_mods and n != LAUNCHER:
+                where = "ARC* "
+            print((where if not bak_only else "-    ") + n + "  ->  "
                   + ("-" if no_bak else "ARC  " + bak_name(n)))
         return
     import evo_usb as e
@@ -75,7 +86,13 @@ def main(argv):
     for n in names:
         path = os.path.join(HERE, n + ".py")
         if not bak_only:
-            e.send_file(path, n)
+            if arch_mods and n != LAUNCHER:
+                with open(path) as f:
+                    src = f.read()
+                p = e.build_payload(n, src)
+                e._put_var_file_to_target(n, p + e.evo_checksum(p).to_bytes(2, "big"), archive=True)
+            else:
+                e.send_file(path, n)
         if no_bak:
             continue
         with open(path) as f:

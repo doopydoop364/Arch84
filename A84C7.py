@@ -65,7 +65,7 @@ def cmd_keys(sh, args):
            "Y=\" window' zoom$ trace> graph=\n"
            "math or trace = >  2nd+()-+={}[]\n"
            "x^=^ /*-+ . , ( )\n"
-           "sin=<  x^-1=|  x^2=\\  cos=;  2nd+x^-1=&\n"
+           "sin=| cos=< tan=; x^2=\\ vars=&\n"
            "2nd+up/down = scroll\n")
 
 
@@ -76,7 +76,7 @@ def unload_selftest():
     if getattr(sys.implementation, "name", "") != "micropython":
         return                  # desktop tests patch and re-run the module
     try:
-        for m in ("A84TS", "A84TD", "A84TX"):
+        for m in ("A84TS", "A84T1", "A84T2", "A84T3", "A84T4", "A84TX"):
             if m in sys.modules:
                 del sys.modules[m]
     except Exception:
