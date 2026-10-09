@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1220"><title>Arch84 · Development Tracker</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui,sans-serif;background:#0b1220;color:#ecf3fb}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1080px;margin:auto;padding:28px 18px}a{color:#93c5fd}header{display:flex;justify-content:space-between;gap:18px;align-items:center;flex-wrap:wrap}.eyebrow{color:#7dd3fc;letter-spacing:.17em;font-size:11px;font-weight:800;text-transform:uppercase}h1{font-size:clamp(28px,5vw,44px);margin:8px 0}p{line-height:1.5;color:#9daec3}.pill{border:1px solid #34465e;border-radius:40px;padding:8px 13px;color:#a8bfd6;font-size:13px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:26px 0}.panel,.metric{border:1px solid #26364d;border-radius:16px;background:#111e31;padding:19px}.metric b{font-size:29px;display:block}.metric span{font-size:12px;color:#9daec3}section{margin:26px 0}h2{font-size:19px}.feature{padding:17px 0;border-bottom:1px solid #26364d}.feature:last-child{border:0}.head{display:flex;justify-content:space-between;gap:14px;align-items:baseline}.head b{font-size:15px}.small{font-size:12px;color:#96a9c0}.bar{height:9px;border-radius:20px;background:#26364d;overflow:hidden;margin:12px 0}.fill{height:100%;background:linear-gradient(90deg,#0891b2,#70e0b8);transition:width .4s}.checks{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.check{font-size:12px;color:#b7c9dc}.check .mark{color:#7dd3fc;margin-right:6px}.feed{list-style:none;padding:0;margin:0}.feed li{padding:12px 0;border-bottom:1px solid #26364d;line-height:1.4}.feed li:last-child{border:none}.feed time{color:#8ba0bb;font-size:12px}.tag{font-size:11px;border:1px solid #355169;border-radius:7px;padding:2px 7px;white-space:nowrap}.ok{color:#86efac}.bad{color:#fca5a5}.pending{color:#fcd34d}.footer{font-size:12px;color:#879db6;margin:32px 0}.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}button{background:#183a50;color:#eaf9ff;border:1px solid #35647d;border-radius:9px;padding:9px 14px;cursor:pointer}button:hover{background:#23536c}@media(max-width:650px){.grid,.cols{grid-template-columns:1fr}.checks{grid-template-columns:1fr}} 
+</style></head>
+<body><main class="wrap">
+<header><div><div class="eyebrow">Arch84 · Core Reliability</div><h1>Development Tracker</h1><p>Five milestones. Live GitHub commits, workflow results, and evidence-based completion criteria.</p></div><div><div id="health" class="pill" role="status" aria-live="polite">Loading GitHub…</div><p><button id="refresh">↻ Refresh</button></p></div></header>
+<div class="grid"><div class="metric"><b id="count">5</b><span>Tracked milestones</span></div><div class="metric"><b id="done">—</b><span>Verified checks complete</span></div><div class="metric"><b id="ci">—</b><span>Latest workflow result</span></div></div>
+<section class="panel"><div class="head"><h2>Feature milestones</h2><span class="small">Only checked items count as verified</span></div><div id="features"></div></section>
+<div class="cols"><section class="panel"><h2>Recent commits</h2><ul id="commits" class="feed"><li>Loading…</li></ul></section><section class="panel"><h2>GitHub Actions</h2><ul id="runs" class="feed"><li>Loading…</li></ul></section></div>
+<div class="footer">Updates are requested from the GitHub API every 60 seconds while this page is open. GitHub rate limits, caching, and workflow queues can cause delays. Passing CI does not by itself mark a milestone complete. <a href="https://github.com/doopydoop364/Arch84">Repository</a> · <a href="https://github.com/doopydoop364/Arch84/actions">Actions</a></div>
+</main><script>
+"use strict";
+const OWNER="doopydoop364",REPO="Arch84",ROOT="https://api.github.com/repos/"+OWNER+"/"+REPO;
+const $=id=>document.getElementById(id);
+const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const date=s=>s?new Date(s).toLocaleString():"Unknown";
+async function json(url){const r=await fetch(url,{headers:{Accept:"application/vnd.github+json"},cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status+" "+(r.status===403?"(possibly rate limited)":""));return r.json()}
+let busy=false;
+async function update(){
+ if(busy)return;busy=true;$("health").textContent="Refreshing…";
+ const results=await Promise.allSettled([json("./milestones.json"),json(ROOT+"/commits?per_page=12"),json(ROOT+"/actions/runs?per_page=12")]);
+ const [ms,cs,rs]=results;
+ if(ms.status==="fulfilled"){const m=ms.value.milestones||[];let complete=0,total=0;
+ $("count").textContent=m.length;
+ $("features").innerHTML=m.map(f=>{let n=(f.criteria||[]).filter(c=>c.verified===true&&c.evidence).length,all=(f.criteria||[]).length;complete+=n;total+=all;let pct=all?Math.round(100*n/all):0;
+ return '<article class="feature"><div class="head"><b>'+escapeHtml(f.name)+'</b><span class="small">'+n+'/'+all+' verified · '+pct+'%</span></div><div class="bar"><div class="fill" style="width:'+pct+'%"></div></div><div class="checks">'+(f.criteria||[]).map(c=>'<div class="check"><span class="mark">'+(c.verified&&c.evidence?'☑':'☐')+'</span>'+escapeHtml(c.label)+(c.verified&&c.evidence?' <a href="'+escapeHtml(c.evidence)+'" target="_blank" rel="noopener noreferrer">evidence ↗</a>':'')+'</div>').join("")+'</div></article>'}).join("");
+ $("done").textContent=complete+"/"+total;
+ }else{$("features").textContent="Milestone data unavailable: "+ms.reason}
+ if(cs.status==="fulfilled")$("commits").innerHTML=cs.value.map(c=>'<li><a href="'+escapeHtml(c.html_url)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml((c.commit.message||"").split("\n")[0])+'</a><br><time>'+escapeHtml(c.sha.slice(0,7))+' · '+escapeHtml(date(c.commit.author?.date))+'</time></li>').join("")||"<li>No commits found</li>";
+ else $("commits").textContent="Commits unavailable: "+cs.reason;
+ if(rs.status==="fulfilled"){$("runs").innerHTML=(rs.value.workflow_runs||[]).map(r=>{const outcome=r.status==="completed"?(r.conclusion||"unknown"):(r.status||"queued"),cls=outcome==="success"?"ok":outcome==="failure"?"bad":"pending";return '<li><span class="tag '+cls+'">'+escapeHtml(outcome)+'</span> <a href="'+escapeHtml(r.html_url)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(r.name||"Workflow")+'</a><br><time>'+escapeHtml(r.head_branch||"")+' · '+escapeHtml(date(r.updated_at))+'</time></li>'}).join("")||"<li>No workflow runs yet</li>";const last=(rs.value.workflow_runs||[])[0];$("ci").textContent=last?(last.conclusion||last.status):"No runs"}
+ else{$("runs").textContent="Workflow results unavailable: "+rs.reason;$("ci").textContent="Unavailable"}
+ $("health").textContent=results.every(r=>r.status==="fulfilled")?"Updated "+new Date().toLocaleTimeString():"Partial data · retry";
+ busy=false;
+}
+$("refresh").addEventListener("click",update);update();setInterval(()=>{if(!document.hidden)update()},60000);
+</script></body></html>
