@@ -32,7 +32,6 @@ SUITES = (
 AUTO_CRITERIA = {
     "parser": {"Existing shell grammar captured in regression tests": "parser"},
     "vm": {
-        "Memory budgets and bounded page residency tested": "vm_accept",
         "Dirty page write failures preserve data": "vm_accept",
     },
 }
