@@ -787,3 +787,16 @@ per-package cost is tree NODES (a directory about 250 bytes, a file about 150), 
   Old directory entries still work.
 * Rough model: 5 packages about 7.3 KB (+2 KB cache) of heap before, about 3.8 KB now; to be measured with `free`
   on the calculator. docs/FILES_IN_LISTS.md.
+
+## 2026-10-09: unload-after-use never ran on the calculator (fixed), swap pager, index in lists
+
+* Bug: five places decided "am I on the calculator?" with `sys.implementation.name == "micropython"`. On the Evo it is
+  `'tipython'`, so unload_pacman, drop_net, drop (A84NT), unload_codec and unload_selftest were dead code on the device
+  (they only ran in the emulator). Now the test is `!= "cpython"`. Measured: free after `pacman -Q` 40,368 -> 55,792 B;
+  after a network `pacman -S hello` 55,616 B (was 26 KB after -Sy/-Ss). Idle is ~62 KB. A stack-scrub idea turned out to
+  be a no-op for the same reason and was dropped.
+* Caveat seen: after `selftest 2` (loads and drops ~15 KB of test modules) the heap is fragmented and loading a module
+  can fail with "out of memory" although `free` shows 57 KB: reboot after selftest (the message already says so).
+* A84VM (docs/SWAP.md): pager with LRU, write-back, automatic eviction under memory pressure (guard/make_room), list and
+  file backends. Nothing in Arch84 stores data in it yet: the heap holds almost no cold data.
+* The package index (REMOTEDB) is kept in lists after `pacman -Sy` and its rows are streamed.

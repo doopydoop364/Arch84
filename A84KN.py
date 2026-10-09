@@ -51,7 +51,7 @@ def unload_codec():
     # on the calculator the compressor does not stay resident between saves (desktop Python
     # keeps it: reloading would only slow the tests)
     import sys
-    if getattr(sys.implementation, "name", "") == "micropython":
+    if getattr(sys.implementation, "name", "") != "cpython":
         sys.modules.pop("A84CY", None)
         sys.modules.pop("A84SW", None)
 

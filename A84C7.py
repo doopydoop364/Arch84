@@ -73,7 +73,7 @@ def unload_selftest():
     # the test modules (~15 KB resident) are only needed while testing: drop
     # them on the calculator so a later sync/command has the memory back
     import sys
-    if getattr(sys.implementation, "name", "") != "micropython":
+    if getattr(sys.implementation, "name", "") == "cpython":
         return                  # desktop tests patch and re-run the module
     try:
         for m in ("A84TS", "A84T1", "A84T2", "A84T3", "A84T4", "A84TX"):

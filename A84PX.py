@@ -54,7 +54,7 @@ def keep_in_lists(vfs, meta):
 def drop_net():
     # the network code is only needed while downloading: free it before the installer loads
     # (desktop Python keeps it: reloading would only slow the tests)
-    if getattr(sys.implementation, "name", "") == "micropython":
+    if getattr(sys.implementation, "name", "") != "cpython":
         sys.modules.pop("A84PN", None)
         if "A84NC" not in sys.modules:
             sys.modules.pop("A84NT", None)
@@ -270,7 +270,7 @@ def unload_pacman():
     # The package tools are about 30 KB of heap once loaded and are rarely used: on the calculator they
     # leave again when the command ends and the next pacman/makepkg loads them afresh (desktop Python
     # keeps them: the tests hold references to these modules).
-    if getattr(sys.implementation, "name", "") != "micropython":
+    if getattr(sys.implementation, "name", "") == "cpython":
         return
     COMMANDS.pop("pacman", None)
     COMMANDS.pop("makepkg", None)

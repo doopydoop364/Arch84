@@ -128,7 +128,7 @@ _n = [0]
 def drop(name):
     # on the calculator a module that is only needed for a moment leaves again (desktop Python keeps it)
     import sys
-    if getattr(sys.implementation, "name", "") == "micropython":
+    if getattr(sys.implementation, "name", "") != "cpython":
         sys.modules.pop(name, None)
 
 
