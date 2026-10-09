@@ -17,17 +17,17 @@ def db_names(vfs):
 
 
 def remote_rows(vfs):
-    # [(name, version, file, size, sum, depends list, desc)] of the downloaded mirror index;
+    # yields (name, version, file, size, sum, depends list, desc) of the downloaded mirror index, one
+    # row at a time (the index can be large and lives in lists: nothing holds all the rows);
     # lines that do not check out are skipped
-    out = []
     if not vfs.isfile(REMOTEDB):
-        return out
+        return
     first = True
     for line in vfs.lines(REMOTEDB):
         if first:
             first = False
             if line != "ARCH84-REPO 1":
-                return out
+                return
             continue
         f = line.split("\t")
         if len(f) != 7 or not ok_name(f[0]) or not ok_ver(f[1]) or f[2] != f[0] + "-" + f[1] + ".ar84":
@@ -42,8 +42,7 @@ def remote_rows(vfs):
             if not ok_dep(x):
                 ok = False
         if ok:
-            out.append((f[0], f[1], f[2], size, f[4], deps, unesc(f[6])))
-    return out
+            yield (f[0], f[1], f[2], size, f[4], deps, unesc(f[6]))
 
 
 def db_lines(vfs, name):

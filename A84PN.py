@@ -37,13 +37,17 @@ def refresh(sh):
                 return None, "not a package index"
             break
         vfs.rename(new, REMOTEDB)
+        vfs.externalize(REMOTEDB, 300)          # a big index lives in lists, not the heap
     except A84NT.NoNet:
         return None, None               # no color terminal: no network, nothing to say
     except A84NT.NetError as e:
         return None, str(e)
     except VFSError as e:
         return None, str(e)
-    return len(remote_rows(vfs)), None
+    n = 0
+    for r in remote_rows(vfs):
+        n += 1
+    return n, None
 
 
 def fetch(sh, file):
