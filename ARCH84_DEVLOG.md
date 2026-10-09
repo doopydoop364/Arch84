@@ -800,3 +800,16 @@ per-package cost is tree NODES (a directory about 250 bytes, a file about 150), 
 * A84VM (docs/SWAP.md): pager with LRU, write-back, automatic eviction under memory pressure (guard/make_room), list and
   file backends. Nothing in Arch84 stores data in it yet: the heap holds almost no cold data.
 * The package index (REMOTEDB) is kept in lists after `pacman -Sy` and its rows are streamed.
+
+## 2026-10-09: heap fragmentation measured; a boot-time reserve block did not help (reverted)
+
+* New `free -l` prints the largest contiguous block (bisection with bytearray, nothing kept). Device, 5 packages
+  installed: idle 58,272 B free but largest block only 2,674 B (emulator at the device heap size: 65 KB free, 5.4 KB
+  block); after `pacman -Q` 55.9 KB / 2.4 KB. So the free heap is shredded into small holes right after boot (the boot
+  compile peak scatters long-lived objects across the whole heap).
+* Tried: an 8 KB block taken before the first import (ARCH84.py), kept in A84FS, released just before every lazy
+  module import (load_command, mod) and re-taken after evict/unload/selftest. Result on the device: idle free -5.5 KB
+  (52.7 KB), idle largest block 4.1 KB, but after `selftest 2` the same failure remains ("out of memory loading
+  A84PX / A84FK" with 54 KB free, largest block 2.5 KB). Each module loaded into the released block keeps its code
+  there, so the block does not come back. No gain for 5 KB of idle heap: reverted. Only the diagnostic stays.
+* Practical rule stays: reboot (relaunch) after `selftest`.

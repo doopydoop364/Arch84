@@ -86,6 +86,26 @@ def cmd_free(sh, args):
         return 1
     sh.out("    " + pad("total", 8) + pad("used", 8) + pad("free", 8) + "\n")
     sh.out("Mem:" + pad(f + a, 8) + pad(a, 8) + pad(f, 8) + "\n")
+    if "-l" in args:
+        sh.out("largest block: " + str(largest_block(f)) + "\n")
+
+
+def largest_block(top):
+    # biggest bytearray the heap can give right now (fragmentation shows as a small number
+    # next to a large free count); found by bisection, nothing is kept
+    import gc
+    lo = 0
+    hi = top
+    while hi - lo > 64:
+        mid = (lo + hi) // 2
+        try:
+            b = bytearray(mid)
+            b = None
+            lo = mid
+        except MemoryError:
+            hi = mid
+        gc.collect()
+    return lo
 
 
 def cmd_mount(sh, args):
