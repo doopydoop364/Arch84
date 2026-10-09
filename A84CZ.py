@@ -11,6 +11,8 @@
 #   D <parent dir idx> <name>               new directory (gets the next index)
 #   F <parent dir idx> <name> <data>        file created or overwritten
 #   X <parent dir idx> <name>               child removed (file or directory)
+#   B <parent dir idx> <name> <chars> <n> <list>...   file whose text is in lists (A84BL): character
+#                                           count, number of lists, their numbers (varints)
 #   E <record count>                        end marker
 # varint = LEB128; name/data are UTF-8 with a varint byte length.
 # Only directories have indexes: 0 = root, 1..18 = FACTORY1_DIRS in order,
@@ -262,7 +264,7 @@ def _name(rd):
     return name
 
 
-def _decode(chunks):
+def _decode(chunks, store=None):
     rd = Rd(chunks)
     h = rd.take(3)
     if h[0] != 82 or h[1] != 50:
@@ -304,6 +306,25 @@ def _decode(chunks):
                 raise ValueError("file over directory")
             else:
                 old.data = data
+        elif t == 66:
+            # a file whose text is in lists (A84BL): its character count and list numbers
+            n = rd.varint()
+            k = rd.varint()
+            if store is None or k > 4000 or n > MAXDATA:
+                raise ValueError("file in lists without a store")
+            ids = []
+            for _ in range(k):
+                ids.append(rd.varint())
+            from A84BL import Ext
+            data = Ext(store, ids, n)
+            vfs.ext = True
+            old = p.children.get(name)
+            if old is None:
+                p.children[name] = Node(False, data)
+            elif old.is_dir:
+                raise ValueError("file over directory")
+            else:
+                old.data = data
         elif t == 88:
             if name in p.children:
                 del p.children[name]
@@ -313,11 +334,14 @@ def _decode(chunks):
     return vfs
 
 
-def decode_stream(chunks):
+def decode_stream(chunks, store=None):
     # chunks: iterable of bytes. Raises ValueError (corrupt) or StorageError
-    # (from the storage layer, e.g. checksum); never anything else.
+    # (from the storage layer, e.g. checksum); never anything else. `store` is the list store
+    # that holds files kept in lists (A84BL).
     try:
-        return _decode(chunks)
+        vfs = _decode(chunks, store)
+        vfs.store = store
+        return vfs
     except (ValueError, StorageError):
         raise
     except Exception as e:

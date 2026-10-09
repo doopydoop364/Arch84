@@ -159,6 +159,10 @@ class Kernel:
             self.vfs = VFS()
             self.vfs.reset_default()
         self.vfs.proc = self.procfs
+        self.vfs.store = self.storage       # where files kept in lists (A84BL) live
+        if self.vfs.ext:
+            from A84BL import mark_saved
+            mark_saved(self.vfs)            # the loaded tree is the saved one
         if migrated and self.sync_ok:
             self.say("[ FIX  ] Upgrading filesystem to v2")
         self.pend("Checking system files")
@@ -198,7 +202,7 @@ class Kernel:
                     raise
                 self.vfs = decode_fs(b"".join(got[1]).decode())
             else:
-                self.vfs = decode_stream(got[1])
+                self.vfs = decode_stream(got[1], self.storage)
         except (ValueError, StorageError, MemoryError) as e:
             if "MemoryError" in repr(e) or isinstance(e, MemoryError):
                 return None, "Load fs: out of memory" + need_bytes(repr(e))
@@ -287,7 +291,7 @@ class Kernel:
         # commits only if this returns. Returns a list of warnings.
         gen = w.readback()
         try:
-            back = decode_stream(gen)
+            back = decode_stream(gen, self.storage)
         except StorageError as e:
             raise StorageError("verify failed: " + str(e))
         except ValueError as e:
@@ -352,4 +356,7 @@ class Kernel:
             raise StorageError("out of memory (nothing was changed)")
         self.vfs.dirty = False
         self.sync_ok = True
+        if self.vfs.ext:
+            from A84BL import mark_saved
+            mark_saved(self.vfs)            # numbers the new save uses may not be reused before the next one
         return stats[0], stats[1], nblocks, warnings + more

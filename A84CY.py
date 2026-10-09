@@ -204,6 +204,13 @@ def fs_stream(vfs, stats=None):
                 pass
             elif fc is not None and not fc.is_dir and fc.data == ch.data:
                 pass
+            elif not isinstance(ch.data, str) and not isinstance(ch.data, list):
+                # external data (A84BL): the list numbers, not the text
+                rec_head(out, 66, ix, name)
+                put_varint(out.buf, ch.data.n)
+                put_varint(out.buf, len(ch.data.ids))
+                for i in ch.data.ids:
+                    put_varint(out.buf, i)
             elif isinstance(ch.data, str) and len(ch.data) <= 256:
                 # small file (the common case): no generators, one encode
                 rec_head(out, 70, ix, name)
@@ -232,6 +239,14 @@ def fs_measure(vfs):
     return stats[0], stats[1]
 
 
+def same_data(x, y):
+    if isinstance(x, str) or isinstance(x, list):
+        return (isinstance(y, str) or isinstance(y, list)) and x == y
+    if isinstance(y, str) or isinstance(y, list):
+        return False
+    return x.ids == y.ids and x.n == y.n      # external data (A84BL)
+
+
 def same_tree(a, b):
     # iterative structural equality of two VFS trees. Files are compared in
     # place; only directories are queued (a wide directory used to queue one
@@ -254,6 +269,6 @@ def same_tree(a, b):
                 return False
             if cx.is_dir:
                 stack.append((cx, cy))
-            elif cx.data != cy.data:
+            elif not same_data(cx.data, cy.data):
                 return False
     return True

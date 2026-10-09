@@ -773,3 +773,17 @@ Goal: wget/curl/ping/ntpdate and pacman -Sy/-S over the internet, through a prog
 * Tried and dropped: pipelining the four Kermit packets of each injected key (several keys' packets written before the
   answers are read): 27 keys/s at depth 1, 2, 4 and 8 alike. The calculator's per-key handling (about 14-37 ms, more while
   the prompt redraws) is the limit, not the USB round trips.
+
+
+## 2026-10-09: files kept in calculator lists (A84BL), one-file package database
+
+Why: installing many packages must not eat the heap. Measured on the desktop for the five real packages: most of the
+per-package cost is tree NODES (a directory about 250 bytes, a file about 150), not text. So two changes:
+* A84BL: a file's text can sit in lists X0000.. (user RAM) with a small `Ext` in the tree; reads stream one list at a
+  time; saves record list numbers (record B); numbers are not reused before a save without them; fsck checks them.
+  Applied to downloads, installed files and the database entry. The cached .ar84 of a network install is deleted
+  after installing.
+* The package database is one file per package instead of a directory with desc and files (2 nodes fewer each).
+  Old directory entries still work.
+* Rough model: 5 packages about 7.3 KB (+2 KB cache) of heap before, about 3.8 KB now; to be measured with `free`
+  on the calculator. docs/FILES_IN_LISTS.md.

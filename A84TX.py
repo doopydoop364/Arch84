@@ -129,12 +129,27 @@ def c_big_share():
     return v.size("/tmp/a") == 3000 and v.size("/tmp/b") == 3001 and a[0] is v.get("/tmp/b").data[0]
 
 
+def c_blob():
+    # a file kept in lists: reads back, survives a save/load round trip, compares equal
+    st = MemStorage()
+    v = VFS()
+    v.reset_default()
+    v.store = st
+    text = "blob line \u00e9 \u20ac\n" * 80
+    v.write("/tmp/b", text)
+    if not v.externalize("/tmp/b"):
+        return False
+    back = decode_stream(fs_stream(v), st)
+    return v.read("/tmp/b") == text and back.read("/tmp/b") == text and same_tree(back, v)
+
+
 CHECKS = [
     ("utf8 encode/decode", c_utf8), ("pack5 round trip", c_pack),
     ("lzss round trip", c_lz), ("fs codec round trip", c_codec),
     ("fs compresses >2x", c_ratio), ("store + reload", c_store),
     ("corruption detected", c_corrupt), ("v1 -> v2 migration", c_migrate),
     ("big file pieces", c_big_codec), ("big file cp shares", c_big_share),
+    ("files in lists", c_blob),
 ]
 
 

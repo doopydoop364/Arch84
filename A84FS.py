@@ -110,6 +110,8 @@ def dnew(s):
 def dlen(d):
     if isinstance(d, str):
         return len(d)
+    if not isinstance(d, list):
+        return d.n                  # external data (A84BL.Ext): the characters kept in lists
     n = 0
     for p in d:
         n += len(p)
@@ -120,21 +122,28 @@ def dtext(d):
     # the whole text as one str (needs one contiguous block: avoid for big files)
     if isinstance(d, str):
         return d
+    if not isinstance(d, list):
+        return "".join(d.pieces())
     return "".join(d)
 
 
 def dpieces(d):
-    # snapshot of the pieces: safe to iterate while the file is being appended to
+    # the pieces, safe to iterate while the file is being appended to; for external data a
+    # re-iterable that reads one list at a time
     if isinstance(d, str):
         if d == "":
             return []
         return [d]
+    if not isinstance(d, list):
+        return d.pieces()
     return list(d)
 
 
 def dappend(d, s):
     if s == "":
         return d
+    if not isinstance(d, str) and not isinstance(d, list):
+        d = dchunks(d.pieces())     # external data being appended to: back into the heap
     if isinstance(d, str):
         if len(d) + len(s) <= BIGMIN:
             return d + s
@@ -211,6 +220,9 @@ ASHRC = "# ~/.ashrc\nalias ll='ls -a'\n"
 
 
 class VFS:
+    store = None        # the list store that holds external file data (set by the kernel)
+    ext = False         # some file's data is external (A84BL): saves must record it
+
     def __init__(self):
         self.root = Node(True)
         self.dirty = False
@@ -334,6 +346,27 @@ class VFS:
     def lines(self, path):
         # generator of lines; errors are raised now, not at the first next()
         return iter_lines(self._file(path).data)
+
+    def externalize(self, path, minlen=200):
+        # Moves the file's text into calculator lists (A84BL): the heap keeps a small reference and
+        # reads the lists back piece by piece when the file is read. Small files stay (the tree
+        # entry costs more than their text). False when nothing was moved.
+        node = self.get(path)
+        if node is None or node.is_dir or self.store is None:
+            return False
+        d = node.data
+        if not isinstance(d, str) and not isinstance(d, list):
+            return False
+        if dlen(d) < minlen:
+            return False
+        from A84BL import make
+        e = make(self, dpieces(d))
+        if e is None:
+            return False
+        node.data = e
+        self.ext = True
+        self.dirty = True
+        return True
 
     def copyfile(self, src, dst):
         from A84CG import vfs_copyfile      # cold code (cp), lives with its command

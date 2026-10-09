@@ -16,7 +16,7 @@
 # bytes TAB sum TAB files TAB raw TAB path TAB path ... An archive is created only after
 # its lists were written and read back; the files leave RAM in the same sync that saves
 # the catalogue, so a power cut shows either the old state or the new one.
-from A84FS import StorageError, VFSError, dpieces
+from A84FS import StorageError, VFSError, dlen, dpieces
 from A84CZ import FACTORY1_DIRS, FACTORY1_FILES
 from A84CY import Out, put_varint, slices
 from A84SW import Writer
@@ -92,12 +92,7 @@ def count(node):
             stack.extend(n.children.values())
         else:
             nf += 1
-            d = n.data
-            if isinstance(d, str):
-                nc += len(d)
-            else:
-                for piece in d:
-                    nc += len(piece)
+            nc += dlen(n.data)
     return nf, nc
 
 

@@ -1,6 +1,7 @@
 # A84FK: fsck - check the saved filesystem, the archive lists and the packages
 # (Arch84 module, lazily loaded). Registers itself into COMMANDS.
-#   fsck       report problems (exit status 1 if there are any)
+#   fsck       report problems (exit status 1 if there are any): the saved copy, files kept in
+#              lists, archives, packages
 #   fsck -r    also repair what is safe: leftover archive lists, missing system files
 from A84FS import DEFAULT_DIRS, StorageError, VFSError
 from A84CD import COMMANDS, unload
@@ -27,6 +28,36 @@ def check_main(sh, out):
     except MemoryError:
         out.append("filesystem: not enough memory to verify the saved copy")
         return 0
+
+
+def check_blobs(sh, out):
+    # files whose text is kept in lists (A84BL): every list must be there and ours
+    vfs = sh.vfs
+    if not vfs.ext:
+        return 0
+    from A84BL import MAGIC, lname
+    st = sh.k.storage
+    nfiles = 0
+    nlists = 0
+    bad = 0
+    stack = [("", vfs.root)]
+    while stack:
+        path, n = stack.pop()
+        if n.is_dir:
+            for name in n.children:
+                stack.append((path + "/" + name, n.children[name]))
+        elif not isinstance(n.data, str) and not isinstance(n.data, list):
+            nfiles += 1
+            for i in n.data.ids:
+                nlists += 1
+                e = st._recall(lname(i))
+                if e is None or len(e) < 3 or int(e[0]) != MAGIC or int(e[1]) != i or int(e[2]) > (len(e) - 3) * 5:
+                    bad += 1
+                    out.append("file " + path + ": DAMAGED (list " + lname(i) + " missing or changed)")
+                    break
+    if bad == 0:
+        out.append("files in lists: ok (" + str(nfiles) + " files, " + str(nlists) + " lists)")
+    return bad
 
 
 def check_archives(sh, out, repair):
@@ -76,15 +107,34 @@ def check_packages(sh, out, repair):
     names = vfs.listdir(DBDIR)
     missing = 0
     for n in names:
-        if not vfs.isfile(DBDIR + "/" + n + "/files"):
-            bad += 1
-            out.append("package " + n + ": database entry incomplete")
+        base = DBDIR + "/" + n
+        listing = False                 # inside the file list yet? (an older entry is a directory with a files file)
+        if vfs.isdir(base):
+            if not vfs.isfile(base + "/files"):
+                bad += 1
+                out.append("package " + n + ": database entry incomplete")
+                continue
+            lines = vfs.lines(base + "/files")
+            listing = True
+        elif vfs.isfile(base):
+            lines = vfs.lines(base)
+        else:
             continue
-        for line in vfs.lines(DBDIR + "/" + n + "/files"):
+        seen = listing
+        for line in lines:
+            if line == "%files":
+                listing = True
+                seen = True
+                continue
+            if not listing:
+                continue
             f = line.split("\t")
             if f[0] == "f" and len(f) == 4 and not vfs.isfile(f[1]):
                 missing += 1
                 out.append("package " + n + ": missing " + f[1])
+        if not seen:
+            bad += 1
+            out.append("package " + n + ": database entry incomplete")
     out.append("packages: " + str(len(names)) + " installed, " + str(missing) + " files missing")
     return bad + missing
 
@@ -121,6 +171,7 @@ def run(sh, args):
     bad = check_system(sh, out, repair)
     try:
         bad += check_main(sh, out)
+        bad += check_blobs(sh, out)
         bad += check_archives(sh, out, repair)
         bad += check_packages(sh, out, repair)
     except (VFSError, StorageError) as e:

@@ -1,8 +1,12 @@
 # A84PD: installed-package database for pacman (Arch84 module, lazily loaded).
-# /var/lib/pacman/local/<name>/desc  (name, version, desc, depends)
-#                              files (d<TAB>dir | f<TAB>path<TAB>size<TAB>sum)
+# One file per package, /var/lib/pacman/local/<name> (one tree node; it is kept in calculator
+# lists, see A84BL, so the heap holds only a reference):
+#   name .. / version .. / desc .. / depends .. / reason dep     (the description lines)
+#   %files
+#   d<TAB>dir  |  f<TAB>path<TAB>size<TAB>sum                    (what the package installed)
+# Older installs have a DIRECTORY /var/lib/pacman/local/<name>/ with the files desc and files;
+# those are still read, removed and replaced (a directory node costs far more than a file).
 from A84FS import VFSError, unesc
-from A84FS import unesc
 from A84PM import DBDIR, REMOTEDB, PkgError, esc, ok_dep, ok_name, ok_ver, split_dep
 
 
@@ -42,15 +46,49 @@ def remote_rows(vfs):
     return out
 
 
-def db_read(vfs, name, full=True):
-    # -> meta with dirs / files from /var/lib/pacman/local/<name>, or None
-    # (full=False skips the file list: much cheaper)
+def db_lines(vfs, name):
+    # the lines of the package's database entry, whichever layout it has (a directory: desc,
+    # then "%files", then files); None when there is no such package
     base = DBDIR + "/" + name
-    if not vfs.isdir(base):
+    if vfs.isfile(base):
+        return vfs.lines(base)
+    if vfs.isdir(base):
+        return old_lines(vfs, base)
+    return None
+
+
+def old_lines(vfs, base):
+    if vfs.isfile(base + "/desc"):
+        for line in vfs.lines(base + "/desc"):
+            yield line
+    yield "%files"
+    if vfs.isfile(base + "/files"):
+        for line in vfs.lines(base + "/files"):
+            yield line
+
+
+def db_read(vfs, name, full=True):
+    # -> meta with dirs / files of the installed package, or None
+    # (full=False stops at the file list: much cheaper)
+    lines = db_lines(vfs, name)
+    if lines is None:
         return None
     meta = {"name": name, "version": "?", "desc": "", "depends": [], "dirs": [], "files": [], "reason": "explicit"}
+    files = False
     try:
-        for line in vfs.lines(base + "/desc"):
+        for line in lines:
+            if files:
+                f = line.split("\t")
+                if f[0] == "d" and len(f) == 2:
+                    meta["dirs"].append(f[1])
+                elif f[0] == "f" and len(f) == 4:
+                    meta["files"].append((f[1], int(f[2]), f[3]))
+                continue
+            if line == "%files":
+                if not full:
+                    return meta
+                files = True
+                continue
             sp = line.find(" ")
             if sp > 0:
                 k = line[:sp]
@@ -63,14 +101,6 @@ def db_read(vfs, name, full=True):
                     meta["version"] = v
                 elif k == "reason":
                     meta["reason"] = v
-        if not full:
-            return meta
-        for line in vfs.lines(base + "/files"):
-            f = line.split("\t")
-            if f[0] == "d" and len(f) == 2:
-                meta["dirs"].append(f[1])
-            elif f[0] == "f" and len(f) == 4:
-                meta["files"].append((f[1], int(f[2]), f[3]))
     except (VFSError, ValueError):
         pass
     return meta
@@ -88,35 +118,39 @@ def desc_text(meta):
 
 
 def db_reason(vfs, name, reason):
-    m = db_read(vfs, name, False)
+    m = db_read(vfs, name)
     if m is not None and m["reason"] != reason:
         m["reason"] = reason
-        vfs.write(DBDIR + "/" + name + "/desc", desc_text(m))
+        db_write(vfs, m)
 
 
 def db_write(vfs, meta):
+    # writes (or replaces) the package's entry as one file
     base = DBDIR + "/" + meta["name"]
-    mkdirs(vfs, base, [])
-    vfs.write(base + "/desc", desc_text(meta))
-    vfs.write(base + "/files", "")
+    mkdirs(vfs, DBDIR, [])
+    if vfs.isdir(base):
+        db_remove(vfs, meta["name"])                        # the older directory layout goes away first
+    vfs.write(base, desc_text(meta) + "%files\n")
     buf = ""
     for p in meta["dirs"]:
         buf += "d\t" + p + "\n"
     for p, size, s in meta["files"]:
         buf += "f\t" + p + "\t" + str(size) + "\t" + s + "\n"
         if len(buf) > 400:
-            vfs.append(base + "/files", buf)
+            vfs.append(base, buf)
             buf = ""
     if buf != "":
-        vfs.append(base + "/files", buf)
+        vfs.append(base, buf)
+    vfs.externalize(base, 120)                              # the entry lives in lists, not the heap
 
 
 def db_remove(vfs, name):
     base = DBDIR + "/" + name
-    for f in ("desc", "files"):
-        if vfs.exists(base + "/" + f):
-            vfs.remove(base + "/" + f)
     if vfs.isdir(base):
+        for f in ("desc", "files"):
+            if vfs.exists(base + "/" + f):
+                vfs.remove(base + "/" + f)
+    if vfs.exists(base):
         vfs.remove(base)
 
 
@@ -138,13 +172,16 @@ def requirers(vfs, name, skip=()):
 def owner(vfs, path):
     # name of the installed package that owns path (file or directory), or None
     for name in db_names(vfs):
-        base = DBDIR + "/" + name + "/files"
-        if not vfs.isfile(base):
-            continue
-        for line in vfs.lines(base):
-            f = line.split("\t")
-            if len(f) > 1 and f[1] == path:
-                return name
+        lines = db_lines(vfs, name)
+        files = False
+        for line in lines:
+            if line == "%files":
+                files = True
+                continue
+            if files:
+                f = line.split("\t")
+                if len(f) > 1 and f[1] == path:
+                    return name
     return None
 
 

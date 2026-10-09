@@ -44,6 +44,13 @@ def mod(name):
         raise
 
 
+def keep_in_lists(vfs, meta):
+    # the package's files go into calculator lists (A84BL, its database entry already did): the heap
+    # keeps only a reference to each, and the text is read back when something reads the file
+    for p, size, s in meta["files"]:
+        vfs.externalize(p)
+
+
 def drop_net():
     # the network code is only needed while downloading: free it before the installer loads
     # (desktop Python keeps it: reloading would only slow the tests)
@@ -173,6 +180,9 @@ def change(sh, op, mods, rest):
         for k in range(len(files)):
             gc.collect()
             meta, old = install(vfs, paths[k], "dep" if files[k] in asdep else None)
+            keep_in_lists(vfs, meta)
+            if files[k][:4] == "net:":
+                vfs.remove(paths[k])            # the mirror has it again: no cached copy needed
             show(sh, meta, old)
     finally:
         if files:

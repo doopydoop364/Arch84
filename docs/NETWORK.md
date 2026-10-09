@@ -108,8 +108,9 @@ name  version  name-version.ar84  size(characters)  checksum  depends  escaped d
 On the calculator `pacman -Sy` downloads `index` into `/var/lib/pacman/sync/remote.db` (`A84PN.refresh`) and rebuilds the
 local index, in which packages that only the mirror has appear with the file `net:<file>`. `pacman -S` resolves
 dependencies exactly as for local packages; before installing a `net:` package it downloads it into
-`/var/cache/pacman/pkg` (`A84PN.fetch`) and refuses it unless size and checksum match the index. A cached copy wins
-over the mirror at the same version. Offline (no bridge, or a text terminal), `-Sy` only syncs the local
+`/var/cache/pacman/pkg` (`A84PN.fetch`, kept in lists, see docs/FILES_IN_LISTS.md), refuses it unless size and checksum
+match the index, installs everything, and deletes the downloaded copy again (the mirror has it). A local file in the
+cache (for example from `makepkg`) wins over the mirror at the same version and is left alone. Offline (no bridge, or a text terminal), `-Sy` only syncs the local
 repository, with a warning when the bridge did not answer.
 
 Packages so far: `hello`, `cowsay`, `fortune`, `cowfortune` (depends on both), `ascii`: shell scripts and data files.

@@ -8,7 +8,7 @@ management on top of a small persistent VFS.
 * `ARCH84.py` launcher; `A84*.py` the system, split into small modules so each one
   compiles within the calculator's tiny Python heap (see `ARCH84_DEVLOG.md`).
 * `test_*.py` desktop tests (`python3 test_arch84.py`, `test_storage.py`,
-  `test_bigfiles.py`, `test_deploy.py`, `test_net.py`); the `selftest` command runs checks on the device.
+  `test_bigfiles.py`, `test_deploy.py`, `test_net.py`, `test_blobs.py`); the `selftest` command runs checks on the device.
 * `deploy.py` sends the modules to the calculator (plus Archive backups, `<name>BAK`).
 
 Deploying needs `evo_usb.py` from https://github.com/Evo-Programming/evo_usb_py placed in this
@@ -36,6 +36,8 @@ folder (it is not part of this repository).
   calculator modules (`K<hex><n>` package parts, `QR<NAME>` index, `R84REG` repository list, rebuilt from the calculator's
   program list with `--send`). `pacman -Sy` reads them (nothing is copied into the VFS), `-S`/`-Su`/`-Ss`/`-Si`/`-Sl` use them
   alongside the local repository; an install imports one package part at a time and frees it.
+* Files in lists: `vfs.externalize` (used by `pacman` and `wget`) keeps a file's text in calculator lists instead of
+  the heap, so many installed packages cost little RAM; see `docs/FILES_IN_LISTS.md`.
 * Networking (needs the PC bridge running, see `docs/NETWORK.md`): `wget`, `curl`, `ping`, `net`, `ntpdate`, and
   `pacman -Sy` / `pacman -S NAME` against the mirror `https://doopydoop364.github.io/arch84/pkgs`. The calculator draws
   its request on the screen and the bridge types the answer back in key presses (a variable transfer would close the

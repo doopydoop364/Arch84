@@ -17,7 +17,7 @@ def sh(name, cmd, **kw):
         print((r.stdout + r.stderr)[-600:])
     return r
 
-for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor", "test_pacman", "test_archive", "test_proc", "test_environ", "test_flashrepo", "test_cmds", "test_manpages", "test_launcher", "test_gfx", "test_type", "test_neofetch", "test_net") + (() if quick else ("test_bigfiles",)):
+for t in ("test_arch84", "test_storage", "test_campaign", "test_pipes", "test_editor", "test_pacman", "test_archive", "test_proc", "test_environ", "test_flashrepo", "test_cmds", "test_manpages", "test_launcher", "test_gfx", "test_type", "test_neofetch", "test_net", "test_blobs") + (() if quick else ("test_bigfiles",)):
     sh(t, [sys.executable, t + ".py"])
 n = 15 if quick else 60
 bad = 0

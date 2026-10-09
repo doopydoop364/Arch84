@@ -59,6 +59,7 @@ def cmd_wget(sh, args):
         fail(sh, "wget", path, e)
         return 1
     sh.k.stop_spin()
+    sh.vfs.externalize(path, 300)       # a big download lives in lists, not the heap
     if not quiet:
         sh.out("saved " + path + " (" + str(n) + " bytes)\n")
 

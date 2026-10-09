@@ -12,8 +12,9 @@
 #   END<TAB><entries><TAB><sum>         <entries> = D and F records; <sum> covers every
 #                                       line above it. File sums cover the file text.
 # sum = "%x-%x" % (b, a) of an Adler-32 style checksum over the characters.
-# Installed packages live in /var/lib/pacman/local/<name>/ (desc, files); desc also has
-# "reason dep" when the package was only installed to satisfy a dependency.
+# Installed packages: one file /var/lib/pacman/local/<name> (description lines, "%files", then the
+# file list; the description also has "reason dep" when the package was only installed to satisfy a
+# dependency), see A84PD. Older installs have a directory <name>/ with desc and files.
 # The repository index is /var/lib/pacman/sync/repo.db (one line per package:
 # name, version, file, depends, desc; rebuilt by pacman -Sy and when stale). Packages that
 # only exist on the mirror have the file "net:<file>"; the mirror's own index is

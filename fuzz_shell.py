@@ -11,6 +11,7 @@ so both runtimes see identical input.
 import sys
 sys.path.insert(0, ".")
 from A84FS import ERR
+from A84FS import dtext
 from A84ST import MemStorage
 from A84KN import Kernel
 from A84SH import Shell
@@ -94,7 +95,7 @@ def dump(vfs):
                 st.append((p.rstrip("/") + "/" + c, n.children[c]))
         else:
             d = n.data
-            out.append(p + "=" + (d if isinstance(d, str) else "".join(d)))
+            out.append(p + "=" + dtext(d))
     out.sort()
     return "\n".join(out)
 

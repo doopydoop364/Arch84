@@ -479,13 +479,13 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(self.rig.run("pacman -S fortune"), "installed fortune 1.0 (2 files)\n")
         self.assertEqual(self.rig.run("fortune"), "The best RAM is the RAM you did not need.\n")
 
-    def test_removed_net_package_can_be_installed_again_from_the_cache(self):
+    def test_the_download_is_not_kept_after_installing_and_a_reinstall_downloads_it_again(self):
         self.rig.run("pacman -Sy")
         self.rig.run("pacman -S hello")
+        self.assertEqual(self.rig.run("ls /var/cache/pacman/pkg"), "")        # the mirror has it again
         self.rig.run("pacman -R hello")
-        n = len(self.rig.bridge.cache)
         self.assertEqual(self.rig.run("pacman -S hello"), "installed hello 1.0 (1 files)\n")
-        self.assertIn("hello-1.0.ar84", self.rig.run("ls /var/cache/pacman/pkg"))
+        self.assertEqual(self.rig.run("ls /var/cache/pacman/pkg"), "")
 
     def test_a_corrupted_download_is_refused(self):
         self.rig.run("pacman -Sy")
@@ -511,11 +511,15 @@ class PackageTests(unittest.TestCase):
         self.rig.bridge.cache.clear()
         self.assertIn("not a package index", self.rig.run("pacman -Sy"))
 
-    def test_local_packages_still_work_and_win_at_the_same_version(self):
+    def test_a_local_copy_wins_at_the_same_version(self):
         self.rig.run("pacman -Sy")
-        self.rig.run("pacman -S hello")                      # now cached locally
+        self.assertIn("Repository  : net", self.rig.run("pacman -Si hello"))
+        self.rig.run("mkdir -p /var/cache/pacman/pkg")
+        self.rig.run("wget -q -O /var/cache/pacman/pkg/hello-1.0.ar84 " + self.rig.server.base + "/pkgs/hello-1.0.ar84")
         self.rig.run("pacman -Sy")
         self.assertIn("Repository  : local", self.rig.run("pacman -Si hello"))
+        self.assertEqual(self.rig.run("pacman -S hello"), "installed hello 1.0 (1 files)\n")
+        self.assertIn("hello-1.0.ar84", self.rig.run("ls /var/cache/pacman/pkg"))   # a local file is left alone
 
     def test_offline_sy_is_quiet_on_a_text_terminal_and_clear_with_the_bridge_off(self):
         sh, t = T.mk()

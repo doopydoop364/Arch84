@@ -11,7 +11,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 PARTS = 4
-NCHECKS = 10        # A84TX.CHECKS run first, as items 1..10
+NCHECKS = 11        # A84TX.CHECKS run first, as items 1..NCHECKS
 
 
 def generate():

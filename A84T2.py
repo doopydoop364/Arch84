@@ -2,6 +2,7 @@
 # A84TD + A84TY: edit those, not this). Arch84 module, loaded by selftest.
 START = 51
 CASES = [
+    ('hostname file', ['echo box > /etc/hostname', 'hostname'], 'box\n'),
     ('env', ['env'], '~SHELL=/bin/ash\n'),
     ('export', ['export FOO=bar', 'echo $FOO'], 'bar\n'),
     ('printenv', ['printenv USER'], 'evo\n'),

@@ -660,7 +660,7 @@ class KernelSyncTests(unittest.TestCase):
         k, ti = self.kernel()
         k.vfs.write("/home/evo/a", "x" * 100)
         real = A84KN.decode_stream
-        def lowmem(chunks):
+        def lowmem(chunks, store=None):
             raise ValueError("fs stream: MemoryError()")
         A84KN.decode_stream = lowmem
         try:
@@ -676,7 +676,7 @@ class KernelSyncTests(unittest.TestCase):
         k.sync()
         k.vfs.write("/home/evo/a", "y" * 3000)
         real = A84KN.decode_stream
-        A84KN.decode_stream = lambda c: (_ for _ in ()).throw(ValueError("fs stream: MemoryError()"))
+        A84KN.decode_stream = lambda c, store=None: (_ for _ in ()).throw(ValueError("fs stream: MemoryError()"))
         def corrupt(name, data):
             if name != "A84" and name.startswith("S") and len(data) > 2:
                 data[1] = data[1] + 1.0
@@ -772,7 +772,7 @@ class MemoryFailureTests(unittest.TestCase):
         k.sync()
         before = {n: list(v) for n, v in ti.lists.items()}
         real = A84KN.decode_stream
-        def lowmem(chunks):
+        def lowmem(chunks, store=None):
             raise ValueError("fs stream: MemoryError()")
         A84KN.decode_stream = lowmem
         try:
@@ -794,7 +794,7 @@ class MemoryFailureTests(unittest.TestCase):
         k.vfs.write("/home/evo/a", "precious")
         k.sync()
         real = A84KN.decode_stream
-        def lowmem(chunks):
+        def lowmem(chunks, store=None):
             raise ValueError("fs stream: MemoryError('memory allocation failed, allocating 4801 bytes',)")
         A84KN.decode_stream = lowmem
         try:

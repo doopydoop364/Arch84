@@ -9,8 +9,8 @@ def vfs_copyfile(vfs, src, dst):
     # pieces are immutable strings, so a copy shares them: a 100 KB file
     # costs one small list, not another 100 KB
     d = vfs._file(src).data
-    if not isinstance(d, str):
-        d = list(d)
+    if isinstance(d, list):
+        d = list(d)               # (a str or an external file's data is immutable and shared)
     parent, name = vfs._parent(dst)
     node = parent.children.get(name)
     if node is None:

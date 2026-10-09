@@ -71,4 +71,5 @@ def fetch(sh, file):
     if dlen(data) != row[3] or s.hex() != row[4]:
         vfs.remove(path)
         raise PkgError(file + ": corrupted download (size or checksum does not match the index)")
+    vfs.externalize(path, 1)            # keep it in lists until it is installed: the heap holds nothing
     return path
