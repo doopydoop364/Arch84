@@ -254,10 +254,54 @@ class InstallTests(unittest.TestCase):
         data = "".join(rng.choice("ab\\\n\t\r é€漢.") for _ in range(5000))
         install_text(self.sh, pkg_text("blob", "1", [("F", "/opt/blob", data)]))
         self.assertEqual(self.sh.vfs.read("/opt/blob"), data)
-        from A84FS import dnew
-        self.assertEqual(self.sh.vfs.get("/opt/blob").data, dnew(data))
+        from A84BL import Ext
+        self.assertIsInstance(self.sh.vfs.get("/opt/blob").data, Ext)
         install_text(self.sh, pkg_text("empty", "1", [("F", "/opt/empty", "")]))
         self.assertEqual(self.sh.vfs.read("/opt/empty"), "")
+
+    def test_large_file_install_streams_without_appending_to_the_vfs(self):
+        data = "ab漢\n" * 1500
+        self.sh.vfs.write("/home/evo/stream.ar84", pkg_text("stream", "1", [
+            ("F", "/opt/stream", data)]))
+        real = self.sh.vfs.append
+
+        def no_large_append(path, text):
+            if path == "/opt/stream":
+                raise AssertionError("large file used heap append")
+            return real(path, text)
+
+        self.sh.vfs.append = no_large_append
+        try:
+            A84PI.install(self.sh.vfs, "/home/evo/stream.ar84")
+        finally:
+            self.sh.vfs.append = real
+        self.assertEqual(self.sh.vfs.read("/opt/stream"), data)
+
+    def test_list_failure_during_stream_restores_old_package(self):
+        install_text(self.sh, pkg_text("demo", "1", BASIC))
+        self.sh.vfs.write("/home/evo/stream.ar84", pkg_text("demo", "2", [
+            ("F", "/usr/bin/hi", "new" * 2000)]))
+        before = walk(self.sh.vfs)
+        busy_before = set(getattr(self.sh.vfs, "blob_busy", set()))
+        real = self.sh.vfs.store.put
+        calls = [0]
+
+        def fail_second_blob(name, values):
+            if name.startswith("X"):
+                calls[0] += 1
+                if calls[0] == 2:
+                    raise MemoryError("list full")
+            return real(name, values)
+
+        self.sh.vfs.store.put = fail_second_blob
+        try:
+            with self.assertRaises(PkgError):
+                A84PI.install(self.sh.vfs, "/home/evo/stream.ar84")
+        finally:
+            self.sh.vfs.store.put = real
+        self.assertEqual(walk(self.sh.vfs), before)
+        self.assertEqual(self.sh.vfs.blob_busy, busy_before)
+        self.assertEqual(run(self.sh, self.t, "pacman -Q"), "demo 1\n")
 
 
 class RejectTests(unittest.TestCase):
@@ -322,6 +366,10 @@ class RejectTests(unittest.TestCase):
         lines = [MAGIC, "name bad", "version 1", "F\t/opt/x\t1\t" + s.hex(), "+\ta\\q"]
         self.reject("\n".join(seal(lines, 1)) + "\n")
 
+    def test_oversized_record_is_rejected_before_installation(self):
+        self.reject(pkg_text("bad", "1", [("F", "/opt/x", "x")],
+                             desc="d" * 1500), "record too long")
+
     def test_package_cannot_overwrite_itself(self):
         text = pkg_text("bad", "1", [("F", "/home/evo/bad.ar84", "x")])
         self.reject(text, "contains itself")
@@ -372,6 +420,145 @@ class RejectTests(unittest.TestCase):
 
 
 class RollbackTests(unittest.TestCase):
+    def test_large_file_database_failure_restores_external_state(self):
+        sh, t = mk()
+        sh.vfs.write("/home/evo/p.ar84", pkg_text("demo", "1", [
+            ("F", "/opt/demo/data", "x" * 1400)]))
+        before = walk(sh.vfs)
+        external_before = sh.vfs.ext
+        real = A84PI.db_write
+        A84PI.db_write = lambda vfs, meta: (_ for _ in ()).throw(MemoryError())
+        try:
+            with self.assertRaises(PkgError):
+                A84PI.install(sh.vfs, "/home/evo/p.ar84")
+        finally:
+            A84PI.db_write = real
+        self.assertEqual(walk(sh.vfs), before)
+        self.assertEqual(sh.vfs.ext, external_before)
+
+    def test_remove_database_failure_restores_files(self):
+        sh, t = mk()
+        install_text(sh, pkg_text("demo", "1.0", BASIC))
+        before = walk(sh.vfs)
+        real = A84PI.db_remove
+        A84PI.db_remove = lambda vfs, name: (_ for _ in ()).throw(MemoryError())
+        try:
+            with self.assertRaises(PkgError) as caught:
+                A84PI.remove(sh.vfs, "demo")
+        finally:
+            A84PI.db_remove = real
+        self.assertIn("rolled back", str(caught.exception))
+        self.assertEqual(walk(sh.vfs), before)
+
+    def test_upgrade_database_failure_restores_old_files_and_entry(self):
+        sh, t = mk()
+        install_text(sh, pkg_text("demo", "1.0", BASIC))
+        old_db = sh.vfs.read("/var/lib/pacman/local/demo")
+        sh.vfs.write("/home/evo/p2.ar84", pkg_text("demo", "2.0", [
+            ("F", "/usr/bin/hi", "new"), ("F", "/usr/bin/added", "added")]))
+        before = walk(sh.vfs)
+        real = A84PI.db_write
+        A84PI.db_write = lambda vfs, meta: (_ for _ in ()).throw(MemoryError())
+        try:
+            with self.assertRaises(PkgError):
+                A84PI.install(sh.vfs, "/home/evo/p2.ar84")
+        finally:
+            A84PI.db_write = real
+        self.assertEqual(walk(sh.vfs), before)
+        self.assertEqual(sh.vfs.read("/var/lib/pacman/local/demo"), old_db)
+        self.assertFalse(sh.vfs.exists("/usr/bin/added"))
+
+    def test_archive_changed_after_scan_rolls_back(self):
+        sh, t = mk()
+        good = pkg_text("demo", "1", [("F", "/opt/one", "one")])
+        changed = pkg_text("demo", "1", [("F", "/opt/two", "two")])
+        sh.vfs.write("/home/evo/p.ar84", good)
+        before = walk(sh.vfs)
+        real = A84PI.scan
+
+        def swap_after_scan(vfs, path):
+            result = real(vfs, path)
+            vfs.write(path, changed)
+            return result
+
+        A84PI.scan = swap_after_scan
+        try:
+            with self.assertRaises(PkgError) as caught:
+                A84PI.install(sh.vfs, "/home/evo/p.ar84")
+        finally:
+            A84PI.scan = real
+        self.assertIn("changed between validation", str(caught.exception))
+        before["/home/evo/p.ar84"] = changed
+        self.assertEqual(walk(sh.vfs), before)
+
+    def test_interrupted_sync_selects_old_or_new_package_snapshot(self):
+        st = MemStorage()
+        sh, t = mk(st)
+        install_text(sh, pkg_text("demo", "1.0", BASIC))
+        sh.k.sync()
+        install_text(sh, pkg_text("demo", "2.0", [
+            ("F", "/usr/bin/hi", "new"), ("F", "/usr/bin/added", "added")]))
+        real = st.put
+
+        def fail_meta(name, data):
+            if name == "A84":
+                raise OSError("interrupted meta write")
+            return real(name, data)
+
+        st.put = fail_meta
+        try:
+            with self.assertRaises(Exception):
+                sh.k.sync()
+        finally:
+            st.put = real
+        old = Kernel(st)
+        self.assertEqual(old.vfs.read("/usr/bin/hi"), "echo hi $1\n")
+        self.assertFalse(old.vfs.exists("/usr/bin/added"))
+        sh.k.sync()
+        new = Kernel(st)
+        self.assertEqual(new.vfs.read("/usr/bin/hi"), "new")
+        self.assertEqual(new.vfs.read("/usr/bin/added"), "added")
+
+    def test_package_snapshot_at_each_store_boundary(self):
+        old_text = "old" * 450
+        new_text = "new" * 450
+        for after in (False, True):
+            for cut in range(1, 18):
+                st = MemStorage()
+                sh, t = mk(st)
+                install_text(sh, pkg_text("demo", "1", [
+                    ("F", "/opt/pkg/data", old_text)]))
+                sh.k.sync()
+                install_text(sh, pkg_text("demo", "2", [
+                    ("F", "/opt/pkg/data", new_text)]))
+                real = st.put
+                calls = [0]
+
+                def interrupt(name, data):
+                    calls[0] += 1
+                    if after:
+                        real(name, data)
+                    if calls[0] == cut:
+                        raise OSError("power cut")
+                    if not after:
+                        real(name, data)
+
+                st.put = interrupt
+                try:
+                    try:
+                        sh.k.sync()
+                    except Exception:
+                        pass
+                finally:
+                    st.put = real
+                if calls[0] < cut:
+                    break
+                recovered = Kernel(st)
+                meta = A84PI.db_read(recovered.vfs, "demo")
+                content = recovered.vfs.read("/opt/pkg/data")
+                self.assertIn((meta["version"], content),
+                              (("1", old_text), ("2", new_text)), (after, cut))
+
     def test_failure_midway_restores_everything(self):
         for fail_at in range(1, 9):
             sh, t = mk()

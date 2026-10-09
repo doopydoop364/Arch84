@@ -14,10 +14,12 @@ def vfs_copyfile(vfs, src, dst):
     parent, name = vfs._parent(dst)
     node = parent.children.get(name)
     if node is None:
+        vfs._record(parent, name)
         parent.children[name] = Node(False, d)
     elif node.is_dir:
         raise VFSError("Is a directory")
     else:
+        vfs._record(parent, name)
         node.data = d
     vfs.dirty = True
 
@@ -43,6 +45,8 @@ def vfs_rename(vfs, src, dst):
                 raise VFSError("Directory not empty")
         elif node.is_dir:
             raise VFSError("Not a directory")
+    vfs._record(sparent, sname)
+    vfs._record(dparent, dname)
     del sparent.children[sname]
     dparent.children[dname] = node
     vfs.dirty = True

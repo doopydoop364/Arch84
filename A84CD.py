@@ -228,7 +228,7 @@ def all_commands():
 
 
 # library modules the lazy commands import; evicted together with them
-HELPERS = ("A84CY", "A84SW", "A84PN", "A84NT", "A84PM", "A84PS", "A84PQ", "A84PD", "A84PI", "A84PB", "A84PL", "A84AI", "A84AR", "A84AE", "A84ED")
+HELPERS = ("A84CY", "A84SW", "A84PN", "A84NT", "A84PM", "A84PS", "A84PQ", "A84PD", "A84PI", "A84PB", "A84PL", "A84AI", "A84AR", "A84AE", "A84ED", "A84TR")
 
 
 def unload(command, *mods):

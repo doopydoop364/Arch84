@@ -10,6 +10,12 @@ class ParseError(Exception):
     pass
 
 
+MAX_LINE = 4096             # a shell line must fit the calculator's small heap
+MAX_COMMANDS = 32
+MAX_WORDS = 128
+MAX_STAGES = 16
+
+
 def isname(c):
     return c == "_" or ("a" <= c <= "z") or ("A" <= c <= "Z") or ("0" <= c <= "9")
 
@@ -38,8 +44,10 @@ def expand(line, i, env):
 def split_commands(line):
     # [(text, connector)] cut at unquoted ";", "&&" and "||"; connector is None for
     # the first piece, else what precedes it. Quotes/escapes/comments are respected.
+    if len(line) > MAX_LINE:
+        raise ParseError("command line too long")
     out = []
-    cur = ""
+    seg = 0
     conn = None
     q = ""
     start = True            # at the start of a word (a "#" there begins a comment)
@@ -48,56 +56,59 @@ def split_commands(line):
     while i < n:
         c = line[i]
         if q != "":
-            cur += c
             if c == q:
                 q = ""
             elif c == "\\" and q == '"' and i + 1 < n:
-                cur += line[i + 1]
                 i += 1
             i += 1
             continue
         if c == "\\" and i + 1 < n:
-            cur += c + line[i + 1]
             i += 2
             start = False
             continue
         if c == "'" or c == '"':
             q = c
-            cur += c
             start = False
         elif c == "#" and start:
-            cur += line[i:]
             break
         elif c == ";" or (c == "&" and line[i + 1:i + 2] == "&") or (c == "|" and line[i + 1:i + 2] == "|"):
             op = c
+            end = i
             if c != ";":
                 op = c + c
                 i += 1
-            if cur.strip() == "":
+            part = line[seg:end]
+            if part.strip() == "":
                 raise ParseError("syntax error near " + op)
-            out.append((cur, conn))
-            cur = ""
+            if len(out) >= MAX_COMMANDS:
+                raise ParseError("too many commands")
+            out.append((part, conn))
             conn = op
             start = True
+            seg = i + 1
         else:
-            cur += c
             start = c == " " or c == "\t"
         i += 1
     if q != "":
         raise ParseError("unterminated quote")
-    if cur.strip() == "":
+    part = line[seg:]
+    if part.strip() == "":
         if conn is not None and conn != ";":
             raise ParseError("syntax error near " + conn)
         if not out:
-            out.append((cur, None))
+            out.append((part, None))
     else:
-        out.append((cur, conn))
+        if len(out) >= MAX_COMMANDS:
+            raise ParseError("too many commands")
+        out.append((part, conn))
     return out
 
 
 def parse(line, env, home, pipes=False):
     # pipes False -> (words, redir); redir is None or (">" | ">>", target); "|" and "<" are errors.
     # pipes True  -> [(words, redir, infile), ...] one entry per pipeline stage.
+    if len(line) > MAX_LINE:
+        raise ParseError("command line too long")
     stages = []
     words = []
     redir = None
@@ -125,6 +136,8 @@ def parse(line, env, home, pipes=False):
                     redir = (pending, w)
                     pending = None
                 else:
+                    if len(words) >= MAX_WORDS:
+                        raise ParseError("too many arguments")
                     words.append(w)
                 cur = []
                 started = False
@@ -132,6 +145,8 @@ def parse(line, env, home, pipes=False):
                 if pending is not None or (not words and redir is None and infile is None):
                     raise ParseError("syntax error near |")
                 stages.append((words, redir, infile))
+                if len(stages) >= MAX_STAGES:
+                    raise ParseError("too many pipeline stages")
                 words = []
                 redir = None
                 infile = None
@@ -159,8 +174,11 @@ def parse(line, env, home, pipes=False):
                     t, i = expand(line, i, env)
                     cur.append(t)
                 else:
-                    cur.append(d)
-                    i += 1
+                    j = i + 1
+                    while j < n and line[j] not in '"\\$':
+                        j += 1
+                    cur.append(line[i:j])
+                    i = j
             started = True
         elif c == "\\":
             if i + 1 < n:
@@ -194,9 +212,12 @@ def parse(line, env, home, pipes=False):
         elif c in "|;&<":
             raise ParseError("unsupported syntax: " + c)
         else:
-            cur.append(c)
+            j = i + 1
+            while j < n and line[j] not in " \t'\"\\$><~#|;&":
+                j += 1
+            cur.append(line[i:j])
             started = True
-            i += 1
+            i = j
     if pending is not None:
         raise ParseError("missing file after " + pending)
     if not pipes:

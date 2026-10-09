@@ -222,6 +222,7 @@ ASHRC = "# ~/.ashrc\nalias ll='ls -a'\n"
 class VFS:
     store = None        # the list store that holds external file data (set by the kernel)
     ext = False         # some file's data is external (A84BL): saves must record it
+    _tx = None
 
     def __init__(self):
         self.root = Node(True)
@@ -273,12 +274,21 @@ class VFS:
             raise VFSError("File name too long")
         return node, name
 
+    def begin_transaction(self, limit=600):
+        from A84TR import Transaction
+        return Transaction(self, limit)
+
+    def _record(self, parent, name):
+        if self._tx is not None:
+            self._tx.record(parent, name)
+
     def mkdir(self, path):
         if path == "/":
             raise VFSError("File exists")
         parent, name = self._parent(path)
         if name in parent.children:
             raise VFSError("File exists")
+        self._record(parent, name)
         parent.children[name] = Node(True)
         self.dirty = True
 
@@ -287,6 +297,7 @@ class VFS:
             return
         parent, name = self._parent(path)
         if name not in parent.children:
+            self._record(parent, name)
             parent.children[name] = Node(False)
             self.dirty = True
 
@@ -295,6 +306,7 @@ class VFS:
             return                      # the bit bucket
         parent, name = self._parent(path)
         node = parent.children.get(name)
+        self._record(parent, name)
         if node is None:
             parent.children[name] = Node(False, dnew(data))
         elif node.is_dir:
@@ -307,6 +319,7 @@ class VFS:
         # replace a file's contents with data that is already canonical (dnew/dchunks)
         parent, name = self._parent(path)
         node = parent.children.get(name)
+        self._record(parent, name)
         if node is None:
             parent.children[name] = Node(False, data)
         elif node.is_dir:
@@ -326,6 +339,8 @@ class VFS:
         elif node.is_dir:
             raise VFSError("Is a directory")
         else:
+            parent, name = self._parent(path)
+            self._record(parent, name)
             node.data = dappend(node.data, data)
             self.dirty = True
 
@@ -359,10 +374,14 @@ class VFS:
             return False
         if dlen(d) < minlen:
             return False
+        parent, name = self._parent(path)
+        self._record(parent, name)
         from A84BM import make          # the writing half: only loaded while storing
         e = make(self, dpieces(d))
         if e is None:
             return False
+        if self._tx is not None:
+            self._tx.add_blob(e)
         node.data = e
         self.ext = True
         self.dirty = True
@@ -393,6 +412,7 @@ class VFS:
             raise VFSError("No such file or directory")
         if node.is_dir and node.children:
             raise VFSError("Directory not empty")
+        self._record(parent, name)
         del parent.children[name]
         self.dirty = True
 

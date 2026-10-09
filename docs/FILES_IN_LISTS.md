@@ -31,6 +31,8 @@ different pool, so file text can be kept there and read back when needed.
 * Network downloads: `wget` (files of 300+ characters); `pacman -S` downloads go straight into lists,
   are installed, and the cached copy is deleted afterwards (the mirror has it again).
 * `pacman` installs: every installed file of 200+ characters, and the package's database entry.
+  For `.ar84` files of at least 1024 characters, `A84BM.BlobWriter` feeds each validated package data
+  record directly into `X` lists; it does not first assemble the whole file in the Python heap.
 * The package database is now **one file per package** (`/var/lib/pacman/local/<name>`: description lines,
   `%files`, then the file list) instead of a directory with `desc` and `files`: two tree nodes fewer
   per package, and a directory node is the most expensive kind. Older directory entries are still read,

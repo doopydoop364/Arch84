@@ -33,32 +33,53 @@ def write_list(st, busy, ids, data, i):
     return i + 1
 
 
+class BlobWriter:
+    # Incremental file writer: package extraction can feed each + record without
+    # assembling the whole file in the Python heap.
+    def __init__(self, vfs):
+        self.st = vfs.store
+        if self.st is None:
+            raise VFSError("no list storage")
+        self.busy = getattr(vfs, "blob_busy", None)
+        if self.busy is None:
+            self.busy = used_ids(vfs)
+            for i in saved_ids(self.st):
+                self.busy.add(i)
+            vfs.blob_busy = self.busy
+        self.ids = []
+        self.n = 0
+        self.nxt = 0
+        self.buf = bytearray()
+        self.ext = Ext(self.st, self.ids, 0)
+
+    def feed(self, text):
+        self.n += len(text)
+        self.buf.extend(text.encode())
+        while len(self.buf) >= PER:
+            cut = utf8_cut(bytes(self.buf[:PER]))
+            if cut <= 0:
+                cut = PER
+            self.nxt = write_list(self.st, self.busy, self.ids, bytes(self.buf[:cut]), self.nxt)
+            self.buf = self.buf[cut:]
+
+    def finish(self):
+        if self.buf:
+            self.nxt = write_list(self.st, self.busy, self.ids, bytes(self.buf), self.nxt)
+            self.buf = bytearray()
+        self.ext.n = self.n
+        return self.ext
+
+
 def make(vfs, pieces):
     # writes the text (an iterable of str pieces) into lists -> Ext, or None when that is not possible
     # (no store, lists full, memory): the file then simply stays in the heap
     st = vfs.store
-    busy = getattr(vfs, "blob_busy", None)      # numbers not to hand out: in the tree now, or in the saved tree
-    if busy is None:                            # (kept between calls: walking the tree for every file is slow)
-        busy = used_ids(vfs)
-        for i in saved_ids(st):
-            busy.add(i)
-        vfs.blob_busy = busy
-    ids = []
-    n = 0
-    nxt = 0
-    buf = bytearray()
+    if st is None:
+        return None
+    writer = BlobWriter(vfs)
     try:
         for p in pieces:
-            n += len(p)
-            buf.extend(p.encode())
-            while len(buf) >= PER:
-                cut = utf8_cut(bytes(buf[:PER]))
-                if cut <= 0:
-                    cut = PER
-                nxt = write_list(st, busy, ids, bytes(buf[:cut]), nxt)
-                buf = buf[cut:]
-        if len(buf) > 0:
-            write_list(st, busy, ids, bytes(buf), nxt)
+            writer.feed(p)
+        return writer.finish()
     except (StorageError, VFSError, MemoryError, ValueError):
         return None
-    return Ext(st, ids, n)
