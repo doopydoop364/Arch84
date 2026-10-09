@@ -1,5 +1,6 @@
 import os, random, sys, tempfile
-sys.path.insert(0, ".")
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 from A84VM import Pager, MemBackend, FileBackend, ListBackend
 
 def run(be, name):
@@ -40,3 +41,22 @@ print("list1024 ok; elements held", els, "lists", len(store))
 print("segments left", sorted(os.listdir(".")), "live", fb.live)
 assert sum(os.path.getsize(f) for f in os.listdir(".")) <= 40 * 256
 
+
+# compression: text pages in lists
+import A84CY, A84CZ
+store.clear()
+txt = open(os.path.join(HERE, "A84VM.py"), "rb").read()
+def meas(comp, decomp):
+    store.clear()
+    lb = ListBackend(lput, lambda n: list(store[n]), page=495, comp=comp, decomp=decomp)
+    p = Pager(lb, page=495, window=2)
+    ids = []
+    for i in range(0, 4950, 495):
+        k = p.new_page(); ids.append(k); p.write(k, 0, txt[i:i + 495])
+    p.flush()
+    for j, k in enumerate(ids):
+        assert p.read(k, 0, 495) == txt[j * 495:(j + 1) * 495]
+    return sum(len(v) for v in store.values())
+a = meas(None, None)
+b = meas(A84CY.lz_compress, lambda z, n: bytes(A84CZ.lz_decompress(z, n)))
+print("text 10 pages: elements plain", a, "compressed", b)

@@ -23,3 +23,14 @@ eviction, optional eviction while `gc.mem_free() < low`.
   is large and cold. Net heap gain per KB moved is ~0.44 KB.
 
 Tests: `python3 test_vm.py` (also runs under the built MicroPython with `MICROPYPATH=.:emu`).
+
+## Where the time goes (device, 495-byte page, 99 elements)
+* `recall_list` ~111 ms (TI float conversion), `unpack5` 12 ms, `lz_decompress` 12 ms, `lz_compress` 48 ms.
+* So Python overhead is ~10%; the OS list conversion is the floor. Bigger batches only remove the ~4 ms call cost.
+* `ListBackend(comp=, decomp=)` compresses a chunk when that saves >= 30% (stored in the head element).
+  Short text chunks (495 B, independent windows) compress only ~25% on average (10 source pages: 1000 -> 747
+  elements), so it is off by default: it pays for text read far more often than written.
+* Not usable: `ti_image` (`new_image` raises "Unsupported operation" here; `set_pixel/get_pixel` draw on the
+  screen), there is no string store in `ti_system`, complex elements are inexact, 43+ bit reals lose the .5.
+* A 6-byte/element encoding using the decimal exponent (sign + 13-digit mantissa + 16 exponents = 48 bits)
+  is possible on paper (+20%), but decoding needs a threshold search per element and would cost more than it saves.

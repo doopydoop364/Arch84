@@ -130,10 +130,10 @@ class ListBackend:
     # 495 bytes, one list) stores only up to its last non-zero byte: element 0 = HEAD + length.
     # A page is ceil(page/495) chunks; a free page slot is reused. Lists are named
     # <prefix><4 digits>; a list whose head is not ours is never overwritten.
-    HEAD = 8490 * 65536
+    HEAD = 8490 * 4194304           # element 0 = HEAD + mode*2^20 + rawlen*2^10 + stored length
     CH = 495
 
-    def __init__(self, put, get, page=PAGE, prefix="V", maxid=9999):
+    def __init__(self, put, get, page=PAGE, prefix="V", maxid=9999, comp=None, decomp=None):
         from A84ST import pack5, unpack5
         self.p = put
         self.g = get
@@ -143,6 +143,8 @@ class ListBackend:
         self.k = (page + self.CH - 1) // self.CH
         self.prefix = prefix
         self.maxid = maxid
+        self.comp = comp                # comp(bytes) -> bytes, decomp(bytes, rawlen) -> bytes: optional
+        self.decomp = decomp
         self.top = 0
         self.free = []
         self.reads = 0
@@ -173,9 +175,16 @@ class ListBackend:
             n = len(part)
             while n > 0 and part[n - 1] == 0:
                 n -= 1
-            m = (n + 4) // 5 * 5
-            body = bytes(part[:n]) + bytes(m - n)
-            self.p(self.lname(old * self.k + c), [self.HEAD + n + 0.5] + self.pack(body))
+            body = bytes(part[:n])
+            mode = 0
+            if self.comp is not None and n > 100:
+                z = self.comp(body)
+                if len(z) * 10 < n * 7:         # kept only when it saves 30%
+                    body = z
+                    mode = 1
+            m = (len(body) + 4) // 5 * 5
+            head = self.HEAD + mode * 1048576 + n * 1024 + len(body)
+            self.p(self.lname(old * self.k + c), [head + 0.5] + self.pack(body + bytes(m - len(body))))
         self.writes += 1
         return old
 
@@ -187,10 +196,14 @@ class ListBackend:
         o = 0
         for c in range(self.k):
             v = list(self.g(self.lname(loc * self.k + c)))
-            n = int(v[0] - self.HEAD)
-            if n < 0 or n > self.CH:
+            h = int(v[0] - self.HEAD)
+            n = (h >> 10) & 1023
+            z = h & 1023
+            if h < 0 or n > self.CH or z > self.CH:
                 raise ValueError("swap list damaged")
-            body = self.unpack(v[1:])
+            body = self.unpack(v[1:])[:z]
+            if h >> 20:
+                body = self.decomp(body, n)
             take = min(n, len(buf) - o)
             buf[o:o + take] = body[:take]
             o += self.CH
