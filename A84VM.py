@@ -124,35 +124,83 @@ class FileBackend:
 
 
 class ListBackend:
-    # the only store that survives on the calculator: pages packed 5 bytes per list element
-    # (A84ST.pack5). One list per page, named <prefix><n>.
-    def __init__(self, put, get, prefix="V"):
+    # the store that exists on the calculator (measured, OS 7.0): real list elements, 40 bits =
+    # 5 bytes each (exact; 43+ bits and complex elements are not), ~1.6 ms/element to write,
+    # ~1.1 ms/element + 4 ms to read. Cost follows the ELEMENT count, so a chunk (<= 99 elements,
+    # 495 bytes, one list) stores only up to its last non-zero byte: element 0 = HEAD + length.
+    # A page is ceil(page/495) chunks; a free page slot is reused. Lists are named
+    # <prefix><4 digits>; a list whose head is not ours is never overwritten.
+    HEAD = 8490 * 65536
+    CH = 495
+
+    def __init__(self, put, get, page=PAGE, prefix="V", maxid=9999):
         from A84ST import pack5, unpack5
         self.p = put
         self.g = get
         self.pack = pack5
         self.unpack = unpack5
+        self.page = page
+        self.k = (page + self.CH - 1) // self.CH
         self.prefix = prefix
-        self.n = 0
+        self.maxid = maxid
+        self.top = 0
+        self.free = []
         self.reads = 0
         self.writes = 0
 
+    def lname(self, i):
+        return self.prefix + ("0000" + str(i))[-4:]
+
     def put(self, data, old):
+        if old == ZERO:
+            old = -1
+        if not any(data):
+            if old >= 0:
+                self.drop(old)
+            return ZERO
         if old < 0:
-            self.n += 1
-            old = self.n
-        pad = (-len(data)) % 5
-        self.p(self.prefix + str(old), self.pack(bytes(data) + bytes(pad)))
+            if self.free:
+                old = min(self.free)
+                self.free.remove(old)
+            else:
+                if (self.top + 1) * self.k > self.maxid:
+                    raise MemoryError("swap lists full")
+                old = self.top
+                self.top += 1
+        mv = memoryview(data)
+        for c in range(self.k):
+            part = mv[c * self.CH:(c + 1) * self.CH]
+            n = len(part)
+            while n > 0 and part[n - 1] == 0:
+                n -= 1
+            m = (n + 4) // 5 * 5
+            body = bytes(part[:n]) + bytes(m - n)
+            self.p(self.lname(old * self.k + c), [self.HEAD + n + 0.5] + self.pack(body))
         self.writes += 1
         return old
 
     def get(self, loc, buf):
-        v = self.unpack(list(self.g(self.prefix + str(loc))))
-        buf[:] = v[:len(buf)]
+        if loc == ZERO:
+            for i in range(len(buf)):
+                buf[i] = 0
+            return
+        o = 0
+        for c in range(self.k):
+            v = list(self.g(self.lname(loc * self.k + c)))
+            n = int(v[0] - self.HEAD)
+            if n < 0 or n > self.CH:
+                raise ValueError("swap list damaged")
+            body = self.unpack(v[1:])
+            take = min(n, len(buf) - o)
+            buf[o:o + take] = body[:take]
+            o += self.CH
         self.reads += 1
 
     def drop(self, loc):
-        pass
+        if loc != ZERO:
+            self.free.append(loc)
+            for c in range(self.k):      # lists live in RAM: shrink the stale ones to one element
+                self.p(self.lname(loc * self.k + c), [self.HEAD + 0.5])
 
 
 class Pager:

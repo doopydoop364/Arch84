@@ -1,6 +1,6 @@
 import os, random, sys, tempfile
 sys.path.insert(0, ".")
-from A84VM import Pager, MemBackend, FileBackend
+from A84VM import Pager, MemBackend, FileBackend, ListBackend
 
 def run(be, name):
     p = Pager(be, page=256, window=4)
@@ -24,6 +24,19 @@ d = tempfile.mkdtemp(); os.chdir(d)
 fb = FileBackend(open, os.remove, page=256, seg=2048)
 run(fb, "file")
 fb.close()
+store = {}
+def lput(n, els):
+    assert len(els) <= 100
+    store[n] = [float(x) for x in els]
+lb = ListBackend(lput, lambda n: list(store[n]), page=256)
+run(lb, "list256")
+lb = ListBackend(lput, lambda n: list(store[n]), page=1024)
+run2 = Pager(lb, page=1024, window=3)
+ps = [run2.new_page() for _ in range(8)]
+for i, p in enumerate(ps): run2.write(p, 100, bytes([i + 1]) * 700)
+for i, p in enumerate(ps): assert run2.read(p, 100, 700) == bytes([i + 1]) * 700 and run2.read(p, 900, 124) == bytes(124)
+els = sum(len(v) for v in store.values())
+print("list1024 ok; elements held", els, "lists", len(store))
 print("segments left", sorted(os.listdir(".")), "live", fb.live)
 assert sum(os.path.getsize(f) for f in os.listdir(".")) <= 40 * 256
 
