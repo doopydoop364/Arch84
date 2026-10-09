@@ -723,3 +723,22 @@ A84PX imports fine with 40 KB free in a clean heap but not at 47 KB next to the 
 Tried a lighter selftest harness (no spare block in the throwaway kernels, the real shell's block released
 while testing): part 4 still 33/48 with 14 LOWMEM, reverted. Pacman/archive/fsck are verified by hand
 (see above); selftest reports them as LOWMEM on the device.
+
+### RAM experiment 1: boot-only code in a module dropped after boot (A84BT) - no gain, reverted
+Baseline (fresh launch, fresh fs, `free` first): 97952 used / 68960 free. With Kernel.boot/load_fs/
+fix_system_files in A84BT, imported at boot and removed from sys.modules: 100240 used; with a scrub()
+after Kernel(): 98464; deeper scrub: 98368. Never better than the baseline. A module that is LOADED and
+then dropped is not fully released (stale pointers); only code that is never loaded at idle really saves RAM.
+
+### RAM diet results (device, fresh launch, `free` first; used bytes at the prompt)
+baseline 97952 used / 68960 free
+ - rm/rmdir/cp/mv/head/tail -> lazy A84CG ........................ 94240 (-3.7 KB)
+ - compress half of the codec -> lazy A84CY (loaded by sync/df/archive) ... 91248 (-3.0 KB)
+ - list Writer -> lazy A84SW, VFS.rename/copyfile -> A84CG, Node class defaults .. 88768 (-2.5 KB; this run also had
+   one more file node and 4 history lines)
+ total: 88768 used / 77952 free = +9.0 KB free (+13%).
+Not worth doing: boot-only code dropped after boot (A84BT, no gain: a loaded-then-dropped module is not
+fully released), shell extras (the rest of Shell is hot or must stay resident to handle memory errors),
+string dedupe (~800 B of duplicates, mostly the frozen FACTORY1 tables), micropython.const (~28 constants).
+Only code that is never loaded at idle really saves RAM.
+selftest part 4 improved from 33/48 (14 LOWMEM) to 37/48 (10 LOWMEM, 1 FAIL: "archive takes files out").

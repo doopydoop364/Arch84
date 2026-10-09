@@ -2,7 +2,6 @@
 # has a small compile-time memory peak). Registers itself into COMMANDS.
 
 from A84FS import dlen, ms_since, now_ms
-from A84CZ import fs_measure
 from A84ST import DATA_ELEMS, ELEM_BYTES
 from A84CD import COMMANDS, join, pad
 
@@ -65,6 +64,7 @@ def cmd_du(sh, args):
 def cmd_df(sh, args):
     sh.k.release_spare()        # same buffers as a save: use the reserved block
     try:
+        from A84CY import fs_measure
         raw, stored = fs_measure(sh.vfs)
     finally:
         sh.k.hold_spare()

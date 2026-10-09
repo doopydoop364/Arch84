@@ -5,9 +5,11 @@ import unittest
 
 from testutil import *
 import A84CZ
+import A84CY
 import A84KN
 from A84SH import Shell
-from A84CZ import lz_compress, lz_decompress, LZ_HASH
+from A84CZ import lz_decompress
+from A84CY import lz_compress, LZ_HASH
 
 
 def colliding_trigrams():
@@ -339,7 +341,7 @@ class VerifyMemoryTests(unittest.TestCase):
 
     def test_same_tree_detects_every_kind_of_difference(self):
         base = {"/tmp/a": "1", "/tmp/d": None, "/tmp/d/x": "2"}
-        same = A84CZ.same_tree
+        same = A84CY.same_tree
         self.assertTrue(same(self.mk(base), self.mk(base)))
         for other in ({"/tmp/a": "9", "/tmp/d": None, "/tmp/d/x": "2"},       # data
                       {"/tmp/a": "1", "/tmp/d": None},                         # missing
@@ -353,20 +355,20 @@ class VerifyMemoryTests(unittest.TestCase):
         # an empty file and a directory both have data == ""; only is_dir tells them apart
         a = self.mk({"/tmp/x": ""})
         b = self.mk({"/tmp/x": None})
-        self.assertFalse(A84CZ.same_tree(a, b))
-        self.assertFalse(A84CZ.same_tree(b, a))
+        self.assertFalse(A84CY.same_tree(a, b))
+        self.assertFalse(A84CY.same_tree(b, a))
 
     def test_legacy_2k_frame_gives_canonical_big_file_shape(self):
         # older saves used frames of up to 2048 bytes: a 1500-char file then sits in
         # ONE frame and must still come back as pieces (== needs canonical data)
         from A84FS import dnew
         v = self.mk({"/tmp/big": "abcdefghij" * 150})
-        real = A84CZ.CHUNK
-        A84CZ.CHUNK = 2048
+        real = A84CY.CHUNK
+        A84CY.CHUNK = 2048
         try:
             stream = b"".join(fs_stream(v, [0, 0]))
         finally:
-            A84CZ.CHUNK = real
+            A84CY.CHUNK = real
         back = decode_stream([stream])
         self.assertEqual(back.get("/tmp/big").data, dnew("abcdefghij" * 150))
         self.assertIsInstance(back.get("/tmp/big").data, list)

@@ -5,6 +5,7 @@ sys.path.insert(0, ".")
 from A84FS import *
 from A84V1 import decode_fs, encode_fs, esc, sanitize
 from A84CZ import *
+from A84CY import *
 from A84ST import *
 from A84KN import *
 

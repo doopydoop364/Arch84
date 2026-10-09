@@ -2,7 +2,7 @@
 
 from A84FS import (DEFAULT_DIRS, HOME, PROFILE, StorageError, VERSION, VFS,
     VFSError, ms_since, now_ms)
-from A84CZ import decode_stream, fs_stream, same_tree
+from A84CZ import decode_stream
 
 
 # --------------------------------------------------------------- kernel
@@ -26,6 +26,34 @@ def need_bytes(msg):
     if j < 0:
         return ""
     return " (needed " + msg[i + 11:j] + " B)"
+
+
+def codec():
+    # the writing half of the codec (A84CY) is only needed while saving: loaded then, not at boot
+    import sys
+    try:
+        import A84CY
+    except MemoryError:
+        sys.modules.pop("A84CY", None)      # a failed import leaves a half-built module behind
+        raise
+    return A84CY
+
+
+def fs_stream(vfs, stats=None):
+    return codec().fs_stream(vfs, stats)
+
+
+def same_tree(a, b):
+    return codec().same_tree(a, b)
+
+
+def unload_codec():
+    # on the calculator the compressor does not stay resident between saves (desktop Python
+    # keeps it: reloading would only slow the tests)
+    import sys
+    if getattr(sys.implementation, "name", "") == "micropython":
+        sys.modules.pop("A84CY", None)
+        sys.modules.pop("A84SW", None)
 
 
 SPARE = 3072    # contiguous block held back for sync/df (see hold_spare)
@@ -308,6 +336,7 @@ class Kernel:
             return self.sync_run(stats)
         finally:
             self.hold_spare()
+            unload_codec()
 
     def sync_run(self, stats):
         try:

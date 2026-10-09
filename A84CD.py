@@ -1,6 +1,6 @@
 # A84CD: commands (Arch84 module 7/10)
 
-from A84FS import VERSION, VFSError, basename
+from A84FS import VERSION, VFSError
 
 
 def fail(sh, cmd, arg, e):
@@ -156,218 +156,6 @@ def cmd_echo(sh, args):
     sh.out(" ".join(args) + nl)
 
 
-def rm_tree(vfs, path):
-    # iterative: no recursion limit to hit on a deep tree
-    stack = [path]
-    order = []
-    while stack:
-        p = stack.pop()
-        order.append(p)
-        if vfs.isdir(p):
-            for n in vfs.listdir(p):
-                stack.append(p.rstrip("/") + "/" + n)
-    while order:
-        vfs.remove(order.pop())
-
-
-def cmd_rm(sh, args):
-    rec = False
-    force = False
-    files = []
-    opts = True
-    for a in args:
-        if opts and a == "--":
-            opts = False
-        elif opts and len(a) > 1 and a[0] == "-" and a.strip("rRf-") == "" and a.strip("-") != "":
-            for c in a:
-                if c == "r" or c == "R":
-                    rec = True
-                elif c == "f":
-                    force = True
-        else:
-            files.append(a)
-    if not files:
-        if not force:
-            sh.err("rm: missing operand")
-            return 1
-        return 0
-    st = 0
-    for a in files:
-        path = sh.resolve(a)
-        try:
-            if sh.vfs.isdir(path):
-                if not rec:
-                    raise VFSError("Is a directory")
-                if path == "/" or path == sh.cwd or sh.cwd.startswith(path + "/"):
-                    raise VFSError("refusing to remove cwd or /")
-                rm_tree(sh.vfs, path)
-            elif force and not sh.vfs.exists(path):
-                continue
-            else:
-                sh.vfs.remove(path)
-        except VFSError as e:
-            st = fail(sh, "rm", "cannot remove '" + a + "'", e)
-    return st
-
-
-def cmd_rmdir(sh, args):
-    if not need(sh, "rmdir", args):
-        return 1
-    st = 0
-    for a in args:
-        path = sh.resolve(a)
-        try:
-            if not sh.vfs.isdir(path):
-                if sh.vfs.exists(path):
-                    raise VFSError("Not a directory")
-                raise VFSError("No such file or directory")
-            if path == sh.cwd or sh.cwd.startswith(path + "/"):
-                raise VFSError("is the current directory")
-            sh.vfs.remove(path)
-        except VFSError as e:
-            st = fail(sh, "rmdir", "failed to remove '" + a + "'", e)
-    return st
-
-
-def dest_for(sh, src, dst):
-    d = sh.resolve(dst)
-    if sh.vfs.isdir(d):
-        return d.rstrip("/") + "/" + basename(sh.resolve(src))
-    return d
-
-
-def copy_tree(vfs, src, dst):
-    # iterative; files share their (immutable) pieces
-    stack = [(src, dst)]
-    while stack:
-        s, d = stack.pop()
-        if vfs.isdir(s):
-            if not vfs.exists(d):
-                vfs.mkdir(d)
-            elif not vfs.isdir(d):
-                raise VFSError("Not a directory")
-            for n in vfs.listdir(s):
-                stack.append((s.rstrip("/") + "/" + n, d.rstrip("/") + "/" + n))
-        else:
-            vfs.copyfile(s, d)
-
-
-def cmd_cp(sh, args):
-    rec = False
-    rest = []
-    for a in args:
-        if a == "-r" or a == "-R":
-            rec = True
-        else:
-            rest.append(a)
-    args = rest
-    if len(args) < 2:
-        sh.err("cp: missing file operand")
-        return 1
-    srcs = args[:-1]
-    dst = args[-1]
-    if len(srcs) > 1 and not sh.vfs.isdir(sh.resolve(dst)):
-        sh.err("cp: target '" + dst + "' is not a directory")
-        return 1
-    st = 0
-    for s in srcs:
-        try:
-            sp = sh.resolve(s)
-            dp = dest_for(sh, s, dst)
-            if sh.vfs.isdir(sp):
-                if not rec:
-                    raise VFSError("omitting directory")
-                dp = sh.resolve(dp)
-                if dp == sp or dp.startswith(sp.rstrip("/") + "/"):
-                    raise VFSError("cannot copy a directory into itself")
-                copy_tree(sh.vfs, sp, dp)
-            else:
-                sh.vfs.copyfile(sp, dp)   # shares the pieces
-        except VFSError as e:
-            st = fail(sh, "cp", "cannot copy '" + s + "'", e)
-    return st
-
-
-def cmd_mv(sh, args):
-    if len(args) < 2:
-        sh.err("mv: missing file operand")
-        return 1
-    srcs = args[:-1]
-    dst = args[-1]
-    if len(srcs) > 1 and not sh.vfs.isdir(sh.resolve(dst)):
-        sh.err("mv: target '" + dst + "' is not a directory")
-        return 1
-    st = 0
-    for s in srcs:
-        try:
-            sp = sh.resolve(s)
-            if sp == sh.cwd or sh.cwd.startswith(sp + "/"):
-                raise VFSError("is the current directory")
-            sh.vfs.rename(sp, dest_for(sh, s, dst))
-        except VFSError as e:
-            st = fail(sh, "mv", "cannot move '" + s + "'", e)
-    return st
-
-
-def head_tail(sh, name, args):
-    n = 10
-    files = []
-    i = 0
-    while i < len(args):
-        a = args[i]
-        if a == "-n" and i + 1 < len(args):
-            try:
-                n = int(args[i + 1])
-            except ValueError:
-                sh.err(name + ": invalid number of lines: " + args[i + 1])
-                return 1
-            i += 1
-        elif len(a) > 1 and a[0] == "-" and a[1:].strip("0123456789") == "":
-            n = int(a[1:])                  # head -5
-        else:
-            files.append(a)
-        i += 1
-    if not files and sh.stdin is not None:
-        files = ["-"]
-    if not need(sh, name, files):
-        return 1
-    st = 0
-    if n < 0:
-        n = 0
-    for a in files:
-        try:
-            it = sh.lines(a)
-        except VFSError as e:
-            st = fail(sh, name, a, e)
-            continue
-        lines = []
-        if n > 0:
-            for line in it:
-                lines.append(line)
-                if name == "head":
-                    if len(lines) >= n:
-                        break
-                elif len(lines) > 2 * n + 32:
-                    lines = lines[-n:]       # rolling window: tail never holds the file
-        if name == "tail":
-            lines = lines[-n:] if n > 0 else []
-        if len(files) > 1:
-            if a == "-":
-                a = "standard input"
-            sh.out("==> " + a + " <==\n")
-        for line in lines:
-            sh.out(line + "\n")
-    return st
-
-
-def cmd_head(sh, args):
-    return head_tail(sh, "head", args)
-
-
-def cmd_tail(sh, args):
-    return head_tail(sh, "tail", args)
-
-
 def pad(v, w):
     s = str(v)
     return " " * (w - len(s)) + s
@@ -382,8 +170,7 @@ def join(a, b):
 COMMANDS = {
     "help": cmd_help, "clear": cmd_clear, "pwd": cmd_pwd, "ls": cmd_ls,
     "cd": cmd_cd, "mkdir": cmd_mkdir, "touch": cmd_touch, "cat": cmd_cat,
-    "echo": cmd_echo, "rm": cmd_rm, "rmdir": cmd_rmdir, "cp": cmd_cp,
-    "mv": cmd_mv, "head": cmd_head, "tail": cmd_tail,
+    "echo": cmd_echo,
 }
 
 
@@ -396,7 +183,8 @@ MODS = (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname")
         ("A84AX", "archive"), ("A84FK", "fsck"),
         ("A84C7", "uname whoami hostname which keys selftest"),
         ("A84C8", "cut tr nl seq"), ("A84C9", "test [ expr"), ("A84MN", "man"), ("A84CA", "sed rev"),
-        ("A84CB", "printenv setenv unsetenv"))
+        ("A84CB", "printenv setenv unsetenv"),
+        ("A84CG", "rm rmdir cp mv head tail"))
 
 
 class Lazy:
@@ -438,7 +226,7 @@ def all_commands():
 
 
 # library modules the lazy commands import; evicted together with them
-HELPERS = ("A84PM", "A84PS", "A84PQ", "A84PD", "A84PI", "A84PB", "A84PL", "A84AI", "A84AR", "A84AE", "A84ED")
+HELPERS = ("A84CY", "A84SW", "A84PM", "A84PS", "A84PQ", "A84PD", "A84PI", "A84PB", "A84PL", "A84AI", "A84AR", "A84AE", "A84ED")
 
 
 def unload(command, *mods):

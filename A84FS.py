@@ -181,13 +181,18 @@ def iter_lines(d):
 
 
 class Node:
+    # Class-level defaults: an instance only stores what differs, so a file keeps one
+    # attribute and a directory two (every node costs RAM on the calculator).
+    is_dir = False
+    data = ""
+    children = None
+
     def __init__(self, is_dir, data=""):
-        self.is_dir = is_dir
-        self.data = data
         if is_dir:
+            self.is_dir = True
             self.children = {}
-        else:
-            self.children = None
+        if data != "":
+            self.data = data
 
 
 DEFAULT_DIRS = ["/bin", "/boot", "/dev", "/etc", "/home", "/home/evo",
@@ -329,20 +334,8 @@ class VFS:
         return iter_lines(self._file(path).data)
 
     def copyfile(self, src, dst):
-        # pieces are immutable strings, so a copy shares them: a 100 KB file
-        # costs one small list, not another 100 KB
-        d = self._file(src).data
-        if not isinstance(d, str):
-            d = list(d)
-        parent, name = self._parent(dst)
-        node = parent.children.get(name)
-        if node is None:
-            parent.children[name] = Node(False, d)
-        elif node.is_dir:
-            raise VFSError("Is a directory")
-        else:
-            node.data = d
-        self.dirty = True
+        from A84CG import vfs_copyfile      # cold code (cp), lives with its command
+        vfs_copyfile(self, src, dst)
 
     def listdir(self, path):
         node = self.get(path)
@@ -369,29 +362,8 @@ class VFS:
         self.dirty = True
 
     def rename(self, src, dst):
-        if src == "/":
-            raise VFSError("Device or resource busy")
-        if src == dst:
-            return
-        if dst.startswith(src + "/"):
-            raise VFSError("Invalid argument")
-        sparent, sname = self._parent(src)
-        node = sparent.children.get(sname)
-        if node is None:
-            raise VFSError("No such file or directory")
-        dparent, dname = self._parent(dst)
-        old = dparent.children.get(dname)
-        if old is not None:
-            if old.is_dir:
-                if not node.is_dir:
-                    raise VFSError("Is a directory")
-                if old.children:
-                    raise VFSError("Directory not empty")
-            elif node.is_dir:
-                raise VFSError("Not a directory")
-        del sparent.children[sname]
-        dparent.children[dname] = node
-        self.dirty = True
+        from A84CG import vfs_rename        # cold code (mv), lives with its command
+        vfs_rename(self, src, dst)
 
     def reset_default(self):
         self.root = Node(True)

@@ -11,7 +11,8 @@ digest of every encoded stream: it must be identical on both interpreters
 import sys
 sys.path.insert(0, ".")
 from A84FS import VFS, dnew
-from A84CZ import fs_stream, decode_stream, same_tree, lz_compress, lz_decompress
+from A84CZ import decode_stream, lz_decompress
+from A84CY import fs_stream, same_tree, lz_compress
 from A84ST import pack5, unpack5
 
 ALPHA = "abcdefghij klmnop\n\tqrstuvwxyz0123456789é€漢\\\""

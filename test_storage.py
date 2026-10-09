@@ -7,6 +7,7 @@ import unittest
 from testutil import *
 import A84KN
 import A84CZ
+import A84CY
 
 FACTORY1_SHA = "85ddc45390713e9feddddc61289cad98fb1027af681c78832e0e17724ecdb5a0"
 
@@ -129,10 +130,10 @@ class LzTests(unittest.TestCase):
         self.assertLess(len(fr), len(txt))
 
     def test_memory_error_falls_back_to_raw_frame(self):
-        real = A84CZ.lz_compress
+        real = A84CY.lz_compress
         def boom(d):
             raise MemoryError()
-        A84CZ.lz_compress = boom
+        A84CY.lz_compress = boom
         try:
             v = VFS()
             v.reset_default()
@@ -141,7 +142,7 @@ class LzTests(unittest.TestCase):
             self.assertTrue(all(f[0] == 0 for f in frames))
             self.assertTrue(same_tree(decode_stream(frames), v))
         finally:
-            A84CZ.lz_compress = real
+            A84CY.lz_compress = real
 
 
 class CodecTests(unittest.TestCase):

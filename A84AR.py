@@ -17,8 +17,9 @@
 # its lists were written and read back; the files leave RAM in the same sync that saves
 # the catalogue, so a power cut shows either the old state or the new one.
 from A84FS import StorageError, VFSError, dpieces
-from A84CZ import FACTORY1_DIRS, FACTORY1_FILES, Out, put_varint, slices
-from A84ST import Writer
+from A84CZ import FACTORY1_DIRS, FACTORY1_FILES
+from A84CY import Out, put_varint, slices
+from A84SW import Writer
 from A84AI import (ArError, DIR, MAXID, ok_name, read_index, store_for, write_index)
 
 ROOTS = ("home", "usr", "opt", "var", "tmp", "root")

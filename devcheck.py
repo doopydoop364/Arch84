@@ -11,7 +11,7 @@ except ImportError:
 import ti_system as ti
 from A84KN import Kernel
 from A84ST import make_storage
-from A84CZ import fs_measure
+from A84CY import fs_measure
 from A84TX import CHECKS, real_scratch_check
 
 
