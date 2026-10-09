@@ -8,7 +8,8 @@ import unittest
 from A84FS import VFS
 from A84PM import MAGIC, Sum, PkgError
 from A84PS import scan
-from A84CZ import fs_stream, decode_stream
+from A84CY import fs_stream
+from A84CZ import decode_stream
 
 
 class PackageAcceptance(unittest.TestCase):
