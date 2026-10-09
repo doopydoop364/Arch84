@@ -41,4 +41,5 @@ CASES = [
     ('uname -r', ['uname -r'], '0.0.7\n'),
     ('whoami', ['whoami'], 'evo\n'),
     ('hostname', ['hostname'], 'arch84\n'),
+    ('hostname file', ['echo box > /etc/hostname', 'hostname'], 'box\n'),
 ]

@@ -261,7 +261,7 @@ class TiTerm:
                 ed.feed(a)
                 if ed.scroll != 0:
                     self.scroll_by(ed)
-            elif k != 21 and k != 31:
+            elif k != 21 and k != 31 and k != 32:       # (32: the network bridge's keepalive press)
                 ed.hint = "key " + str(k)
         self.mod = ""
         self.up = False

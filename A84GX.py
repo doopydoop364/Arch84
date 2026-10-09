@@ -162,6 +162,23 @@ class GfxTerm(TiTerm):
         for line in self.lines[-(self.rows - 1):]:
             print(strip(line))
 
+    def show_rows(self, rows):
+        # a full-screen text frame (the network request, see A84NT): row 0 is a banner in green,
+        # the others are white text the PC reads from a screenshot. Call end_frame() when done.
+        td = self.td
+        self.reset()
+        self.setc(COL["g"])
+        td.draw_text(0, TEXT_DY, rows[0])
+        self.setc(COL["w"])
+        for i in range(1, len(rows)):
+            td.draw_text(0, i * CH + TEXT_DY, rows[i])
+        self.stale = True
+
+    def end_frame(self):
+        # give the screen back to the terminal: the next paint starts from a clean screen
+        self.stale = True
+        self.prev = []
+
     def palette(self):
         # the colours this terminal can really draw (neofetch shows them as blocks)
         return PALETTE

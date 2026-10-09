@@ -742,3 +742,34 @@ fully released), shell extras (the rest of Shell is hot or must stay resident to
 string dedupe (~800 B of duplicates, mostly the frozen FACTORY1 tables), micropython.const (~28 constants).
 Only code that is never loaded at idle really saves RAM.
 selftest part 4 improved from 33/48 (14 LOWMEM) to 37/48 (10 LOWMEM, 1 FAIL: "archive takes files out").
+
+
+## 2026-10-09: networking through a PC bridge
+
+Goal: wget/curl/ping/ntpdate and pacman -Sy/-S over the internet, through a program on the computer (docs/NETWORK.md).
+
+* First design (rejected after measuring): a mailbox of calculator lists (PC reads/writes them with evo_usb). The list
+  format was decoded (elements come back reversed, 11 bytes each: 00 00, 7 BCD mantissa bytes LE, sign 01/ff, signed
+  exponent), a 495 byte write/read takes 0.16-0.19 s and round-trips exactly. But **any variable transfer over USB, read or
+  write, closes the running Python app** (home screen within 0.5 s, no shutdown) and once ended in a firmware
+  "ERROR: UNEXPECTED". Reading by name needs no directory listing (0.16 s instead of 10 s).
+* What does not interrupt the app: screenshots (0.19 s) and key injection. Key injection is lossless: 300 of 300 random
+  keys in order, both with a blocking get_key(1) loop and with get_key(0) polling and edge detection; 20-70 keys/s
+  (slower while the prompt redraws on each key). Several scancodes in one transfer are ignored.
+* So: calculator -> PC is the SCREEN (rows of characters from a 32-glyph alphabet, matched exactly against templates learned
+  from a screenshot: the font is crisp 7x11 glyphs in 10x18 cells; the first and last screen column draw differently, so
+  frames use columns 1..30) and PC -> calculator is KEYS (32 harmless keys = 5 bits). Frames are A8/type/seq/len/payload/Adler,
+  chunks LZSS-compressed with the same codec the filesystem uses, go-back-N resend driven by a STATUS frame with a round
+  number, resync inside damaged frames.
+* Real hardware results: `ping` 3-5 s; a real HTTPS 404 from doopydoop364.github.io shown in 4 s; a 642 byte page byte-exact in
+  31 s; `pacman -Sy` then `pacman -S cowfortune` (cowsay + fortune as dependencies) installed three packages over the
+  internet in 74 s, including a chunk lost to a dropped key and resent by the bridge. hello, cowsay, fortune, cowfortune
+  and ascii all run on the calculator.
+* A84NT/A84NC/A84PN are lazy modules (no idle RAM); the glyph shapes, the bridge and the repository builder live in tools/.
+  The bridge runs as a systemd user service (tools/install-bridge.sh) and presses key 0x28 (the one key no Arch84 table
+  maps) every 150 s as a keepalive. All USB users share /tmp/arch84-usb.lock (tools/usblock.py, tools/evo, deploy.py, type.py).
+* Never run `ps | grep a84bridge | kill` from a Bash tool call: the shell's own command line matches. Use an anchored
+  `pgrep -f '^python3 tools/a84bridge.py'`.
+* Tried and dropped: pipelining the four Kermit packets of each injected key (several keys' packets written before the
+  answers are read): 27 keys/s at depth 1, 2, 4 and 8 alike. The calculator's per-key handling (about 14-37 ms, more while
+  the prompt redraws) is the limit, not the USB round trips.

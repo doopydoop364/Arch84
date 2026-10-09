@@ -1550,7 +1550,7 @@ class SelfTestTests(unittest.TestCase):
         sh, t = mk()
         out = run(sh, t, "selftest")
         total = real_total()
-        self.assertEqual(total, 193)
+        self.assertEqual(total, 198)
         self.assertIn("selftest: %d/%d passed, 0 lowmem, 0 untested" % (total, total), out)
         self.assertNotIn("FAIL", out)
         self.assertEqual(sh.status, 0)

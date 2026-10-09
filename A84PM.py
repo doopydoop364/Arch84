@@ -15,7 +15,10 @@
 # Installed packages live in /var/lib/pacman/local/<name>/ (desc, files); desc also has
 # "reason dep" when the package was only installed to satisfy a dependency.
 # The repository index is /var/lib/pacman/sync/repo.db (one line per package:
-# name, version, file, depends, desc; rebuilt by pacman -Sy and when stale).
+# name, version, file, depends, desc; rebuilt by pacman -Sy and when stale). Packages that
+# only exist on the mirror have the file "net:<file>"; the mirror's own index is
+# /var/lib/pacman/sync/remote.db ("ARCH84-REPO 1", then name, version, file, size, sum,
+# depends, escaped desc per line, tab separated), see A84PN and docs/NETWORK.md.
 # Changing operations hold /var/lib/pacman/pacman.lock while they run.
 from A84FS import normalize
 
@@ -24,6 +27,9 @@ DBDIR = "/var/lib/pacman/local"
 REPO = "/var/cache/pacman/pkg"
 LOCK = "/var/lib/pacman/pacman.lock"
 SYNCDB = "/var/lib/pacman/sync/repo.db"
+REMOTEDB = "/var/lib/pacman/sync/remote.db"      # the mirror's index, downloaded by pacman -Sy (A84PN)
+MIRRORCONF = "/etc/pacman.d/mirror"               # optional: one line, the mirror's base URL
+MIRROR = "https://doopydoop364.github.io/arch84/pkgs"
 CHUNK = 256
 MAXENTRIES = 300
 MAXFILE = 20000

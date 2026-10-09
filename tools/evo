@@ -1,0 +1,5 @@
+#!/bin/sh
+# evo_usb.py under the shared USB lock (the network bridge polls the same link):
+#   tools/evo --list-files      tools/evo --screenshot out.png      ...
+cd "$(dirname "$0")/.." || exit 1
+exec flock "${ARCH84_USB_LOCK:-/tmp/arch84-usb.lock}" python3 evo_usb.py "$@"

@@ -4,7 +4,7 @@ from A84FS import VFSError, dlen, dpieces, unesc
 from A84PM import (CHUNK, MAGIC, REPO, SYNCDB, PkgError, Sum, esc, dep_ok, ok_dep, ok_name, ok_path,
                    ok_ver, split_dep, vkey)
 from A84PS import scan
-from A84PD import db_names, db_read, mkdirs
+from A84PD import db_names, db_read, mkdirs, remote_rows
 
 
 def build(vfs, src, name, version, desc, depends):
@@ -98,7 +98,7 @@ def repo(vfs):
     for line in vfs.lines(SYNCDB):
         f = line.split("\t")
         if len(f) == 5:
-            if f[2][:4] == "mod:":
+            if f[2][:4] == "mod:" or f[2][:4] == "net:":
                 rows.append((f[0], f[1], f[2], f[3].split(), unesc(f[4])))
             else:
                 if f[2] not in files:
@@ -140,14 +140,22 @@ def sync(vfs):
         bad += fbad
     except ImportError:
         pass
-    if not rows and not frows and not vfs.isfile(SYNCDB):
+    have = {}
+    for r in rows + frows:
+        have[r[0] + "-" + r[1]] = 1
+    nrows = []
+    for n, v, f, size, s, d, ds in remote_rows(vfs):       # packages only the mirror has
+        if n + "-" + v not in have:
+            nrows.append((n, v, "net:" + f, d, ds))
+    if not rows and not frows and not nrows and not vfs.isfile(SYNCDB):
         return rows, bad
     rows += frows
+    rows += nrows
     mkdirs(vfs, SYNCDB[:SYNCDB.rfind("/")], [])
     vfs.write(SYNCDB, "")
     buf = ""
     for n, v, p, d, ds in rows:
-        buf += n + "\t" + v + "\t" + (p if p[:4] == "mod:" else p[len(REPO) + 1:]) + "\t" + " ".join(d) + "\t" + esc(ds) + "\n"
+        buf += n + "\t" + v + "\t" + (p if p[:4] == "mod:" or p[:4] == "net:" else p[len(REPO) + 1:]) + "\t" + " ".join(d) + "\t" + esc(ds) + "\n"
         if len(buf) > 400:
             vfs.append(SYNCDB, buf)
             buf = ""

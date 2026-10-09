@@ -1,0 +1,16 @@
+[Unit]
+Description=Arch84 network bridge for the TI-84 Evo (screen in, key presses out)
+Documentation=file://@REPO@/docs/NETWORK.md
+# the calculator is a USB device: the bridge simply retries until it is plugged in
+
+[Service]
+Type=simple
+WorkingDirectory=@REPO@
+ExecStart=@PYTHON@ @REPO@/tools/a84bridge.py
+Environment=PYTHONUNBUFFERED=1
+Restart=always
+RestartSec=5
+# allow more hosts in ~/.config/arch84/bridge.conf ("allow = host host"), then: systemctl --user restart arch84-bridge
+
+[Install]
+WantedBy=default.target

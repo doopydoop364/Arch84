@@ -13,18 +13,19 @@ PAGES = (
         'cd\tcd [DIR]\tchange directory (default: home)\n'
         'clear\tclear\tclear the screen and the scrollback\n'
         'cp\tcp [-r] SRC... DEST\tcopy files; -r copies directories (files share their text, so copies are cheap)\n'
-        'cut\tcut -d C -f LIST | -c LIST [FILE...]\tprint chosen fields (-f) or characters (-c); LIST is like 1,3-5,7-\n'
+        'curl\tcurl [-s] URL\tprint a web page through the PC bridge\n'
     ),
     (
+        'cut\tcut -d C -f LIST | -c LIST [FILE...]\tprint chosen fields (-f) or characters (-c); LIST is like 1,3-5,7-\n'
         "date\tdate [-s 'YYYY-MM-DD HH:MM[:SS]']\tshow or set the date; the calculator has no clock, so it is kept from the moment you set it\n"
         'df\tdf\traw and stored size of the filesystem and how many lists it uses\n'
         'dirname\tdirname PATH\teverything but the last part of a path\n'
         'du\tdu [-s] [PATH...]\tcharacters used by files; -s only totals\n'
         'echo\techo [-n] [WORD...]\tprint the words; -n omits the newline\n'
         'edit\tedit FILE\tfull-screen editor. CLEAR = command line: w save, q quit, qq quit without saving, wq, N go to line, /text find, n next, d y p cut/copy/paste a line, u undo (again = redo), s/a/b/ and %s/a/b/ replace\n'
-        'env\tenv\tlist the environment variables (system-wide ones come from /etc/environment: USER HOME PATH SHELL HISTSIZE HISTFILE HOSTNAME)\n'
     ),
     (
+        'env\tenv\tlist the environment variables (system-wide ones come from /etc/environment: USER HOME PATH SHELL HISTSIZE HISTFILE HOSTNAME)\n'
         'exit\texit\tsave and leave Arch84\n'
         'export\texport [NAME[=VALUE]...]\tset environment variables (no arguments: list them)\n'
         'expr\texpr A OP B\tinteger arithmetic: + - * / %\n'
@@ -33,10 +34,10 @@ PAGES = (
         'free\tfree\theap memory: total, used, free\n'
         'fsck\tfsck [-r]\tcheck the saved filesystem, archives, packages and system files; -r repairs what is safe\n'
         'grep\tgrep [-ivncrl] PATTERN [FILE...]\tprint lines containing PATTERN (text, not a regex); -i ignore case, -v invert, -n numbers, -c count, -l names only, -r recurse into directories (. by default)\n'
-        'head\thead [-n N] [FILE...]\tfirst N lines (default 10)\n'
-        'help\thelp [COMMAND]\tlist all commands, or show the page of one\n'
     ),
     (
+        'head\thead [-n N] [FILE...]\tfirst N lines (default 10)\n'
+        'help\thelp [COMMAND]\tlist all commands, or show the page of one\n'
         'history\thistory [-c]\tnumbered command history; -c clears it\n'
         'hostname\thostname\tshow the host name (from /etc/hostname)\n'
         'keys\tkeys\thow to type symbols on the calculator keys\n'
@@ -45,12 +46,17 @@ PAGES = (
         'man\tman [COMMAND | -k WORD]\tmanual page of a command; -k lists pages mentioning WORD\n'
         'mkdir\tmkdir [-p] DIR...\tmake directories; -p makes parents too and accepts existing ones\n'
         'mount\tmount\tshow the root filesystem and where it is stored\n'
-        'mv\tmv SRC... DEST\tmove or rename\n'
-        'neofetch\tneofetch\tshow the Arch84 logo and system facts (the login greeting; create ~/.hushlogin to turn that off)\n'
     ),
     (
+        'mv\tmv SRC... DEST\tmove or rename\n'
+        'neofetch\tneofetch\tshow the Arch84 logo and system facts (the login greeting; create ~/.hushlogin to turn that off)\n'
+        'net\tnet\tshow the PC bridge: whether it answers, its version, uptime and the hosts it may fetch from\n'
         'nl\tnl [FILE...]\tnumber lines\n'
-        "pacman\tpacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]\t.ar84 packages. -U file, -S repo (+deps), -Sy sync, -Su upgrade, -Sc drop cached files not installed (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'\n"
+        "ntpdate\tntpdate\tset the clock (date) from the computer's time through the PC bridge\n"
+        "pacman\tpacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]\t.ar84 packages. -U file, -S repo (+deps), -Sy sync (+mirror index, see net), -Su upgrade, -Sc clean the cache (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'\n"
+    ),
+    (
+        'ping\tping [-c COUNT]\ttest the PC bridge and show the round-trip time\n'
         'poweroff\tpoweroff\tsave and leave Arch84\n'
         'printenv\tprintenv [NAME...]\tprint all environment variables, or the values of NAME\n'
         'pwd\tpwd\tprint the current directory\n'
@@ -58,19 +64,19 @@ PAGES = (
         'rev\trev [FILE...]\treverse each line\n'
         'rm\trm [-rf] PATH...\tremove files; -r directories too, -f ignores missing names\n'
         'rmdir\trmdir DIR...\tremove empty directories\n'
+        "sed\tsed [-n] 'COMMAND[;COMMAND...]' [FILE...]\tedit lines of standard input or files. Addresses: N, N,M, N,$, $ (last line), /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands\n"
     ),
     (
-        "sed\tsed [-n] 'COMMAND[;COMMAND...]' [FILE...]\tedit lines of standard input or files. Addresses: N, N,M, N,$, $ (last line), /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands\n"
         'selftest\tselftest\trun the built-in tests in a sandbox (needs free memory; reboot first)\n'
         'seq\tseq [FIRST [STEP]] LAST\tprint numbers (at most 2000)\n'
         'setenv\tsetenv NAME=VALUE...\tset variables system-wide: updates /etc/environment (read at every startup) and this session\n'
         'sort\tsort [-rnu] [FILE...]\tsort lines; -r reverse, -n numeric, -u drop duplicates\n'
         'sync\tsync [-f]\tsave the filesystem now; -f overwrites a save that failed to load\n'
-    ),
-    (
         'tail\ttail [-n N] [FILE...]\tlast N lines (default 10)\n'
         'tee\ttee [-a] FILE...\tcopy standard input to the output and to the files; -a appends\n'
         'test\ttest EXPR   or   [ EXPR ]\tconditions for scripts: -e -f -d PATH, -z -n STRING, A = B, A != B, A -eq|-ne|-lt|-le|-gt|-ge B, ! EXPR. Status 0 = true\n'
+    ),
+    (
         'touch\ttouch FILE...\tcreate empty files\n'
         'tr\ttr SET1 SET2   or   tr -d SET\ttranslate or delete characters read from standard input; sets may use ranges a-z and \\n\n'
         'true\ttrue\tdo nothing, successfully\n'
@@ -78,12 +84,13 @@ PAGES = (
         'unalias\tunalias NAME...\tremove aliases\n'
         'uname\tuname [-a|-s|-n|-r]\tsystem name, host, version\n'
         'uniq\tuniq [-cd] [FILE]\tcollapse repeated neighbouring lines; -c counts, -d only repeated ones\n'
-    ),
-    (
         'unset\tunset NAME...\tremove variables from this session only\n'
         'unsetenv\tunsetenv NAME...\tremove variables from /etc/environment and this session\n'
         'uptime\tuptime\ttime since Arch84 started and the calculator tick counter\n'
         'wc\twc [-lwc] [FILE...]\tlines, words, characters\n'
+    ),
+    (
+        'wget\twget [-q] [-O FILE] URL\tdownload a web page or file through the PC bridge (see net); -O names the file, -q is quiet\n'
         'which\twhich NAME...\twhat a command name refers to (alias, built-in, or a file on PATH)\n'
         'whoami\twhoami\tshow the user name\n'
     ),

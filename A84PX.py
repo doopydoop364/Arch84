@@ -44,6 +44,15 @@ def mod(name):
         raise
 
 
+def drop_net():
+    # the network code is only needed while downloading: free it before the installer loads
+    # (desktop Python keeps it: reloading would only slow the tests)
+    if getattr(sys.implementation, "name", "") == "micropython":
+        sys.modules.pop("A84PN", None)
+        sys.modules.pop("A84NT", None)
+    gc.collect()
+
+
 def take_lock(vfs):
     if vfs.exists(LOCK):
         raise PkgError("unable to lock database (" + LOCK + " exists)\n"
@@ -74,7 +83,7 @@ def search(sh, mods, rest):
             else:
                 sh.out("Name        : " + t + "\nVersion     : " + b[0] + "\nDescription : " + b[3]
                        + "\nDepends On  : " + (" ".join(b[2]) or "None") + "\nRepository  : "
-                       + (b[1].split(":")[1] if b[1][:4] == "mod:" else "local") + "\n")
+                       + (b[1].split(":")[1] if b[1][:4] == "mod:" else ("net" if b[1][:4] == "net:" else "local")) + "\n")
         return st
     w = rest[0].lower()
     for n, v, p, d, ds in rows:
@@ -133,6 +142,13 @@ def change(sh, op, mods, rest):
             files.append(sh.resolve(a))
     else:
         if "y" in mods:
+            n, why = mod("A84PN").refresh(sh)
+            drop_net()
+            if n is None:
+                if why is not None:
+                    sh.err("warning: package index not downloaded: " + why + " (using the local repository)")
+            else:
+                sh.out("downloaded the package index (" + str(n) + " packages)\n")
             rows, bad = sync(vfs)
             sh.out("synchronized " + str(len(rows)) + " packages" + (" (" + str(bad) + " skipped)" if bad else "") + "\n")
         if "u" in mods:
@@ -145,9 +161,18 @@ def change(sh, op, mods, rest):
     if files:
         sh.k.release_spare()                # the reserved block is the one contiguous piece of heap left
     try:
+        # download first, while the network code is loaded, then drop it: the installer needs the room
+        paths = []
         for f in files:
+            if f[:4] == "net:":
+                gc.collect()
+                paths.append(mod("A84PN").fetch(sh, f[4:]))
+            else:
+                paths.append(f)
+        drop_net()
+        for k in range(len(files)):
             gc.collect()
-            meta, old = install(vfs, f, "dep" if f in asdep else None)
+            meta, old = install(vfs, paths[k], "dep" if files[k] in asdep else None)
             show(sh, meta, old)
     finally:
         if files:

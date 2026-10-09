@@ -8,7 +8,7 @@ management on top of a small persistent VFS.
 * `ARCH84.py` launcher; `A84*.py` the system, split into small modules so each one
   compiles within the calculator's tiny Python heap (see `ARCH84_DEVLOG.md`).
 * `test_*.py` desktop tests (`python3 test_arch84.py`, `test_storage.py`,
-  `test_bigfiles.py`, `test_deploy.py`); the `selftest` command runs checks on the device.
+  `test_bigfiles.py`, `test_deploy.py`, `test_net.py`); the `selftest` command runs checks on the device.
 * `deploy.py` sends the modules to the calculator (plus Archive backups, `<name>BAK`).
 
 Deploying needs `evo_usb.py` from https://github.com/Evo-Programming/evo_usb_py placed in this
@@ -36,6 +36,11 @@ folder (it is not part of this repository).
   calculator modules (`K<hex><n>` package parts, `QR<NAME>` index, `R84REG` repository list, rebuilt from the calculator's
   program list with `--send`). `pacman -Sy` reads them (nothing is copied into the VFS), `-S`/`-Su`/`-Ss`/`-Si`/`-Sl` use them
   alongside the local repository; an install imports one package part at a time and frees it.
+* Networking (needs the PC bridge running, see `docs/NETWORK.md`): `wget`, `curl`, `ping`, `net`, `ntpdate`, and
+  `pacman -Sy` / `pacman -S NAME` against the mirror `https://doopydoop364.github.io/arch84/pkgs`. The calculator draws
+  its request on the screen and the bridge types the answer back in key presses (a variable transfer would close the
+  Python app). `tools/install-bridge.sh` installs the bridge as a systemd user service; `tools/mkrepo.py` builds the
+  packages in `repo/src`.
 * `archive create NAME PATH...` packs files/dirs into compressed calculator lists and removes them from RAM
   (frees the Python heap, which is what limits the filesystem; Python cannot reach the flash Archive itself);
   `archive extract [-k] NAME`, `archive list`, `archive check`, `archive delete NAME`. Needs ~25 KB of free

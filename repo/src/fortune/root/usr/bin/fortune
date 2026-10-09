@@ -1,0 +1,2 @@
+test -z "$1" && head -n 1 /usr/share/fortune/quotes
+test -n "$1" && head -n $1 /usr/share/fortune/quotes | tail -n 1

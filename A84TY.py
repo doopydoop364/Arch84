@@ -58,4 +58,9 @@ CASES2 = [
     ("list: archive delete", _ARC + ["archive delete demo", "archive list"], ""),
     ("list: fsck", ["fsck"], "~no problems found"),
     ("list: neofetch", ["neofetch"], "~OS Arch84"),
+    ("net: wget usage", ["wget"], "~usage"),
+    ("net: curl usage", ["curl"], "~usage"),
+    ("net: ping usage", ["ping -c x"], "~usage"),
+    ("net: net usage", ["net x"], "~usage"),
+    ("net: ntpdate usage", ["ntpdate x"], "~usage"),
 ]

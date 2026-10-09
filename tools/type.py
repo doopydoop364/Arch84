@@ -25,16 +25,10 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 import A84UI
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from usblock import usb_lock
 
-# scancode -> get_key code (positional; measured: all 49 keys round-tripped)
-CSC = {0x01: 34, 0x02: 24, 0x03: 26, 0x04: 25, 0x09: 105, 0x0A: 95, 0x0B: 85, 0x0C: 75,
-       0x0D: 65, 0x0E: 55, 0x0F: 45, 0x11: 104, 0x12: 94, 0x13: 84, 0x14: 74, 0x15: 64,
-       0x16: 54, 0x17: 44, 0x19: 103, 0x1A: 93, 0x1B: 83, 0x1C: 73, 0x1D: 63, 0x1E: 53,
-       0x1F: 43, 0x20: 33, 0x21: 102, 0x22: 92, 0x23: 82, 0x24: 72, 0x25: 62, 0x26: 52,
-       0x27: 42, 0x28: 32, 0x2A: 91, 0x2B: 81, 0x2C: 71, 0x2D: 61, 0x2E: 51, 0x2F: 41,
-       0x30: 31, 0x31: 15, 0x32: 14, 0x33: 13, 0x34: 12, 0x35: 11, 0x36: 21, 0x37: 22,
-       0x38: 23}
-GK2CSC = dict((v, k) for k, v in CSC.items())
+from csc import CSC, GK2CSC      # scancode <-> positional get_key code (all 49 keys verified)
 
 K2ND = 21
 KALPHA = 31
@@ -136,7 +130,7 @@ def _transient(err):
     return "BZ" in text or "CALCULATOR_BUSY" in text
 
 
-def inject(codes, delay=0.12, patience=120):
+def _inject(codes, delay=0.12, patience=120):
     """Press the keys in order. A key refused because the calculator is busy
     (BZ / CALCULATOR_BUSY: it was NOT delivered) is retried until `patience`
     seconds have passed; any other transport error stops with the number of
@@ -183,9 +177,16 @@ def inject(codes, delay=0.12, patience=120):
                     pass
 
 
+def inject(codes, delay=0.12, patience=120):
+    # one USB conversation at a time (the network bridge polls the same link)
+    with usb_lock(timeout=max(patience, 60)):
+        _inject(codes, delay, patience)
+
+
 def screen_bytes():
     import evo_usb
-    return evo_usb._get_request(evo_usb._screen_url(0))
+    with usb_lock(timeout=60):
+        return evo_usb._get_request(evo_usb._screen_url(0))
 
 
 def _changed(a, b, limit=500):
@@ -226,7 +227,8 @@ def wait_idle(quiet=4.0, timeout=240, poll=1.5):
 
 def shot(path):
     import evo_usb
-    evo_usb.take_screenshot(path)
+    with usb_lock(timeout=60):
+        evo_usb.take_screenshot(path)
 
 
 def main(argv):

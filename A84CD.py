@@ -185,7 +185,8 @@ MODS = (("A84C2", "true false grep find"), ("A84C3", "sort wc basename dirname")
         ("A84C8", "cut tr nl seq"), ("A84C9", "test [ expr"), ("A84MN", "man"), ("A84CA", "sed rev"),
         ("A84CB", "printenv setenv unsetenv"),
         ("A84CG", "rm rmdir cp mv head tail"),
-        ("A84NF", "neofetch"))
+        ("A84NF", "neofetch"),
+        ("A84NC", "wget curl ping net ntpdate"))
 
 
 class Lazy:
@@ -227,7 +228,7 @@ def all_commands():
 
 
 # library modules the lazy commands import; evicted together with them
-HELPERS = ("A84CY", "A84SW", "A84PM", "A84PS", "A84PQ", "A84PD", "A84PI", "A84PB", "A84PL", "A84AI", "A84AR", "A84AE", "A84ED")
+HELPERS = ("A84CY", "A84SW", "A84PN", "A84NT", "A84PM", "A84PS", "A84PQ", "A84PD", "A84PI", "A84PB", "A84PL", "A84AI", "A84AR", "A84AE", "A84ED")
 
 
 def unload(command, *mods):

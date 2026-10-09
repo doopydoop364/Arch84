@@ -5,6 +5,7 @@ cat	cat [FILE...]	print files, or standard input (- also means standard input)
 cd	cd [DIR]	change directory (default: home)
 clear	clear	clear the screen and the scrollback
 cp	cp [-r] SRC... DEST	copy files; -r copies directories (files share their text, so copies are cheap)
+curl	curl [-s] URL	print a web page through the PC bridge
 cut	cut -d C -f LIST | -c LIST [FILE...]	print chosen fields (-f) or characters (-c); LIST is like 1,3-5,7-
 date	date [-s 'YYYY-MM-DD HH:MM[:SS]']	show or set the date; the calculator has no clock, so it is kept from the moment you set it
 df	df	raw and stored size of the filesystem and how many lists it uses
@@ -33,8 +34,11 @@ mkdir	mkdir [-p] DIR...	make directories; -p makes parents too and accepts exist
 mount	mount	show the root filesystem and where it is stored
 mv	mv SRC... DEST	move or rename
 neofetch	neofetch	show the Arch84 logo and system facts (the login greeting; create ~/.hushlogin to turn that off)
+net	net	show the PC bridge: whether it answers, its version, uptime and the hosts it may fetch from
 nl	nl [FILE...]	number lines
-pacman	pacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]	.ar84 packages. -U file, -S repo (+deps), -Sy sync, -Su upgrade, -Sc drop cached files not installed (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'
+ntpdate	ntpdate	set the clock (date) from the computer's time through the PC bridge
+pacman	pacman -U FILE | -S[yu] [NAME] | -R[s] NAME | -Sc[c] | -Sl|-Ss W|-Si N | -Q[ilkopuedt] [ARG]	.ar84 packages. -U file, -S repo (+deps), -Sy sync (+mirror index, see net), -Su upgrade, -Sc clean the cache (-Scc all), -R remove, -Rs/-Rns also unneeded deps, -Q lists (-Qe explicit -Qd deps -Qt unrequired -Qdt orphans) -Qi/-Ql/-Qk/-Qo/-Qp/-Qu. Quote 'a>=1'
+ping	ping [-c COUNT]	test the PC bridge and show the round-trip time
 poweroff	poweroff	save and leave Arch84
 pwd	pwd	print the current directory
 reboot	reboot	save and restart Arch84
@@ -56,6 +60,7 @@ uniq	uniq [-cd] [FILE]	collapse repeated neighbouring lines; -c counts, -d only 
 unalias	unalias NAME...	remove aliases
 uptime	uptime	time since Arch84 started and the calculator tick counter
 wc	wc [-lwc] [FILE...]	lines, words, characters
+wget	wget [-q] [-O FILE] URL	download a web page or file through the PC bridge (see net); -O names the file, -q is quiet
 which	which NAME...	what a command name refers to (alias, built-in, or a file on PATH)
 whoami	whoami	show the user name
 sed	sed [-n] 'COMMAND[;COMMAND...]' [FILE...]	edit lines of standard input or files. Addresses: N, N,M, N,$, $ (last line), /text/. Commands: s/old/new/[g][p] (plain text, & = the match), d delete, p print; -n prints only what p says. Quote the script: ; also separates shell commands

@@ -1,0 +1,3 @@
+version = 1.0
+desc = A cow with a saying (depends on cowsay and fortune)
+depends = cowsay fortune

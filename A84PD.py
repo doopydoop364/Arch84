@@ -2,13 +2,44 @@
 # /var/lib/pacman/local/<name>/desc  (name, version, desc, depends)
 #                              files (d<TAB>dir | f<TAB>path<TAB>size<TAB>sum)
 from A84FS import VFSError, unesc
-from A84PM import DBDIR, PkgError, esc, split_dep
+from A84FS import unesc
+from A84PM import DBDIR, REMOTEDB, PkgError, esc, ok_dep, ok_name, ok_ver, split_dep
 
 
 def db_names(vfs):
     if not vfs.isdir(DBDIR):
         return []
     return vfs.listdir(DBDIR)
+
+
+def remote_rows(vfs):
+    # [(name, version, file, size, sum, depends list, desc)] of the downloaded mirror index;
+    # lines that do not check out are skipped
+    out = []
+    if not vfs.isfile(REMOTEDB):
+        return out
+    first = True
+    for line in vfs.lines(REMOTEDB):
+        if first:
+            first = False
+            if line != "ARCH84-REPO 1":
+                return out
+            continue
+        f = line.split("\t")
+        if len(f) != 7 or not ok_name(f[0]) or not ok_ver(f[1]) or f[2] != f[0] + "-" + f[1] + ".ar84":
+            continue
+        try:
+            size = int(f[3])
+        except ValueError:
+            continue
+        deps = f[5].split()
+        ok = True
+        for x in deps:
+            if not ok_dep(x):
+                ok = False
+        if ok:
+            out.append((f[0], f[1], f[2], size, f[4], deps, unesc(f[6])))
+    return out
 
 
 def db_read(vfs, name, full=True):
