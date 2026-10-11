@@ -5,6 +5,7 @@ USB protocol calls use the same lock as tools/evo and deploy.py. The default
 `usb` command only reads Linux sysfs and also works with a fixture directory.
 """
 import argparse
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -126,21 +127,32 @@ def directory_summary(entries):
             "total_count": len(entries)}
 
 
-def list_files_with_timeout(evo, timeout_ms=30000):
-    """Allow the Evo's slow directory response more time than the 5 s default."""
+@contextmanager
+def long_read_timeout(evo, timeout_ms=30000):
+    """Use a longer packet-read timeout for slow Evo variable responses.
+
+    Call under the shared USB lock. Always restore the library method.
+    """
     original = getattr(evo, "recv_pkt", None)
     if original is None:  # Simple fake devices in desktop tests.
-        return evo.list_files()
+        yield
+        return
 
     def receive(dev, session=None, timeout=None):
         return original(dev, session=session,
-                        timeout=timeout_ms if timeout is None else timeout)
+                        timeout=max(timeout_ms, timeout or 0))
 
     evo.recv_pkt = receive
     try:
-        return evo.list_files()
+        yield
     finally:
         evo.recv_pkt = original
+
+
+def list_files_with_timeout(evo, timeout_ms=30000):
+    """Allow the Evo's slow directory response more time than the 5 s default."""
+    with long_read_timeout(evo, timeout_ms):
+        return evo.list_files()
 
 
 def device_snapshot(evo, lock):

@@ -16,7 +16,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
-from evo_research import list_files_with_timeout
+from evo_research import list_files_with_timeout, long_read_timeout
 
 
 def export(evo, lock, name, output):
@@ -34,18 +34,8 @@ def export(evo, lock, name, output):
             raise ValueError("list is absent or ambiguous: " + name)
         with tempfile.TemporaryDirectory(dir=output.parent) as td:
             temporary = Path(td) / "variable.evo"
-            original = getattr(evo, "recv_pkt", None)
-            if original is None:
+            with long_read_timeout(evo):
                 evo.get_variable(name, 1, str(temporary))
-            else:
-                def receive(dev, session=None, timeout=None):
-                    return original(dev, session=session,
-                                    timeout=30000 if timeout is None else timeout)
-                evo.recv_pkt = receive
-                try:
-                    evo.get_variable(name, 1, str(temporary))
-                finally:
-                    evo.recv_pkt = original
             data = temporary.read_bytes()
             os.chmod(temporary, 0o600)
             # Link is atomic and fails if another process created output.
