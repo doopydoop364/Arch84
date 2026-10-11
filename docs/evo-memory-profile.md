@@ -199,9 +199,12 @@ completion and lifecycle modules; `A84CE` includes command registrations.
 The staged runner does not create the real graphics terminal, show the login
 greeting, retain the Arch84 launcher, or enter the full shell loop. It cannot
 replace a controlled `free -l` comparison on two deployed builds. The
-existing Arch84 deployment predates the `A84NF` change, so no *device*
-improvement from that change is claimed. Archive backup copies were not
-refreshed.
+staged profile predates the `A84NF` change. A later controlled three-program
+deployment measured an **Observed** 1,872 B first-prompt improvement for
+`A84NF` alone and a further 1,872 B after deferring `A84CP`. See
+[Phase 3 hardware validation](evo-phase3-hardware-validation.md) for the
+separate fresh-session comparison and fragmentation caveats. Archive backup
+copies were not refreshed.
 
 ## Reliability of comparisons
 
@@ -212,5 +215,5 @@ bytes. The editor create/save/cat case also fails on both matched-length
 revisions. These stress cases are not evidence of a new regression here.
 The emulator does not model the Evo's post-boot fragmentation, real list I/O
 timing, display allocation, or firmware memory policy. Repeat controlled
-hardware `free -l` runs after a fresh boot before calling this optimization
-hardware-validated.
+hardware `free -l` runs after a fresh boot before extrapolating these
+improvements to contiguous capacity or other device states.

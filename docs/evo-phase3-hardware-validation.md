@@ -45,46 +45,62 @@ function. This incident demonstrates that an unsuccessful transfer is not
 necessarily non-mutating; the desktop restore tool requires a known SHA-256
 and an unused destination name before any write.
 
-## Controlled comparison after deployment approval
+## Staged physical comparison
 
 The current repository adds two independent idle-heap improvements:
 
 1. Phase 2 unloads `A84NF` after the greeting.
 2. Phase 3 defers importing `A84CP` until the first completion request.
 
-For an on-device comparison, start from the same saved VFS and five packages,
-launch a fresh Python session each time, wait for the greeting, capture
-`free -l`, run `pwd` then `ls`, capture `free -l`, run `pacman -Q`, wait for the
-prompt, capture `free -l`, and check `fsck` from a separate fresh launch.
-Record screenshots and OS counters. Repeat at least three times to quantify
-boot variance. A later Tab press should load `A84CP` and preserve all
-completion behavior; compare `free -l` before and afterward. Measure startup
-and command latency with an on-device monotonic timer if the runtime exposes
-one; host USB timings are insufficient.
+**Observed, 2026-10-11:** The user approved replacing only the installed
+`A84NF`, `A84SH`, and `A84CP` programs. A directory preflight found all three
+and their Archive `*BAK` copies. `deploy.py --archive-modules --no-bak --only`
+transferred `A84NF` first, then `A84SH,A84CP`, with a fresh Python session
+between stages. No backups, launcher, other modules, or saved lists were
+transfer targets. The final directory still contained 187 variables and
+unchanged backup sizes. [Machine-readable results and screenshots](../research/results/evo-phase3-hardware-staged.json)
+record each stage.
 
-### Deployment plan requiring explicit approval
+| Fresh-session point | Installed old build | `A84NF` only | All three, first boot | All three, repeat boot |
+| --- | ---: | ---: | ---: | ---: |
+| First prompt free after GC | 54,960 B | 56,832 B | 58,704 B | 58,976 B |
+| First prompt bounded block | 2,146 B | 2,664 B | 2,177 B | 2,936 B |
+| After `pwd; ls` free | 55,680 B | 57,552 B | — | 59,808 B |
+| After `pacman -Q` free | 53,536 B | 55,264 B | — | 57,808 B |
 
-Only installed programs `A84NF`, `A84SH`, and `A84CP` need replacement for
-this staged comparison. Directory preflight confirms all three exist in
-Archive and `A84NFBAK`, `A84SHBAK`, `A84CPBAK` also exist there. The staged
-plan is: exit Arch84; transfer the new `A84NF` source to Archive with no
-backup refresh; boot and measure Phase 2; exit; transfer `A84SH` and `A84CP`
-source to Archive; boot and measure Phase 3; run `fsck` and focused shell
-checks. Existing `*BAK` variables, `ARCH84`, other modules, and saved `S`/`X`
-lists are not transfer targets. Each transfer replaces an existing program,
-so the user must approve it before execution. Do not use a whole-system
-`deploy.py` for this experiment: its dry run includes 58 modules plus
-`ARCH84`, and two modules (`A84TR`, `A84VM`) lack `*BAK` copies in the
-observed directory.
+The controlled first-prompt stage increments were **+1,872 B** for `A84NF`
+and another **+1,872 B** for lazy completion in the first optimized boot.
+The repeat optimized boot was 272 B higher, giving a **3,744–4,016 B**
+first-prompt improvement over the earlier installed build across these two
+optimized boots. After `pacman -Q`, the no-Tab comparison improved by
+4,272 B. The bounded contiguous block varied by hundreds of bytes and did
+not track free heap closely; no reliable improvement in contiguous capacity
+is established.
+
+On the first optimized boot, `mkd` plus Tab expanded to `mkdir`, and the
+history suggestion continued to display. The next `free -l` showed
+56,736 B, **1,968 B below** the pre-Tab reading, consistent with loading
+`A84CP` plus command/editor allocations. On a fresh optimized boot,
+read-only `fsck` found seven list-backed files, five installed packages,
+zero missing files and no problems. `selftest 2` on a separate fresh boot
+passed **50/50**, 0 lowmem, 0 untested. The calculator was left at the app
+launcher after exiting Python. Archive backups were not refreshed.
+
+One mistyped line from key timing occurred after `pacman -Q` in the
+`A84NF` stage, before its memory reading; the reading was obtained after
+the shell recovered. Startup and command latency were not measured on
+hardware. Five matched-path emulator repetitions of `pwd; ls` had boot
+times before `[536,529,528,528,528]` ms and after
+`[534,527,528,527,528]` ms (median 528 ms both). These emulator timings
+do not measure the Evo CPU or USB typing overhead.
 
 ## Confidence and gaps
 
-The three `free -l` values and verified list restore are **Observed** on the
-physical Evo. Emulator improvements are separate results in
-[the memory profile](evo-memory-profile.md); they are **not** physical-device
-post-change measurements. Firmware RAM counters include resources outside
+All `free -l` table values and the verified list restore are **Observed** on
+the physical Evo. Emulator improvements remain separate results in
+[the memory profile](evo-memory-profile.md). Firmware RAM counters include resources outside
 Python's GC heap, so subtracting them from `gc.mem_free()` does not identify
 a specific firmware allocation. Fragmentation is directly relevant: about
-54 KiB of free GC heap allowed only a roughly 2 KiB bounded block in this
-run. The exact heap-reservation policy and true contiguous maximum remain
+54–59 KiB of free GC heap allowed only roughly 2–3 KiB bounded blocks in
+these runs. The exact heap-reservation policy and true contiguous maximum remain
 **Unknown**.

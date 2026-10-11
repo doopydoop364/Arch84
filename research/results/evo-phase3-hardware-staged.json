@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-11",
+  "device": "TI-84 Evo, OS 7.0.0.3996",
+  "measurement_type": "observed physical Evo screenshots; fresh Python app per stage",
+  "stages": [
+    {
+      "name": "installed pre-Phase-2",
+      "programs_replaced": [],
+      "first_prompt": {"heap_free_after_gc": 54960, "bounded_block": 2146},
+      "after_pwd_ls": {"heap_free_after_gc": 55680, "bounded_block": 1957},
+      "after_pacman_Q": {"heap_free_after_gc": 53536, "bounded_block": 1934},
+      "source": "evo-phase3-hardware-baseline.json"
+    },
+    {
+      "name": "Phase 2 greeting unload",
+      "programs_replaced": ["A84NF"],
+      "first_prompt": {"heap_free_after_gc": 56832, "bounded_block": 2664},
+      "after_pwd_ls": {"heap_free_after_gc": 57552, "bounded_block": 2640},
+      "after_pacman_Q": {"heap_free_after_gc": 55264, "bounded_block": 2482},
+      "screenshots": ["evo-phase3-nf-free.png", "evo-phase3-nf-commands-free.png", "evo-phase3-nf-pacman-free-retry.png"]
+    },
+    {
+      "name": "Phase 3 lazy completion, first boot",
+      "programs_replaced": ["A84NF", "A84SH", "A84CP"],
+      "first_prompt": {"heap_free_after_gc": 58704, "bounded_block": 2177},
+      "after_first_tab": {"heap_free_after_gc": 56736, "bounded_block": 2160},
+      "screenshots": ["evo-phase3-final-free.png", "evo-phase3-final-tab-retry.png", "evo-phase3-final-after-tab-free.png"]
+    },
+    {
+      "name": "Phase 3 lazy completion, repeat boot without Tab",
+      "programs_replaced": ["A84NF", "A84SH", "A84CP"],
+      "first_prompt": {"heap_free_after_gc": 58976, "bounded_block": 2936},
+      "after_pwd_ls": {"heap_free_after_gc": 59808, "bounded_block": 2336},
+      "after_pacman_Q": {"heap_free_after_gc": 57808, "bounded_block": 2370},
+      "screenshots": ["evo-phase3-repeat-free.png", "evo-phase3-repeat-commands-free.png", "evo-phase3-repeat-pacman-free.png"]
+    }
+  ],
+  "checks": {
+    "fsck": "7 list-backed files, 5 installed packages, 0 missing files, no problems",
+    "selftest_2_fresh_boot": "50/50 passed, 0 lowmem, 0 untested",
+    "directory_count_before_after": [187, 187],
+    "backup_sizes_before_after": {"A84NFBAK": 2979, "A84SHBAK": 12343, "A84CPBAK": 4242},
+    "x0002_size_before_after": 1314
+  },
+  "limitations": [
+    "Each stage is a separate Python session; values are controlled by command sequence but affected by boot variation.",
+    "One malformed command from key timing occurred between pacman -Q and the A84NF free reading.",
+    "free -l reports a bounded successful allocation, not the true maximum contiguous allocation.",
+    "The first Phase 3 boot used Tab before other commands and is not the no-Tab command comparison.",
+    "No on-device monotonic timing was collected."
+  ]
+}

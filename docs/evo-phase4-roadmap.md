@@ -4,15 +4,17 @@
 
 | Rank/path | Expected benefit | Usable RAM / storage | Complexity and risk | Evidence / next gate |
 | --- | --- | --- | --- | --- |
-| **1. Python optimization** | Immediate, measurable prompt and command headroom. | Phase 3 deferred completion gives +1,888 B emulator prompt heap and +236 B bounded block; no extra physical RAM. | Low implementation risk, medium device-fragmentation uncertainty. | Repeat the same fresh-boot `free -l` series after approved three-module deployment. Check first Tab import, package query, file cycle, `fsck`, and reboot. |
+| **1. Python optimization** | Immediate, measurable prompt and command headroom. | The approved three-program Evo comparison raised first-prompt free heap by 3,744–4,016 B across two optimized boots; no extra physical RAM. | Low implementation risk, medium device-fragmentation uncertainty. | Repeat with more boots and on-device monotonic timings; profile the next retained import and verify bounded-block behavior. |
 | **2. USB-assisted cold storage** | Local desktop capacity can preserve cold list variables and enable recovery. | Large external capacity, but no added live on-device Python heap or Archive mount. Transfer closes the Python app. | Medium workflow/reliability cost; low firmware risk when name collisions and hashes are checked. | Use the existing read-only export and optional restore tool with trusted manifests; design a transactional manifest before any automatic sync. |
 | **3. Native execution research** | Potentially large performance gain if a supported loader exists. | RAM/storage gain unknown; the interpreter heap cannot be bypassed by assumption. | High complexity and hardware risk. | Identify exact core, privilege map, memory map, loader rules, key trust, and verified recovery. Static OS analysis only until then. |
 
 Python optimization is the best near-term route. The measured 2 KiB emulator
 gain is modest relative to the approximately 55 KiB free full-build device
 heap, but it costs no storage format change and no firmware modification.
-The hardware test is required before claiming an Evo improvement. A supported
-way to enlarge the Python heap remains **Unknown**.
+The [staged hardware test](evo-phase3-hardware-validation.md) confirms an
+Evo free-heap improvement, while its bounded block varied enough that
+contiguous capacity remains uncertain. A supported way to enlarge the
+Python heap remains **Unknown**.
 
 ## Storage candidates
 
