@@ -843,3 +843,44 @@ Order: (1) pager ownership, pinning, failure handling and low-cost metrics; (2) 
 ### Differential correction
 
 The available 32-bit MicroPython binary at `/home/iuselinuxbtw/.claude/jobs/0160a791/tmp/mp/ports/unix/build-standard/micropython` was used for a same-path, same-interpreter check. With the baseline versions of the boot modules (`A84FS`, `A84PE`, `A84CD`) temporarily restored and then restored back, the 103 KB key fuzz **also** failed during `A84GX` import (336-byte allocation); the current modules failed on a 1336-byte allocation. Both versions failed the editor create/save/cat case, with 12/12 editor fuzz runs passing. Thus the earlier label of these two cases as confirmed branch regressions was too strong; the available interpreter/build and narrow heap margin affect both. The current editor big-file run had 26,736 bytes minimum free after GC versus 27,712 for the baseline boot modules. The full gate remains non-green, and the leak-check failure has not been differentially classified.
+
+## 2026-10-11: phase 2 memory and storage research
+
+* Recovered the 32-bit MicroPython executable above and separated the
+  lifecycle profiler into `emu/profile_run.py` so normal emulator tests run
+  the unchanged `emu/run.py`. In the 127,800-byte requested emulator heap,
+  lazy `A84NF` unloading after greeting increased prompt free heap by 1,728
+  bytes and file-cycle minimum free after GC by 1,584 bytes. A manual
+  `neofetch` still reloads. The after-exit free count in the file cycle fell
+  3,712 bytes, so only the prompt/minimum improvement is claimed.
+* On the physical Evo (OS 7.0.0.3996), a newly named read-only `EVOPROF`
+  script measured 153,776 bytes free after GC at standalone start, 80,144
+  after staged base imports, and 68,160 after temporary kernel/shell
+  construction. The 4 KiB bounded allocation succeeded. This is a staged
+  run, not a full Arch84 boot. No list writes or Archive backup refresh.
+* The firmware reported 483,448 bytes free user RAM and 2,187,276 bytes
+  free Archive before the profile transfer. A full 485-byte `X` payload
+  occupied 1,314 directory bytes. The conservative storage model gives an
+  upper bound of 177,995 payload bytes in all then-free user RAM, or 67,415
+  with 300,000 bytes reserved; both ignore heap shrinkage and other overhead.
+  Archive list access from Python remains unverified.
+* The read-only desktop cold-storage proof exported existing `X0002` through
+  documented USB retrieval into a 1,410-byte local container, with SHA-256
+  recorded in `research/results/evo-phase2-export.json`. No restore, deletion
+  or scratch write was attempted. `EVOSCR` provides a collision-checked,
+  explicitly opted-in 16-element list test for a later run.
+* The quick emulator gate passed its 18 desktop files and several fuzz cases,
+  but still failed five constrained/device cases: 103 KB key fuzz, flash
+  repositories, editor create/save/cat, archive extract, and 40-file
+  power-cut. Matched-length baseline checkouts also fail key fuzz and editor;
+  short checkout paths can change those outcomes. Baseline flash/archive/
+  power-cut failures were already recorded above. A new transaction test
+  confirms allocation failure before a replacement write preserves the old
+  file. See `docs/evo-memory-profile.md`, `docs/evo-memory-research.md` and
+  `docs/RELIABILITY.md` for methods and limits.
+* A focused namespace audit found that `A84BM.free_id` identified reusable
+  `X` lists from the magic number alone. It now also checks the embedded list
+  index and a plausible byte count; a regression test preserves a foreign
+  list with a colliding magic. The on-disk format is unchanged. A new
+  `MemoryError` transaction test confirms a failed undo-log allocation does
+  not replace an existing VFS file.

@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from A84FS import VFS, VFSError
 
@@ -38,6 +39,20 @@ class TransactionTests(unittest.TestCase):
         v.write("/home/evo/a", "a")
         tx.commit()
         self.assertEqual(v.read("/home/evo/a"), "a")
+
+    def test_undo_allocation_failure_preserves_existing_file(self):
+        v = VFS()
+        v.reset_default()
+        v.write("/home/evo/keep", "original")
+        v.dirty = False
+        tx = v.begin_transaction()
+        with patch.object(tx, "record", side_effect=MemoryError("injected")):
+            with self.assertRaises(MemoryError):
+                v.write("/home/evo/keep", "replacement")
+        self.assertEqual(v.read("/home/evo/keep"), "original")
+        self.assertFalse(v.dirty)
+        tx.rollback()
+        self.assertEqual(v.read("/home/evo/keep"), "original")
 
 
 if __name__ == "__main__":

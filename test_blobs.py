@@ -222,6 +222,16 @@ class SaveTests(unittest.TestCase):
         self.assertNotIn(0, k2.vfs._file("/home/evo/n").data.ids)
         self.assertEqual(st.get("X0000"), [7.5, 8.5, 9.5])
 
+    def test_magic_only_foreign_list_is_not_overwritten(self):
+        st = self.k.storage
+        foreign = [8486.5, 7.5, 5.5, 1.5]  # magic matches, embedded ID does not
+        st.put("X0000", foreign)
+        k2 = Kernel(ti_store(self.ti))
+        k2.vfs.write("/home/evo/n", "n" * 700)
+        k2.vfs.externalize("/home/evo/n")
+        self.assertNotIn(0, k2.vfs._file("/home/evo/n").data.ids)
+        self.assertEqual(st.get("X0000"), foreign)
+
     def test_full_lists_leave_the_file_in_the_heap(self):
         st = self.k.storage
         real = st.put

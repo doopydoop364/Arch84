@@ -18,7 +18,8 @@ def free_id(st, busy, i):
     while i <= MAXID:
         if i not in busy:
             e = st._recall(lname(i))
-            if e is None or int(e[0]) == MAGIC:
+            if e is None or (len(e) >= 3 and int(e[0]) == MAGIC
+                             and int(e[1]) == i and 0 <= int(e[2]) <= PER):
                 return i
         i += 1
     raise VFSError("No space left on device")
