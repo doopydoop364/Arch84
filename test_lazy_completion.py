@@ -43,6 +43,24 @@ assert sh.complete('mkd')[1] == ['mkdir']
                              capture_output=True, text=True)
         self.assertEqual(run.returncode, 0, run.stderr)
 
+    def test_pressure_eviction_releases_and_reloads_completion(self):
+        source = """import sys
+import A84SH
+from A84CD import evict
+from A84KN import Kernel
+from A84ST import MemStorage
+from A84UI import PlainTerm
+sh = A84SH.Shell(Kernel(MemStorage()), PlainTerm())
+assert sh.complete('mkd')[1] == ['mkdir']
+assert 'A84CP' in sys.modules
+assert evict() >= 1
+assert 'A84CP' not in sys.modules
+assert sh.complete('mkd')[1] == ['mkdir']
+"""
+        run = subprocess.run([sys.executable, "-c", source],
+                             capture_output=True, text=True)
+        self.assertEqual(run.returncode, 0, run.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

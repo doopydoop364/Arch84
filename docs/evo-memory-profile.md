@@ -217,3 +217,20 @@ The emulator does not model the Evo's post-boot fragmentation, real list I/O
 timing, display allocation, or firmware memory policy. Repeat controlled
 hardware `free -l` runs after a fresh boot before extrapolating these
 improvements to contiguous capacity or other device states.
+
+## Phase 4: low-memory completion eviction
+
+`A84CP` became lazy in Phase 3 but was missing from `A84CD.HELPERS`, so
+`evict()` could unload other commands while retaining completion after the
+first Tab. A direct 32-bit MicroPython Unix-port measurement at a requested
+127,800-byte heap imported `A84CD`, then `A84CP`, deleted the local module
+reference, and called `evict()` after GC. Before the change, `evict()`
+reported zero modules removed and free heap stayed at 103,072 B. After
+adding `A84CP` to the helper list, a matched run reported one module
+removed and free heap rose from 103,040 to 104,848 B: **1,808 B recovered**.
+Small 32-byte initial differences reflect the edited source and runtime
+allocation. The completion test confirms it reloads and works after
+eviction. This change does not increase fresh-boot idle heap; it improves
+recovery only when the shell invokes its existing pressure eviction.
+The Evo's fragmented contiguous-block behavior after this change has not
+been measured, and its installed `A84CD` was not replaced.
