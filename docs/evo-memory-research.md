@@ -1,5 +1,14 @@
 # TI-84 Evo memory and storage research
 
+**Phase 3 continuation:** The [physical baseline and deployment plan](evo-phase3-hardware-validation.md),
+[technical hardware reference](evo-hardware-architecture.md), and
+[ranked Phase 4 roadmap](evo-phase4-roadmap.md) supersede the Phase 3
+proposals at the end of this document. They add a same-build full-shell
+baseline, a 1,888 B emulator idle-heap optimization, an offline compressed
+list format proof, an explicit cold-list restore prototype, and static
+inspection of TI's official 7.1 Evo bundle. The current device remained on
+OS 7.0.0.3996; static firmware results are not hardware execution results.
+
 Status: 2026-10-11. This is a reproducible baseline, not a hardware memory map.
 **Verified** means published by the cited vendor or proved by source/tests;
 **Observed** means measured on one calculator or reported by a first-hand

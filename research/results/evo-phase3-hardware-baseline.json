@@ -1,0 +1,33 @@
+{
+  "environment": "Physical TI-84 Evo, OS 7.0.0.3996, installed pre-Phase-2 Arch84 build",
+  "date": "2026-10-11",
+  "measurement_type": "observed screenshots and read-only USB counters",
+  "firmware": {
+    "total_ram_counter": 961536,
+    "free_ram_before": 481256,
+    "free_archive_before": 2187276,
+    "total_flash_counter": 3141632
+  },
+  "arch84": {
+    "heap_total_at_first_prompt": 156736,
+    "heap_free_at_first_prompt_after_gc": 54960,
+    "largest_bounded_block_at_first_prompt": 2146,
+    "heap_free_after_pwd_ls": 55680,
+    "largest_bounded_block_after_pwd_ls": 1957,
+    "heap_free_after_pacman_Q": 53536,
+    "largest_bounded_block_after_pacman_Q": 1934,
+    "fsck_report": "7 list-backed files, 5 packages, 0 missing files, no problems found"
+  },
+  "limitations": [
+    "The bounded free -l probe is a lower bound on contiguous allocation.",
+    "The pacman command and next free reading were separated by one failed shell parse caused by key timing.",
+    "USB key injection time is not calculator command latency.",
+    "No optimized build was deployed in this baseline."
+  ],
+  "screenshots": [
+    "evo-phase3-baseline-free.png",
+    "evo-phase3-baseline-commands.png",
+    "evo-phase3-baseline-pacman.png",
+    "evo-phase3-recovery-fsck.png"
+  ]
+}

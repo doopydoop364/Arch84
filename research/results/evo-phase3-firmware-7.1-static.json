@@ -1,0 +1,253 @@
+{
+  "bytes": 4148077,
+  "file": "/tmp/TI84Evo_Bundle_7.1.0.4421.84b2",
+  "images": [
+    {
+      "body_bytes": 896696,
+      "flags": 0,
+      "header_bytes": 1024,
+      "load_address": 0,
+      "offset": 0,
+      "protected_tlv_bytes": 107,
+      "protected_tlv_types": [
+        "0x50",
+        "0x60"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4413"
+    },
+    {
+      "body_bytes": 2700920,
+      "flags": 0,
+      "header_bytes": 512,
+      "load_address": 0,
+      "offset": 1048576,
+      "protected_tlv_bytes": 81,
+      "protected_tlv_types": [
+        "0x50",
+        "0xa0",
+        "0xb4",
+        "0xb5",
+        "0xb2",
+        "0xb7",
+        "0xb3",
+        "0xb6",
+        "0xb1",
+        "0xb8"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 26380,
+      "flags": 0,
+      "header_bytes": 64,
+      "load_address": 0,
+      "offset": 3778264,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 26244,
+      "flags": 0,
+      "header_bytes": 64,
+      "load_address": 0,
+      "offset": 3805184,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 97548,
+      "flags": 0,
+      "header_bytes": 64,
+      "load_address": 0,
+      "offset": 3831968,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 11304,
+      "flags": 0,
+      "header_bytes": 64,
+      "load_address": 0,
+      "offset": 3930056,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 22020,
+      "flags": 0,
+      "header_bytes": 64,
+      "load_address": 0,
+      "offset": 3941900,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 174956,
+      "flags": 0,
+      "header_bytes": 64,
+      "load_address": 0,
+      "offset": 3964460,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 5504,
+      "flags": 0,
+      "header_bytes": 64,
+      "load_address": 0,
+      "offset": 4139956,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 1008,
+      "flags": 0,
+      "header_bytes": 64,
+      "load_address": 0,
+      "offset": 4146000,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "sha256_matches_tlv": true,
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    }
+  ],
+  "members": [
+    {
+      "bytes": 205,
+      "name": "METADATA"
+    },
+    {
+      "bytes": 4147548,
+      "name": "TI84Evo_Package.84pk2"
+    },
+    {
+      "bytes": 0,
+      "name": "Archive/"
+    }
+  ],
+  "metadata": {
+    "bundle_build_version": "7.1.0.4421",
+    "bundle_comments": "Generated by TI build system",
+    "bundle_format_version": "1",
+    "bundle_identifier": "TI Bundle",
+    "bundle_target_device": "84US",
+    "bundle_target_prodid": "23",
+    "bundle_target_type": "RESTORE"
+  },
+  "notice": "TLV hash matching is an integrity check, not signature or bootloader verification",
+  "package_sha256": "c706d8555e41325fbd6f9c03a9fc87a04c6e1d0875031020d1bbc9b6a08584df",
+  "sha256": "86fe1b026bbea4538511f6b3241b19c77361dfb95259d0105c941a2459953a96",
+  "signature_verified": false
+}
