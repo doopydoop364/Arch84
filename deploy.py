@@ -6,6 +6,7 @@
   python3 deploy.py --bak-only  Archive backups only
   python3 deploy.py --dry-run   show what would be sent
   python3 deploy.py --archive-modules   modules go to the Archive, only the launcher to RAM
+  python3 deploy.py --archive-modules --no-bak --only A84NF   one module only
 
 --archive-modules: the Python heap is sized from the calculator's FREE RAM
 (measured: heap ~ 0.31 x free RAM), so 45 programs in RAM leave an 82 KB heap
@@ -71,6 +72,14 @@ def _main(argv):
     dry = "--dry-run" in argv
     arch_mods = "--archive-modules" in argv
     names = MODULES + [LAUNCHER]
+    if "--only" in argv:
+        i = argv.index("--only")
+        if i + 1 >= len(argv):
+            sys.exit("--only requires a program name")
+        selected = argv[i + 1].split(",")
+        if not selected or len(set(selected)) != len(selected) or any(n not in names for n in selected):
+            sys.exit("--only requires distinct known program names")
+        names = selected
     for n in names:
         if not os.path.isfile(os.path.join(HERE, n + ".py")):
             sys.exit("missing source: " + n + ".py")

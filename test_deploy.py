@@ -84,6 +84,20 @@ class BackupTests(unittest.TestCase):
             self.assertIn(n, p.stdout)
             self.assertIn(deploy.bak_name(n), p.stdout)
 
+    def test_selective_dry_run_lists_only_requested_modules(self):
+        p = subprocess.run([sys.executable, os.path.join(HERE, "deploy.py"),
+                            "--dry-run", "--archive-modules", "--no-bak",
+                            "--only", "A84SH,A84CP"], capture_output=True, text=True, timeout=30)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(p.stdout.splitlines(), ["ARC* A84SH  ->  -", "ARC* A84CP  ->  -"])
+
+    def test_selective_dry_run_rejects_unknown_name(self):
+        p = subprocess.run([sys.executable, os.path.join(HERE, "deploy.py"),
+                            "--dry-run", "--only", "X0002"],
+                           capture_output=True, text=True, timeout=30)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("distinct known program names", p.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
