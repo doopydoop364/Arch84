@@ -1,0 +1,11 @@
+# Transcribed from TI-84 Evo Python shell screenshots on 2026-10-11.
+# EVOSTO was imported from the file manager; main() was called manually.
+EVO_STORAGE runtime=tipython
+EVO_STORAGE ti_system=1
+EVO_STORAGE store_list_api=1
+EVO_STORAGE recall_list_api=1
+EVO_STORAGE open_missing_read=returned_none
+EVO_STORAGE store_string_api=0
+EVO_STORAGE recall_string_api=0
+EVO_STORAGE get_var_api=0
+EVO_STORAGE get_storage_info_api=0

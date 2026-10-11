@@ -1,0 +1,21 @@
+# Transcribed from TI-84 Evo Python shell screenshots on 2026-10-11.
+# EVOMEM was imported from the file manager; main() was called manually.
+EVO_MEM runtime=tipython
+EVO_MEM gc_mem_free_api=1
+EVO_MEM gc_mem_alloc_api=1
+EVO_MEM gc_collect_api=1
+EVO_MEM sys_getsizeof_api=0
+EVO_MEM micropython_mem_info_api=0
+EVO_MEM free_before_gc=151936
+EVO_MEM free_after_gc=152848
+EVO_MEM alloc_after_gc=4640
+EVO_MEM bytearray_256_delta=272,restored=0
+EVO_MEM list_32_delta=176,restored=-128
+EVO_MEM dict_16_delta=784,restored=-96
+EVO_MEM vfs_nodes_8_delta=784,restored=0
+EVO_MEM churn_12x128_delta=1840,restored=-160
+EVO_MEM single_object_lower_bound=8192
+EVO_MEM single_object_probe_cap=8192
+EVO_MEM single_object_cap_reached=1
+EVO_MEM free_final=152032
+EVO_MEM sum=152848/8192/8192
