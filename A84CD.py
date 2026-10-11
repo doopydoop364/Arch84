@@ -212,10 +212,6 @@ class Lazy:
             out.extend(names.split(" "))
         return out
 
-    def values(self):
-        return [m for m, names in MODS]
-
-
 LAZY = Lazy()
 
 
@@ -248,10 +244,16 @@ def evict():
     import sys
     import gc
     gone = 0
-    for n in LAZY.keys():
-        COMMANDS.pop(n, None)
-    for m in list(LAZY.values()) + list(HELPERS):
-        if m != "A84SC" and m in sys.modules:
+    # Do not construct the complete command and module lists while recovering
+    # from MemoryError. Each split is bounded to one module's command names.
+    for m, names in MODS:
+        for n in names.split(" "):
+            COMMANDS.pop(n, None)
+        if m in sys.modules:
+            del sys.modules[m]
+            gone += 1
+    for m in HELPERS:
+        if m in sys.modules:
             del sys.modules[m]
             gone += 1
     gc.collect()

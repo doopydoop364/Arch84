@@ -1,0 +1,483 @@
+{
+  "compression": {
+    "document_NETWORK": {
+      "candidate_elements": 1642,
+      "candidate_lists": 17,
+      "current_elements": 1642,
+      "current_lists": 17,
+      "elements_saved": 0,
+      "format": "offline candidate; no device writes",
+      "input_bytes": 7954,
+      "lists_saved": 0,
+      "platform": "CPython desktop",
+      "runs": [
+        {
+          "decode_ms": 0.62,
+          "decode_peak_bytes": 16688,
+          "encode_ms": 9.845,
+          "encode_peak_bytes": 51436
+        },
+        {
+          "decode_ms": 0.612,
+          "decode_peak_bytes": 16688,
+          "encode_ms": 9.882,
+          "encode_peak_bytes": 53812
+        },
+        {
+          "decode_ms": 0.627,
+          "decode_peak_bytes": 16688,
+          "encode_ms": 9.776,
+          "encode_peak_bytes": 51460
+        }
+      ]
+    },
+    "package_fortune": {
+      "candidate_elements": 99,
+      "candidate_lists": 1,
+      "current_elements": 126,
+      "current_lists": 2,
+      "elements_saved": 27,
+      "format": "offline candidate; no device writes",
+      "input_bytes": 597,
+      "lists_saved": 1,
+      "platform": "CPython desktop",
+      "runs": [
+        {
+          "decode_ms": 0.17,
+          "decode_peak_bytes": 2926,
+          "encode_ms": 0.482,
+          "encode_peak_bytes": 3867
+        },
+        {
+          "decode_ms": 0.17,
+          "decode_peak_bytes": 2926,
+          "encode_ms": 0.806,
+          "encode_peak_bytes": 5164
+        },
+        {
+          "decode_ms": 0.165,
+          "decode_peak_bytes": 2926,
+          "encode_ms": 0.729,
+          "encode_peak_bytes": 3931
+        }
+      ]
+    },
+    "random_4k": {
+      "candidate_elements": 847,
+      "candidate_lists": 9,
+      "current_elements": 847,
+      "current_lists": 9,
+      "elements_saved": 0,
+      "format": "offline candidate; no device writes",
+      "input_bytes": 4096,
+      "lists_saved": 0,
+      "platform": "CPython desktop",
+      "runs": [
+        {
+          "decode_ms": 0.421,
+          "decode_peak_bytes": 9301,
+          "encode_ms": 7.076,
+          "encode_peak_bytes": 26363
+        },
+        {
+          "decode_ms": 0.416,
+          "decode_peak_bytes": 9301,
+          "encode_ms": 7.065,
+          "encode_peak_bytes": 28739
+        },
+        {
+          "decode_ms": 0.414,
+          "decode_peak_bytes": 9301,
+          "encode_ms": 7.06,
+          "encode_peak_bytes": 26387
+        }
+      ]
+    },
+    "repetitive_4k": {
+      "candidate_elements": 158,
+      "candidate_lists": 6,
+      "current_elements": 859,
+      "current_lists": 9,
+      "elements_saved": 701,
+      "format": "offline candidate; no device writes",
+      "input_bytes": 4160,
+      "lists_saved": 3,
+      "platform": "CPython desktop",
+      "runs": [
+        {
+          "decode_ms": 1.061,
+          "decode_peak_bytes": 9530,
+          "encode_ms": 3.064,
+          "encode_peak_bytes": 7589
+        },
+        {
+          "decode_ms": 0.958,
+          "decode_peak_bytes": 9490,
+          "encode_ms": 3.042,
+          "encode_peak_bytes": 7949
+        },
+        {
+          "decode_ms": 0.962,
+          "decode_peak_bytes": 9490,
+          "encode_ms": 2.988,
+          "encode_peak_bytes": 5597
+        }
+      ]
+    },
+    "small_text": {
+      "candidate_elements": 6,
+      "candidate_lists": 1,
+      "current_elements": 6,
+      "current_lists": 1,
+      "elements_saved": 0,
+      "format": "offline candidate; no device writes",
+      "input_bytes": 13,
+      "lists_saved": 0,
+      "platform": "CPython desktop",
+      "runs": [
+        {
+          "decode_ms": 0.028,
+          "decode_peak_bytes": 528,
+          "encode_ms": 0.06,
+          "encode_peak_bytes": 378
+        },
+        {
+          "decode_ms": 0.018,
+          "decode_peak_bytes": 528,
+          "encode_ms": 0.038,
+          "encode_peak_bytes": 402
+        },
+        {
+          "decode_ms": 0.013,
+          "decode_peak_bytes": 528,
+          "encode_ms": 0.026,
+          "encode_peak_bytes": 378
+        }
+      ]
+    },
+    "source_A84FS": {
+      "candidate_elements": 2201,
+      "candidate_lists": 24,
+      "current_elements": 3035,
+      "current_lists": 31,
+      "elements_saved": 834,
+      "format": "offline candidate; no device writes",
+      "input_bytes": 14707,
+      "lists_saved": 7,
+      "platform": "CPython desktop",
+      "runs": [
+        {
+          "decode_ms": 3.375,
+          "decode_peak_bytes": 31818,
+          "encode_ms": 17.055,
+          "encode_peak_bytes": 69923
+        },
+        {
+          "decode_ms": 3.342,
+          "decode_peak_bytes": 31818,
+          "encode_ms": 17.0,
+          "encode_peak_bytes": 72717
+        },
+        {
+          "decode_ms": 3.37,
+          "decode_peak_bytes": 31818,
+          "encode_ms": 17.269,
+          "encode_peak_bytes": 69947
+        }
+      ]
+    },
+    "source_A84SH": {
+      "candidate_elements": 1643,
+      "candidate_lists": 18,
+      "current_elements": 2627,
+      "current_lists": 27,
+      "elements_saved": 984,
+      "format": "offline candidate; no device writes",
+      "input_bytes": 12729,
+      "lists_saved": 9,
+      "platform": "CPython desktop",
+      "runs": [
+        {
+          "decode_ms": 2.731,
+          "decode_peak_bytes": 26565,
+          "encode_ms": 10.915,
+          "encode_peak_bytes": 52890
+        },
+        {
+          "decode_ms": 2.711,
+          "decode_peak_bytes": 26565,
+          "encode_ms": 10.603,
+          "encode_peak_bytes": 55266
+        },
+        {
+          "decode_ms": 2.712,
+          "decode_peak_bytes": 26565,
+          "encode_ms": 10.46,
+          "encode_peak_bytes": 52914
+        }
+      ]
+    }
+  },
+  "emulator": {
+    "environment": "32-bit MicroPython unix emulator; not Evo hardware",
+    "requested_heap": 127800,
+    "result": {
+      "boot_free": 39552,
+      "boot_ms": 528,
+      "end_free": 47552,
+      "error": null,
+      "free_loaded": 55904,
+      "free_start": 114272,
+      "heap_total": 124864,
+      "min_free_gc": 36928,
+      "min_free_nogc": 29840,
+      "profile": [
+        [
+          "interpreter",
+          114032,
+          10832,
+          0,
+          0,
+          2
+        ],
+        [
+          "kernel_before",
+          44304,
+          80560,
+          0,
+          0,
+          14
+        ],
+        [
+          "fs_before",
+          42464,
+          82400,
+          0,
+          0,
+          14
+        ],
+        [
+          "fs_after",
+          42432,
+          82432,
+          0,
+          0,
+          14
+        ],
+        [
+          "system_files_before",
+          40784,
+          84080,
+          0,
+          0,
+          14
+        ],
+        [
+          "system_files_after",
+          40736,
+          84128,
+          0,
+          0,
+          14
+        ],
+        [
+          "kernel_after",
+          40272,
+          84592,
+          0,
+          0,
+          14
+        ],
+        [
+          "shell_before",
+          41792,
+          83072,
+          0,
+          0,
+          14
+        ],
+        [
+          "shell_after",
+          41584,
+          83280,
+          0,
+          0,
+          14
+        ],
+        [
+          "shell_run_before",
+          41536,
+          83328,
+          0,
+          0,
+          14
+        ],
+        [
+          "command_before:alias ll='ls -a'",
+          40880,
+          83984,
+          0,
+          0,
+          14
+        ],
+        [
+          "command_after:alias ll='ls -a'",
+          40720,
+          84144,
+          5051,
+          5090,
+          14
+        ],
+        [
+          "greeting_before",
+          41040,
+          83824,
+          0,
+          0,
+          14
+        ],
+        [
+          "greeting_after",
+          40272,
+          84592,
+          4995,
+          5034,
+          14
+        ],
+        [
+          "command_before:pwd",
+          39344,
+          85520,
+          0,
+          0,
+          14
+        ],
+        [
+          "command_after:pwd",
+          39264,
+          85600,
+          4870,
+          4908,
+          14
+        ],
+        [
+          "command_before:ls",
+          39216,
+          85648,
+          0,
+          0,
+          14
+        ],
+        [
+          "command_after:ls",
+          39072,
+          85792,
+          4846,
+          4884,
+          14
+        ],
+        [
+          "command_before:echo hi > /tmp/phase4",
+          38880,
+          85984,
+          0,
+          0,
+          14
+        ],
+        [
+          "command_after:echo hi > /tmp/phase4",
+          38640,
+          86224,
+          4793,
+          4830,
+          14
+        ],
+        [
+          "command_before:cat /tmp/phase4",
+          38480,
+          86384,
+          0,
+          0,
+          14
+        ],
+        [
+          "command_after:cat /tmp/phase4",
+          38400,
+          86464,
+          4763,
+          4800,
+          14
+        ],
+        [
+          "command_before:pacman -Q",
+          38512,
+          86352,
+          0,
+          0,
+          14
+        ],
+        [
+          "command_after:pacman -Q",
+          37328,
+          87536,
+          4630,
+          4666,
+          14
+        ],
+        [
+          "command_before:fsck",
+          37456,
+          87408,
+          0,
+          0,
+          14
+        ],
+        [
+          "command_after:fsck",
+          36736,
+          88128,
+          4557,
+          4592,
+          14
+        ],
+        [
+          "command_before:exit",
+          36944,
+          87920,
+          0,
+          0,
+          14
+        ],
+        [
+          "command_after:exit",
+          33232,
+          91632,
+          4122,
+          4154,
+          14
+        ]
+      ],
+      "rc": 0,
+      "recalls": 1,
+      "stores": 2,
+      "total_ms": 576
+    }
+  },
+  "hardware_measurements": false,
+  "host": "Linux-7.2.9-2-cachyos-x86_64-with-glibc2.44",
+  "interpreter": "3.14.7",
+  "not_measured": [
+    "Evo CPU timing",
+    "Evo fragmented contiguous heap",
+    "physical list-write latency",
+    "package-install peak heap"
+  ],
+  "revision": "b6b22e290df12d330bf37e05ea0bab12bacce8d7",
+  "schema": 1,
+  "source_sha256": {
+    "A84CD.py": "57fb9b8fa043747a6a425d1ae45ca86752d161e22c9b9ba20cf123f7efcf7932",
+    "A84CP.py": "ae85b093dd1a71edb1b366108eb99d16091a5975a046cd2e32c3a89999a4ba4b",
+    "A84SH.py": "ea07646d9c37c640c45342f82401d8719cde0a11525e1378c53fb5d563f2c944",
+    "tools/evo_storage_codec.py": "d9e3d4a0ad387399341787cfc3123c11c05636b2a9bb03fa74781de86b7c374a"
+  }
+}

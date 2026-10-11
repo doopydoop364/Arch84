@@ -61,6 +61,21 @@ assert sh.complete('mkd')[1] == ['mkdir']
                              capture_output=True, text=True)
         self.assertEqual(run.returncode, 0, run.stderr)
 
+    def test_pressure_evict_needs_no_full_lazy_views(self):
+        source = """import sys
+import A84CD
+import A84CP
+def no_space():
+    raise MemoryError('cannot allocate full lazy view')
+A84CD.LAZY.keys = no_space
+A84CD.LAZY.values = no_space
+assert A84CD.evict() >= 1
+assert 'A84CP' not in sys.modules
+"""
+        run = subprocess.run([sys.executable, "-c", source],
+                             capture_output=True, text=True)
+        self.assertEqual(run.returncode, 0, run.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

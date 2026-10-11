@@ -59,7 +59,7 @@ def make_report(with_emulator=False, heap=127800):
 
 
 def markdown(report):
-    lines = ["# Evo phase 4 desktop benchmark", "",
+    lines = ["# Evo desktop benchmark", "",
              "Revision: `" + report["revision"] + "`. All compression numbers are CPython host results.", "",
              "| Corpus | Bytes | Current lists | Candidate lists | Saved | Elements saved |",
              "| --- | ---: | ---: | ---: | ---: | ---: |"]

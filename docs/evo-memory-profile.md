@@ -1,5 +1,24 @@
 # Evo memory profile, phase 2
 
+## Phase 5 low-memory eviction (desktop only)
+
+`A84CD.evict()` previously allocated a full lazy-command name list, a
+module list, a helper list, and a concatenated list while responding to a
+`MemoryError`. It now removes commands one module at a time, deletes the
+corresponding loaded module, then scans the existing helper tuple. The
+unused `LAZY.values()` method was removed. A focused regression test makes
+the old full-list accessors raise `MemoryError` and confirms eviction still
+releases and reloads completion.
+
+A matched CPython `tracemalloc` run of 20 eviction calls, injecting one
+loaded `A84CP` entry each time, had a median temporary peak of 2,969 B
+before and 567 B after (2,402 B less). This is a host trace, not an Evo
+allocator measurement. The [Phase 4 emulator benchmark](../research/results/evo-phase4-benchmark.json)
+and [Phase 5 run](../research/results/evo-phase5-benchmark.json) both
+reported 39,552 B boot free; minimum free after GC was 36,848 B and
+36,928 B respectively (+80 B), with 528 ms boot in both. The installed
+Evo `A84CD` was not replaced, so no hardware heap improvement is claimed.
+
 ## Phase 3 update (2026-10-11)
 
 The connected Evo's [full-build baseline](evo-phase3-hardware-validation.md)
