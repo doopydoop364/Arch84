@@ -1,5 +1,51 @@
 # Evo memory profile, phase 2
 
+## Phase 3 update (2026-10-11)
+
+The connected Evo's [full-build baseline](evo-phase3-hardware-validation.md)
+on the installed, pre-Phase-2 modules was 54,960 B free GC heap and a
+2,146 B bounded block at the first prompt. After `pwd; ls`, it was 55,680 B
+and 1,957 B. After `pacman -Q`, it was 53,536 B and 1,934 B. These are
+**Observed** physical readings. No optimized modules were deployed for this
+baseline. The staged `EVOPROF` runner again showed 80,208 B after imports
+and 68,224 B after temporary kernel/shell construction in a separate session.
+
+`A84SH` previously imported `A84CP` at shell import time, retaining its
+completion parser and argument-kind table before any Tab press. Phase 3 now
+imports it on first completion. A direct emulator import probe charged
+about 6.5 KiB to `A84CP` with the other base modules preloaded at a 160 KiB
+requested heap; that is an inclusive import increment, not guaranteed idle
+heap savings. The controlled whole-shell benchmark at a 127,800 B requested
+heap provides the relevant retained result:
+
+| 32-bit MicroPython emulator metric | Before | Deferred completion | Change |
+| --- | ---: | ---: | ---: |
+| Prompt free heap after GC | 37,536 B | 39,424 B | +1,888 B |
+| File-cycle minimum free after GC | 32,528 B | 34,432 B | +1,904 B |
+| Prompt bounded block lower bound | 4,741 B | 4,977 B | +236 B |
+
+The matched [before](../research/results/emu-phase3-before.json) and
+[after](../research/results/emu-phase3-lazy-completion.json) JSON include
+the full import and command profile. A 159,000 B requested emulator heap
+showed +1,904 B boot free and +1,872 B package-scenario minimum after GC.
+In an emulator key test, typing `mkd` then Tab completed to `mkdir` and
+executed without an error or crash. This verifies the deferred import path
+in the emulator, not on the Evo. The first Tab may now pause while `A84CP`
+compiles, and later Tabs keep the module loaded. Device compile latency,
+post-Tab heap and fragmented-heap behavior are still unmeasured.
+At a 103 KiB requested emulator heap, a deferred Tab import could fail and
+originally triggered terminal fallback. `Shell.complete` now catches that
+allocation/import failure, removes a partial module entry, and leaves the
+input line intact with no completion candidates. Four constrained key-fuzz
+seeds passed after this fix; the prior branch had failed them during boot.
+
+The final [quick emulator gate](../research/results/emu-phase3-quick-gate.txt)
+passed all 18 desktop test files, differential fuzz, normal and 103 KiB
+key fuzz, command fuzz, and the editor scenario. It still failed three
+constrained scenarios: flash repositories, archive extract, and 40-file
+power-cut. Phase 2 recorded these same three as baseline failures. The gate
+is **not green**; passing desktop tests does not establish device reliability.
+
 ## What the counters mean
 
 **Observed on the Evo (phase 1):** the firmware reported 961,536 bytes of

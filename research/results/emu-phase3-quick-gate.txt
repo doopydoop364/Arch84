@@ -1,0 +1,48 @@
+test_arch84                        ok
+test_storage                       ok
+test_campaign                      ok
+test_pipes                         ok
+test_editor                        ok
+test_pacman                        ok
+test_archive                       ok
+test_proc                          ok
+test_environ                       ok
+test_flashrepo                     ok
+test_cmds                          ok
+test_manpages                      ok
+test_launcher                      ok
+test_gfx                           ok
+test_type                          ok
+test_neofetch                      ok
+test_net                           ok
+test_blobs                         ok
+fuzz_shell CPython==MicroPython x15 ok
+fuzz_pkg CPython==MicroPython      ok
+fuzz_archive CPython==MicroPython  ok
+codec_fuzz identical streams       ok
+keyfuzz                            ok
+keyfuzz low memory (103 KB heap)   ok
+cmdfuzz                            ok
+flash repositories on device       FAIL
+t found: app\n[evo@arch84 ~]$ free\n       total    used    free\nMem:  124864   89888   34976\n[evo@arch84 ~]$ exit\n[  OK  ] Saved command history\n[  OK  ] Synced filesystem\n[  OK  ] Reached target Shutdown\n'
+pacman -Q              FAIL  used/free ('89952', '34912')
+    "/_-''    ''-_\\ Pkgs 0 Up 0s\n               ##############\n[evo@arch84 ~]$ pacman -Q\n[evo@arch84 ~]$ free\n       total    used    free\nMem:  124864   89952   34912\n[evo@arch84 ~]$ exit\n[  OK  ] Saved command history\n[  OK  ] Synced filesystem\n[  OK  ] Reached target Shutdown\n"
+flash repositories on device: FAIL
+
+editor on emulated device          ok
+archive on emulated device         FAIL
+heap in use with 4 files of ~1.4 KB: 100960 B; after `archive create`: 101952 B -> freed -992 B
+fresh boot, extract: ['[evo@arch84 ~]$ wc f0', 'wc: f0: No such file or director']
+after extract: ['no problems found']
+archive on device: FAIL
+
+powercut (40 files)                FAIL
+')
+k=8 cut=True -> MIXED/OTHER ['FAILED', 'out of memory'] (' ~', '   754 /home/evo', ' ~', '  OK  ', 'FAILED', 'thing was changed)')
+k=9 cut=True -> NEW ['FAILED', 'out of memory'] (' ~', '   744 /home/evo', ' ~', '  OK  ', 'FAILED', 'thing was changed)')
+k=10 cut=True -> NEW ['FAILED', 'out of memory'] (' ~', '   744 /home/evo', ' ~', '  OK  ', 'FAILED', 'thing was changed)')
+k=11 cut=False -> NEW ['FAILED', 'out of memory'] (' ~', '   744 /home/evo', ' ~', '  OK  ', 'FAILED', 'thing was changed)')
+no cut at k=11 (sync needs 11 stores); final state NEW
+powercut: 11 cut points tested, 12 bad
+
+FAILED: flash repositories on device, archive on emulated device, powercut (40 files)

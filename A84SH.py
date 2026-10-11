@@ -4,14 +4,26 @@ from A84FS import ERR, HOME, VFSError, dappend, dlen, iter_lines, normalize
 from A84PE import LineEditor, ParseError, parse, split_commands
 from A84UI import PlainTerm
 from A84CD import COMMANDS, LAZY, evict, load_command
-from A84CP import Completer
 from A84SD import Lifecycle
 import A84CE    # registers its commands into COMMANDS
 
 
 # ----------------------------------------------------- shell + commands
 
-class Shell(Completer, Lifecycle):
+class Shell(Lifecycle):
+    def complete(self, text):
+        # Completion is only needed when Tab is pressed. Keep its parser and
+        # argument table out of the idle shell heap until then.
+        try:
+            from A84CP import Completer
+            return Completer.complete(self, text)
+        except (ImportError, MemoryError):
+            # A fragmented device heap can fail a lazy compile. Tab must not
+            # turn that into a terminal failure or lose the input line.
+            import sys
+            sys.modules.pop("A84CP", None)
+            return len(text), []
+
     def __init__(self, kernel, term):
         self.k = kernel
         if kernel.log is None:

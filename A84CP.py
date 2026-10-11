@@ -60,23 +60,23 @@ class Completer:
             prev = words[-1]
         cands = []
         if len(words) == 0 and prev == "":
-            cands = self.match_names(self.command_names(), word)
+            cands = Completer.match_names(self, Completer.command_names(self), word)
         elif word[:1] == "$":
-            cands = ["$" + n for n in self.match_names(list(self.k.env.keys()), word[1:])]
+            cands = ["$" + n for n in Completer.match_names(self, list(self.k.env.keys()), word[1:])]
         else:
             kind = ARGKIND.get(words[0], "")
             if prev == ">" or prev == ">>" or prev == "<":
                 kind = "p"
             if kind == "d" or kind == "p":
-                cands = self.path_cands(word, kind == "d")
+                cands = Completer.path_cands(self, word, kind == "d")
             elif kind == "c":
-                cands = self.match_names(self.command_names(), word)
+                cands = Completer.match_names(self, Completer.command_names(self), word)
             elif kind == "v":
-                cands = self.match_names(list(self.k.env.keys()), word)
+                cands = Completer.match_names(self, list(self.k.env.keys()), word)
             elif kind == "a":
-                cands = self.match_names(list(self.k.aliases.keys()), word)
+                cands = Completer.match_names(self, list(self.k.aliases.keys()), word)
             elif kind == "o":
-                cands = self.match_names(["-a", "-n", "-r", "-s"], word)
+                cands = Completer.match_names(self, ["-a", "-n", "-r", "-s"], word)
         out = []
         for c in cands:
             if quote == "":
