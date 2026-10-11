@@ -382,3 +382,15 @@ is **Unknown**, so the risk is high.
 5. **Research only:** inspect a publicly distributed, authenticated Evo OS
    bundle statically; seek independent evidence for RAM, privilege, signing
    and supported execution formats before considering invasive work.
+
+### Phase 5 update (2026-10-11)
+
+The older Phase 3 priorities above are historical. The [Phase 5 scratch
+experiment](evo-phase5-experiments.md) created, verified and removed one
+eight-element RAM list and one eight-element Archive list. USB could read
+both. **Observed:** `ti_system.recall_list` on the archived list caused the
+firmware `ARCHIVED` error and stopped Python until the variable was
+unarchived. Archive capacity is therefore not directly usable as an
+in-process Arch84 file store through that call on OS 7.0.0.3996. A
+USB-assisted RAM staging workflow remains untested. These experiments did
+not establish maximum capacity or a way to enlarge the Python heap.

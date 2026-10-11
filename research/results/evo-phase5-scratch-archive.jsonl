@@ -1,0 +1,5 @@
+{"directory_count": 187, "dynamic": {"archive": 2186436, "language": 1, "ptt": false, "ram": 481584}, "event": "intent", "location": "archive", "name": "Z84A", "risk_level": 2, "time": 1791743881.3157456, "type": 1, "values": "{840501,840502,840503,840504,840505,840506,840507,840508}"}
+{"event": "send_accepted", "time": 1791743881.4997873}
+{"bytes": 176, "directory_count": 188, "dynamic": {"archive": 2186296, "language": 1, "ptt": false, "ram": 481520}, "event": "verified", "sha256": "b006ba2e6ae8d7e56b68ac187fd7f5193b73ae94d3b778ef186250fd4910023c", "size": 86, "time": 1791743921.341591}
+{"event": "delete_intent", "sha256": "b006ba2e6ae8d7e56b68ac187fd7f5193b73ae94d3b778ef186250fd4910023c", "time": 1791744152.1253853}
+{"directory_count": 188, "event": "deleted", "time": 1791744231.4938042}

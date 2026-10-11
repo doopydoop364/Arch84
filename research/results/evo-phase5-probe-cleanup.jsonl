@@ -1,0 +1,3 @@
+{"event": "probe_cleanup_intent", "name": "EVOCOLD", "risk_level": 2, "source_sha256": "69277ecd41e1a9e5e8138d80223ec360878bccfc5b817da299c54e3b99f7697a", "time": 1791744234.339317, "type": 15}
+{"event": "probe_verified", "sha256": "740d07237a7a15798ef4e2dd1ae8d4c4cb605611f4e3cd0e948854061b059e28", "time": 1791744274.0087438}
+{"directory_count": 187, "event": "probe_deleted", "time": 1791744352.9852092}

@@ -63,6 +63,14 @@ variable transfer closes the Python app. Archive's free-space counter is
 therefore not a mounted Python filesystem. Direct `open()` on this runtime
 has been observed to return `None`, and `os` is absent.
 
+**Observed, Phase 5:** A newly created and USB-readback-verified Archive
+list `Z84A` could not be recalled through `ti_system.recall_list` on OS
+7.0.0.3996. The firmware stopped Python with `ERROR: ARCHIVED` and instructed
+unarchiving before use. The list and its diagnostic program were later
+verified and deleted. See the [experiment log](evo-phase5-experiments.md).
+This tests one API and state; USB-assisted staging back into RAM remains a
+separate, unverified option.
+
 ## Static OS 7.1 package inspection
 
 **Verified source:** TI Connect Evo currently serves

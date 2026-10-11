@@ -69,3 +69,19 @@ The [Evo USB library](https://github.com/Evo-Programming/evo_usb_py)
 documents variable retrieval and warns that its transfer commands can
 overwrite existing names. Arch84 uses its library through locked wrappers;
 the gitignored `evo_usb.py` was not modified.
+
+## Phase 5 recovery check
+
+The unchanged 187-variable export was copied without overwriting to the
+separately mounted 1 TB HDD at
+`/mnt/1TB HDD/Arch84Backups/evo-phase4-2026-10-11`. Both locations passed
+the offline 187/187 verifier, and their manifest digests matched. This adds
+a second disk copy; it does not prove all variable types can be restored.
+
+The [Phase 5 scratch runner](evo-phase5-experiments.md) exposed a timeout
+hazard: the library's directory read timed out during deletion preflight
+after creating a verified new RAM list. The runner logged an indeterminate
+outcome and stopped. A fresh device read later confirmed the list, and
+cleanup succeeded with an extended timeout, content hash check, and
+post-delete directory check. No original variable was restored or used for
+fault injection.

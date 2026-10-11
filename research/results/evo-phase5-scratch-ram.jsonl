@@ -1,0 +1,7 @@
+{"directory_count": 187, "dynamic": {"archive": 2186436, "language": 1, "ptt": false, "ram": 481692}, "event": "intent", "location": "ram", "name": "Z84R", "risk_level": 2, "time": 1791743536.9322338, "type": 1, "values": "{840501,840502,840503,840504,840505,840506,840507,840508}"}
+{"event": "send_accepted", "time": 1791743537.1082468}
+{"bytes": 176, "directory_count": 188, "dynamic": {"archive": 2186436, "language": 1, "ptt": false, "ram": 481420}, "event": "verified", "sha256": "ae21980c175240bbe3ff7852788d937fae3083634135acaaa53494da282a8ec5", "size": 86, "time": 1791743576.9400876}
+{"event": "delete_intent", "sha256": "ae21980c175240bbe3ff7852788d937fae3083634135acaaa53494da282a8ec5", "time": 1791743618.1531503}
+{"error": "TransportTimeout('serial read timed out on /dev/serial/by-id/usb-Texas_Instruments_Incorporated_TI-84_Evo_RTX-DUMMY-if00')", "event": "indeterminate_delete", "time": 1791743623.1851244}
+{"event": "delete_intent", "sha256": "ae21980c175240bbe3ff7852788d937fae3083634135acaaa53494da282a8ec5", "time": 1791743761.0350604}
+{"directory_count": 187, "event": "deleted", "time": 1791743840.0143661}
