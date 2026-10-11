@@ -60,3 +60,25 @@ CPU from authoritative material or reproducible disassembly; map image
 roles and trusted key IDs; establish whether Python programs can load only
 bytecode; document an official native loader or authorized development
 mode; and verify a recovery path before considering firmware changes.
+
+## Phase 5 static continuation
+
+The [Phase 5 inventory](../research/results/evo-phase5-firmware-7.1-static.json)
+adds bounded printable-marker offsets within each image body and reports
+only *candidate* Cortex-M vector words. Image 0 begins with aligned
+`0x300007f8` and odd `0x100b1add`; image 1 begins with aligned
+`0x20093000` and odd `0x0044bc91`. These are **Inferred** vector-table
+candidates, not verified entry points or a memory map. The distinct address
+ranges could have several explanations; package headers still report zero
+load addresses. Image 1 contains `tipython`, `micropython`, `heap_lock`,
+and `heap_unlock` text. Image 7 contains `micropython` and two
+`memory allocation failed` strings. These are reproducible static markers,
+not identified heap boundaries or proven image roles.
+
+A [public Evo reverse-engineering discussion](https://www.reddit.com/r/calculators/comments/1vzew7f/ti84_inside_the_evo/)
+claims Cortex-M33 and TrustZone-M features, but provides no independently
+checkable device identifier or code addresses. Treat that as a community
+hypothesis. [TI's Evo specifications](https://education.ti.com/en/customer-support/knowledge-base/ti-83-84-plus-family/general-information/40502)
+confirm 156 MHz, not the core model. The 7.1 signatures remain unverified
+against a trusted key and device-side enforcement is unknown. No firmware
+was modified or flashed, and no native payload was sent to the Evo.

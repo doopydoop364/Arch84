@@ -15,6 +15,8 @@ import zipfile
 MAGIC = b"\x3d\xb8\xf3\x96"
 HEADER = struct.Struct("<IIHHIIBBHII")
 MAX_PACKAGE = 32 * 1024 * 1024
+MARKERS = (b"micropython", b"tipython", b"heap_lock", b"heap_unlock",
+           b"memory allocation failed", b"mcuboot")
 
 
 def _tlv_entries(data, start, end):
@@ -65,6 +67,23 @@ def parse_image(data, offset):
     except ValueError:
         return None
     digest = hashlib.sha256(data[offset:normal]).digest()
+    body = data[offset + header_size:protected]
+    markers = {}
+    for word in MARKERS:
+        positions = []
+        at = body.find(word)
+        while at >= 0 and len(positions) < 8:
+            positions.append(at)
+            at = body.find(word, at + 1)
+        if positions:
+            markers[word.decode("ascii")] = positions
+    vector = None
+    if len(body) >= 8:
+        stack, reset = struct.unpack_from("<II", body)
+        if stack & 3 == 0 and stack >> 28 in (2, 3) and reset & 1:
+            vector = {"initial_stack_word": "0x%08x" % stack,
+                      "reset_word": "0x%08x" % reset,
+                      "interpretation": "Cortex-M vector candidate only"}
     embedded = [value for kind, value in entries if kind == 0x10]
     dependencies = []
     security_counters = []
@@ -86,6 +105,7 @@ def parse_image(data, offset):
             "rsa3072_pss_tlv_present": any(kind == 0x23 and len(value) == 384 for kind, value in entries),
             "image_end": normal + n_total,
             "body_sha256": hashlib.sha256(data[offset + header_size:protected]).hexdigest(),
+            "body_markers": markers, "vector_candidate": vector,
             "keyhashes": [value.hex() for kind, value in entries if kind == 0x01],
             "signature_sha256": [hashlib.sha256(value).hexdigest() for kind, value in entries if kind == 0x23],
             "dependencies": dependencies,

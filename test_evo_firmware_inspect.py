@@ -26,6 +26,18 @@ class FirmwareInspectorTests(unittest.TestCase):
     def test_invalid_header_rejected(self):
         self.assertIsNone(parse_image(b"short", 0))
 
+    def test_vector_candidate_and_runtime_markers_are_only_static_hints(self):
+        body = struct.pack("<II", 0x300007F8, 0x100B1ADD) + b"micropython\x00heap_lock"
+        head = struct.pack("<IIHHIIBBHII", 0x96F3B83D, 0, 32, 0,
+                           len(body), 0, 7, 1, 0, 1, 0)
+        digest = hashlib.sha256(head + body).digest()
+        entry = struct.pack("<HH", 0x10, 32) + digest
+        image = head + body + struct.pack("<HH", 0x6907, len(entry) + 4) + entry
+        parsed = parse_image(image, 0)
+        self.assertEqual(parsed["vector_candidate"]["initial_stack_word"], "0x300007f8")
+        self.assertEqual(parsed["body_markers"]["micropython"], [8])
+        self.assertEqual(parsed["body_markers"]["heap_lock"], [20])
+
     def test_protected_dependency_and_security_counter(self):
         body = b"firmware"
         protected_entries = (struct.pack("<HH", 0x40, 12) +
