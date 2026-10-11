@@ -1,0 +1,373 @@
+{
+  "bytes": 4148077,
+  "file": "/tmp/TI84Evo_Bundle_7.1.0.4421.84b2",
+  "images": [
+    {
+      "body_bytes": 896696,
+      "body_sha256": "1ca3e83f0fcb7ecbd51169523f63ee8f7a717bcfd0b19b931a13caeca3cfb556",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 1024,
+      "image_end": 898291,
+      "keyhashes": [
+        "ed59dd71dae5ad07407c76dac2a0777385cc0699fc1176c1a0da83ca518b32c4"
+      ],
+      "load_address": 0,
+      "offset": 0,
+      "protected_tlv_bytes": 107,
+      "protected_tlv_types": [
+        "0x50",
+        "0x60"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        117506048
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "a2d315cd7f77128d5fee9755d665b4d710b617a8156f7dc92146234da12e4939"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4413"
+    },
+    {
+      "body_bytes": 2700920,
+      "body_sha256": "83d5fb93f5896a5722d7bc4e17e5a6906aa90b33ca68d5b59bd047786d90922d",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 512,
+      "image_end": 3750553,
+      "keyhashes": [
+        "0476c1e02b19b32bc1f8ec7f10b5f1c7b20a903eeae7627ded138bc094e3cbc8"
+      ],
+      "load_address": 0,
+      "offset": 1048576,
+      "protected_tlv_bytes": 81,
+      "protected_tlv_types": [
+        "0x50",
+        "0xa0",
+        "0xb4",
+        "0xb5",
+        "0xb2",
+        "0xb7",
+        "0xb3",
+        "0xb6",
+        "0xb1",
+        "0xb8"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        117506048
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "68b50e76e5689f8d373e641a36d5e93c3e8018da76c5ba02dbccd9a56f69ef14"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 26380,
+      "body_sha256": "1b737dcf0918c7c5e994862ec2a57bf4afe2e0332cb565f22be0efe039c53263",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 64,
+      "image_end": 3805184,
+      "keyhashes": [
+        "0476c1e02b19b32bc1f8ec7f10b5f1c7b20a903eeae7627ded138bc094e3cbc8"
+      ],
+      "load_address": 0,
+      "offset": 3778264,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        4294967295
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "ed5cbabbc126d905f4eef9138f6e1d0252252ead1e57757bf1d7bddebfba07d7"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 26244,
+      "body_sha256": "85290b78ca7aacf7d8c0ca6e3477638dd9617b5c5964b536c97258902269d519",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 64,
+      "image_end": 3831968,
+      "keyhashes": [
+        "0476c1e02b19b32bc1f8ec7f10b5f1c7b20a903eeae7627ded138bc094e3cbc8"
+      ],
+      "load_address": 0,
+      "offset": 3805184,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        4294967295
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "3a9e210913bf963b8a3bcdc480ec706c395a7c08223e81701fae045e038d8003"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 97548,
+      "body_sha256": "99ff0ecc63f81228b6ee4ab65408deac5e8eb7a7139758d74dcd98130fca1492",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 64,
+      "image_end": 3930056,
+      "keyhashes": [
+        "0476c1e02b19b32bc1f8ec7f10b5f1c7b20a903eeae7627ded138bc094e3cbc8"
+      ],
+      "load_address": 0,
+      "offset": 3831968,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        4294967295
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "0c36a60056e5c570db98cbb61a33cee7d618ecd53e82c12c793d7af3c16e9c54"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 11304,
+      "body_sha256": "ee9ac5c8f2da9f33d01ba28b2e480623ac4ae959b8f28c6d8c1815ebf22426f5",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 64,
+      "image_end": 3941900,
+      "keyhashes": [
+        "0476c1e02b19b32bc1f8ec7f10b5f1c7b20a903eeae7627ded138bc094e3cbc8"
+      ],
+      "load_address": 0,
+      "offset": 3930056,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        4294967295
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "e47b86c06d5bbab37f6f0ee45d89d4878813af4872917e5e73d4c878b748ae2d"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 22020,
+      "body_sha256": "ba808cd99f2ce50eeda3f78cdfff4bbcad34f456a8bb1e6098b8bf6671dbfa47",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 64,
+      "image_end": 3964460,
+      "keyhashes": [
+        "0476c1e02b19b32bc1f8ec7f10b5f1c7b20a903eeae7627ded138bc094e3cbc8"
+      ],
+      "load_address": 0,
+      "offset": 3941900,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        4294967295
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "8f0abc22347284869b4e6ba20245a0353a90153eda551bd9f86db638ab35db68"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 174956,
+      "body_sha256": "0a379474b6f8cd1c27a95ade04d4f44411be2a1f6fbea771c16f04224e09e781",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 64,
+      "image_end": 4139956,
+      "keyhashes": [
+        "0476c1e02b19b32bc1f8ec7f10b5f1c7b20a903eeae7627ded138bc094e3cbc8"
+      ],
+      "load_address": 0,
+      "offset": 3964460,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        4294967295
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "b92a4b003f19e1facc3c1cabedad6db9929c78453bb821b984d7954ab7346590"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 5504,
+      "body_sha256": "e4e92e2281ad32297ec5245f7da7e4dbb3ed8f08262135ed3a4a3e619abf11a7",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 64,
+      "image_end": 4146000,
+      "keyhashes": [
+        "0476c1e02b19b32bc1f8ec7f10b5f1c7b20a903eeae7627ded138bc094e3cbc8"
+      ],
+      "load_address": 0,
+      "offset": 4139956,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        4294967295
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "2655822f19d909608602f061495aa3dfdfd53f96c76acb05cf52ebe21cae8e1f"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    },
+    {
+      "body_bytes": 1008,
+      "body_sha256": "b14d305a0ef22d4791db47c906c381a35f9d5cd19a2962271def7834a753af12",
+      "dependencies": [],
+      "flags": 0,
+      "header_bytes": 64,
+      "image_end": 4147548,
+      "keyhashes": [
+        "0476c1e02b19b32bc1f8ec7f10b5f1c7b20a903eeae7627ded138bc094e3cbc8"
+      ],
+      "load_address": 0,
+      "offset": 4146000,
+      "protected_tlv_bytes": 12,
+      "protected_tlv_types": [
+        "0x50"
+      ],
+      "rsa3072_pss_tlv_present": true,
+      "security_counters": [
+        4294967295
+      ],
+      "sha256_matches_tlv": true,
+      "signature_sha256": [
+        "1812449e59c25f64bd2041fa54494d255d51b9450fd1cb2b19075dde9aa8091f"
+      ],
+      "signature_tlv_present": true,
+      "tlv_bytes": 464,
+      "tlv_types": [
+        "0x10",
+        "0x01",
+        "0x23"
+      ],
+      "version": "7.1.0.4421"
+    }
+  ],
+  "members": [
+    {
+      "bytes": 205,
+      "name": "METADATA"
+    },
+    {
+      "bytes": 4147548,
+      "name": "TI84Evo_Package.84pk2"
+    },
+    {
+      "bytes": 0,
+      "name": "Archive/"
+    }
+  ],
+  "metadata": {
+    "bundle_build_version": "7.1.0.4421",
+    "bundle_comments": "Generated by TI build system",
+    "bundle_format_version": "1",
+    "bundle_identifier": "TI Bundle",
+    "bundle_target_device": "84US",
+    "bundle_target_prodid": "23",
+    "bundle_target_type": "RESTORE"
+  },
+  "notice": "TLV hash matching is an integrity check, not signature or bootloader verification",
+  "package_sha256": "c706d8555e41325fbd6f9c03a9fc87a04c6e1d0875031020d1bbc9b6a08584df",
+  "sha256": "86fe1b026bbea4538511f6b3241b19c77361dfb95259d0105c941a2459953a96",
+  "signature_verified": false
+}

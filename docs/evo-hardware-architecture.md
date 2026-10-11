@@ -49,6 +49,13 @@ part of that heap. On the baseline full boot, GC reported 54,960 B free but
 lower bound, consistent with fragmentation. It does not reveal the firmware
 heap-size policy or a way to enlarge it.
 
+**Observed in Phase 4:** A read-only, SHA-256-checked desktop export of all
+187 listed variables completed, and the subsequent USB directory matched
+the pre-export directory exactly. This establishes retrieval through the
+supported USB protocol; it does not establish that the same variables can
+be restored atomically or that Python can read archived variables. See
+[USB backup reliability](evo-usb-backup-reliability.md).
+
 **Unknown:** a supported TI-Python API for moving a list into Archive, for
 recalling archived lists from Python, or for resizing the interpreter heap.
 The desktop USB tool can move variables while Arch84 is stopped, but any
@@ -85,6 +92,10 @@ and whether TrustZone is configured. A matching SHA-256 TLV proves only
 internal consistency; the tool does **not** verify RSA signatures or establish
 a secure boot chain. These findings do not justify flashing or modifying the
 device.
+
+The [extended Phase 4 parser](evo-native-execution.md) found two distinct
+key-hash values and no standard dependency TLVs among the ten images. It
+records raw protected security counters but does not infer rollback policy.
 
 ## Execution and privilege boundaries
 

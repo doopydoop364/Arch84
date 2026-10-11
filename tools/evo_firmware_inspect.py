@@ -66,6 +66,17 @@ def parse_image(data, offset):
         return None
     digest = hashlib.sha256(data[offset:normal]).digest()
     embedded = [value for kind, value in entries if kind == 0x10]
+    dependencies = []
+    security_counters = []
+    for kind, value in protected_entries:
+        if kind == 0x40 and len(value) == 12:
+            image_id = value[0]
+            dep_major, dep_minor, dep_revision, dep_build = struct.unpack_from("<BBHI", value, 4)
+            dependencies.append({"image_id": image_id,
+                                 "minimum_version": "%d.%d.%d.%d" %
+                                 (dep_major, dep_minor, dep_revision, dep_build)})
+        elif kind == 0x50 and len(value) == 4:
+            security_counters.append(struct.unpack("<I", value)[0])
     return {"offset": offset, "load_address": load_addr,
             "header_bytes": header_size, "body_bytes": body_size,
             "protected_tlv_bytes": protected_size, "tlv_bytes": n_total,
@@ -73,6 +84,12 @@ def parse_image(data, offset):
             "sha256_matches_tlv": bool(embedded) and all(value == digest for value in embedded),
             "signature_tlv_present": any(kind in (0x20, 0x21, 0x22, 0x23, 0x24, 0x25) for kind, _ in entries),
             "rsa3072_pss_tlv_present": any(kind == 0x23 and len(value) == 384 for kind, value in entries),
+            "image_end": normal + n_total,
+            "body_sha256": hashlib.sha256(data[offset + header_size:protected]).hexdigest(),
+            "keyhashes": [value.hex() for kind, value in entries if kind == 0x01],
+            "signature_sha256": [hashlib.sha256(value).hexdigest() for kind, value in entries if kind == 0x23],
+            "dependencies": dependencies,
+            "security_counters": security_counters,
             "protected_tlv_types": ["0x%02x" % kind for kind, _ in protected_entries],
             "tlv_types": ["0x%02x" % kind for kind, _ in entries]}
 

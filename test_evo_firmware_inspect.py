@@ -26,6 +26,27 @@ class FirmwareInspectorTests(unittest.TestCase):
     def test_invalid_header_rejected(self):
         self.assertIsNone(parse_image(b"short", 0))
 
+    def test_protected_dependency_and_security_counter(self):
+        body = b"firmware"
+        protected_entries = (struct.pack("<HH", 0x40, 12) +
+                             bytes((2, 0, 0, 0)) + struct.pack("<BBHI", 7, 1, 3, 42) +
+                             struct.pack("<HHI", 0x50, 4, 9))
+        protected = struct.pack("<HH", 0x6908, len(protected_entries) + 4) + protected_entries
+        head = struct.pack("<IIHHIIBBHII", 0x96F3B83D, 0, 32, len(protected),
+                           len(body), 0, 7, 1, 0, 1, 0)
+        signed_area = head + body + protected
+        digest = hashlib.sha256(signed_area).digest()
+        entries = (struct.pack("<HH", 0x10, 32) + digest +
+                   struct.pack("<HH", 0x01, 32) + b"k" * 32)
+        image = signed_area + struct.pack("<HH", 0x6907, len(entries) + 4) + entries
+        parsed = parse_image(image, 0)
+        self.assertTrue(parsed["sha256_matches_tlv"])
+        self.assertEqual(parsed["dependencies"], [{"image_id": 2,
+                                                    "minimum_version": "7.1.3.42"}])
+        self.assertEqual(parsed["security_counters"], [9])
+        self.assertEqual(parsed["keyhashes"], [b"k".hex() * 32])
+        self.assertEqual(parsed["image_end"], len(image))
+
     def test_zip_inventory_without_extracting(self):
         body = b"example"
         head = struct.pack("<IIHHIIBBHII", 0x96F3B83D, 0, 32, 0,

@@ -1,0 +1,49 @@
+test_arch84                        ok
+test_storage                       ok
+test_campaign                      ok
+test_pipes                         ok
+test_editor                        ok
+test_pacman                        ok
+test_archive                       ok
+test_proc                          ok
+test_environ                       ok
+test_flashrepo                     ok
+test_cmds                          ok
+test_manpages                      ok
+test_launcher                      ok
+test_gfx                           ok
+test_type                          ok
+test_neofetch                      ok
+test_net                           ok
+test_blobs                         ok
+fuzz_shell CPython==MicroPython x15 ok
+fuzz_pkg CPython==MicroPython      ok
+fuzz_archive CPython==MicroPython  ok
+codec_fuzz identical streams       ok
+keyfuzz                            ok
+keyfuzz low memory (103 KB heap)   ok
+cmdfuzz                            ok
+flash repositories on device       FAIL
+ -Rns app\nerror: target not found: app\n[evo@arch84 ~]$ free\n       total    used    free\nMem:  124864   89840   35024\n[evo@arch84 ~]$ exit\n[  OK  ] Saved command history\n[  OK  ] Synced filesystem\n[  OK  ] Reached target Shutdown\n'
+pacman -Q              FAIL  used/free ('89840', '35024')
+    '[evo@arch84 ~]$ pacman -Q\n[evo@arch84 ~]$ free\n       total    used    free\nMem:  124864   89840   35024\n[evo@arch84 ~]$ exit\n[  OK  ] Saved command history\n[FAILED] Sync: out of memory (no\nthing was changed)\n[ WARN ] Shutdown finished with \nerrors\n'
+flash repositories on device: FAIL
+
+editor on emulated device          ok
+archive on emulated device         FAIL
+heap in use with 4 files of ~1.4 KB: 100880 B; after `archive create`: 101760 B -> freed -880 B
+fresh boot, extract: ['[evo@arch84 ~]$ wc f0', 'wc: f0: No such file or director']
+after extract: ['no problems found']
+archive on device: FAIL
+
+powercut (40 files)                FAIL
+ ('BB', ' ~', '   347 /home/evo', ' ~', '  OK  ', '  OK  ')
+k=0 cut=True -> MIXED/OTHER [] ('ry', ' ~', '    67 /home/evo', ' ~', '  OK  ', '  OK  ')
+k=1 cut=True -> MIXED/OTHER [] ('ry', ' ~', '    67 /home/evo', ' ~', '  OK  ', '  OK  ')
+k=2 cut=True -> MIXED/OTHER [] ('BB', ' ~', '   342 /home/evo', ' ~', '  OK  ', '  OK  ')
+k=3 cut=True -> MIXED/OTHER [] ('BB', ' ~', '   342 /home/evo', ' ~', '  OK  ', '  OK  ')
+k=4 cut=True -> MIXED/OTHER [] ('BB', ' ~', '   342 /home/evo', ' ~', '  OK  ', '  OK  ')
+no cut at k=6 (sync needs 6 stores); final state NEW
+powercut: 6 cut points tested, 5 bad
+
+FAILED: flash repositories on device, archive on emulated device, powercut (40 files)

@@ -1,5 +1,14 @@
 # TI-84 Evo memory and storage research
 
+**Phase 4 continuation:** The [verified USB backup workflow](evo-usb-backup-reliability.md),
+[compressed-block candidate](evo-compressed-storage.md),
+[native-execution evidence](evo-native-execution.md), and
+[Phase 5 roadmap](evo-phase5-roadmap.md) contain the latest results. On the
+physical US Evo, 187/187 listed variables were exported read-only and
+validated locally; restoration of the full set remains unverified. The
+calculator still runs OS 7.0.0.3996. No installed programs, existing
+variables, Archive backups, or firmware were changed in Phase 4.
+
 **Phase 3 continuation:** The [physical baseline and deployment plan](evo-phase3-hardware-validation.md),
 [technical hardware reference](evo-hardware-architecture.md), and
 [ranked Phase 4 roadmap](evo-phase4-roadmap.md) supersede the Phase 3
