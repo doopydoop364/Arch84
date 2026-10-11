@@ -4,7 +4,7 @@
 # terminal for its palette; a text-only terminal has none, so the row is left out).
 # The shell runs it once after login unless ~/.hushlogin exists; `neofetch` runs it by hand.
 from A84FS import BLK, CLR, VERSION, ms_since
-from A84CD import COMMANDS
+from A84CD import COMMANDS, unload
 
 LOGO = ("      /\\      ",
         "     /  \\     ",
@@ -80,12 +80,17 @@ def palette(sh):
 
 
 def cmd_neofetch(sh, args):
-    info = facts(sh)
-    for i in range(max(len(info), len(LOGO))):
-        sh.out(logo_row(i) + (info[i] if i < len(info) else "") + "\n")
-    p = palette(sh)
-    if p != "":
-        sh.out(PAD + " " + p + "\n")
+    try:
+        info = facts(sh)
+        for i in range(max(len(info), len(LOGO))):
+            sh.out(logo_row(i) + (info[i] if i < len(info) else "") + "\n")
+        p = palette(sh)
+        if p != "":
+            sh.out(PAD + " " + p + "\n")
+    finally:
+        # Login uses this once. Reload it on demand instead of keeping its code
+        # resident for the rest of the session.
+        unload("neofetch", "A84NF")
 
 
 COMMANDS["neofetch"] = cmd_neofetch

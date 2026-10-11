@@ -68,10 +68,15 @@ class NeofetchTests(unittest.TestCase):
         self.assertRegex(out, r"Disk \d+B 1blk")
 
     def test_greeting_runs_at_login_and_hushlogin_turns_it_off(self):
+        import sys
+        from A84CD import COMMANDS
         sh, t = T.mk()
         t.raw = ""
         sh.greet()
         self.assertIn("Arch84", strip(t.raw))
+        self.assertNotIn("A84NF", sys.modules)
+        self.assertNotIn("neofetch", COMMANDS)
+        self.assertIn("Arch84", strip(T.run(sh, t, "neofetch")))
         sh2, t2 = T.mk()
         sh2.vfs.write("/home/evo/.hushlogin", "")
         t2.raw = ""

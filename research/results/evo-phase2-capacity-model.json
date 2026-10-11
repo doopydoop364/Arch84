@@ -1,0 +1,36 @@
+{
+  "archive_hypothetical_if_readable": {
+    "lists": 1664,
+    "payload_bytes": 807040
+  },
+  "assumptions": {
+    "existing_x_lists": 13,
+    "full_list_variable_bytes": 1314,
+    "payload_per_x_list_bytes": 485,
+    "physical_ram_bytes": null,
+    "python_archive_read_verified": false,
+    "python_archive_write_supported": false,
+    "remaining_x_names": 9987
+  },
+  "firmware_reported": {
+    "free_archive_bytes": 2187276,
+    "free_user_ram_bytes": 483448,
+    "total_flash_bytes": 3141632,
+    "total_ram_bytes": 961536
+  },
+  "ram_scenarios": {
+    "0": {
+      "lists": 367,
+      "payload_bytes": 177995
+    },
+    "150000": {
+      "lists": 253,
+      "payload_bytes": 122705
+    },
+    "300000": {
+      "lists": 139,
+      "payload_bytes": 67415
+    }
+  },
+  "status": "Inferred capacity bounds from observed counters"
+}

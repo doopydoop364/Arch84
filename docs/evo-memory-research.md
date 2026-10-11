@@ -223,3 +223,144 @@ No data write was attempted. See the [full transcribed storage output](../resear
 - 2026-10-11: Fourteen research-tool desktop tests and standalone CPython smoke
   runs passed. The quick emulator gate passed all 18 desktop files, then stopped
   at the missing `/tmp/a84-micropython` binary. No emulator result is claimed.
+
+## Phase 2 findings (2026-10-11)
+
+**Observed:** A compatible 32-bit MicroPython 1.20 unix binary was found at
+`/home/iuselinuxbtw/.claude/jobs/0160a791/tmp/mp/ports/unix/build-standard/micropython`.
+The emulator now runs with `A84_MICROPYTHON` pointing there. It is a useful
+code and heap gate, but does not model Evo firmware memory partitioning,
+real display allocation, or post-boot heap fragmentation. See the
+[staged memory profile](evo-memory-profile.md) for controlled emulator and
+device readings. The safe `A84NF` unload change improved the emulator's
+prompt free heap by 1,728 B; it has not been deployed to the Evo.
+
+**Observed:** On OS 7.0.0.3996, a new `EVOPROF` program was transferred only
+after the directory proved the name unused. Its [device transcript](../research/results/evo-2026-10-11-profile.txt)
+shows 153,776 B free Python heap after GC at the start and 68,160 B after
+staged Arch84 imports plus temporary kernel/shell construction. The staged
+test succeeded within a 4,096 B contiguous-allocation cap. It performed
+no list writes. This is the first same-session evidence of the import and
+VFS cost, although the staged runner is not the complete Arch84 process.
+The calculator was returned to its launcher afterward; no Archive backup
+variables were touched.
+
+`EVOMEM.probe(max_probe=...)` now accepts a cap from 64 to 8,192 bytes while
+retaining the conservative default. `EVOMEM.experiment(max_probe=4096,
+rounds=3)` is an explicit optional call: each of at most five rounds creates
+24 small bytearrays (about 5.4 KiB payload), drops alternating ones, collects
+GC and measures a bounded contiguous-allocation lower bound. It stops after
+`MemoryError` and releases the blocks. Lines prefixed `EVO_MEM_EXP` are parsed
+into a separate JSON group by `tools/evo_research.py`. This experiment has
+desktop mock coverage but has **not** run on the device. Stop if the Python
+app becomes unresponsive; exit normally. It does not write variables.
+
+### Supported-storage capacity model
+
+`A84ST` stores at most 495 payload bytes per 100-element `S` snapshot list,
+with two checked slots of at most 999 blocks. `A84BL`/`A84BM` store at most
+485 file-data bytes in each `X0000`–`X9999` list (three header elements and
+97 data elements). File names and VFS nodes stay in the Python heap, while
+the list variables consume firmware user RAM. The full `X0002` list in the
+2026-10-11 directory occupied 1,314 firmware-reported bytes for 485 payload
+bytes: **36.9% measured payload density for that one full list**. The
+firmware counter's allocation granularity and per-list overhead are not yet
+calibrated; do not extrapolate this as an exact quota.
+
+`tools/evo_storage_model.py` uses those measured inputs and the directory
+snapshot without writing to the device. Its [saved result](../research/results/evo-phase2-capacity-model.json)
+is an **Inferred upper bound**, not a capacity test:
+
+| Storage layer | Current evidence / modeled bound |
+| --- | --- |
+| Physical storage | **Unknown** for this US Evo; a similar Evo-T teardown identified a 16 MiB flash part, not its partition map. |
+| Firmware total / free | **Observed:** 3,141,632 B total flash counter; 2,187,276 B free Archive and 483,448 B free user RAM on this run. |
+| Calculator-variable space | **Observed:** 100 elements/list; current directory includes 13 `X` lists. Namespace allows at most 10,000 `X` names in Arch84's format. |
+| Python-accessible persistence | **Verified in project:** `ti_system.store_list/recall_list` in user RAM. Direct Python Archive writes remain **Unknown/unsupported by the tested API**. |
+| Current RAM, zero reserve | **Inferred upper bound:** 367 additional full lists × 485 = 177,995 B of file data, before VFS/snapshot overhead or heap shrinkage. Unsafe as a target. |
+| Current RAM, 300,000 B reserve | **Inferred:** 139 lists × 485 = 67,415 B. Reserve is illustrative, not a proven safety threshold. |
+| Archive, if readable as lists | **Hypothetical only:** 1,664 lists × 485 = 807,040 B at the same directory size. No Python Archive list read or write has been demonstrated here. |
+
+The gap between physical flash, firmware Archive counters, calculator-variable
+capacity, Python access, and effective file capacity is real. Filling user
+RAM with lists would also reduce the Python heap. `A84ST` snapshots, list
+headers, partial last lists, VFS metadata, foreign variables, firmware
+allocation, and free-space reserve further reduce usable file data. A list
+namespace count is not proof that the firmware accepts that many variables.
+
+### Storage approaches
+
+| Approach | Capacity/performance | Reliability and prerequisites |
+| --- | --- | --- |
+| Better list packing | Small gains: current full `X` list already uses 97 of 100 elements for data. | Format migration would be needed; preserve old snapshots. Low priority. |
+| Archive-backed cold lists | Potentially hundreds of KiB from the reported free Archive. | **Unknown** whether Python can recall archived lists, and Python cannot archive them through the tested `ti_system` API. USB moves interrupt a running Python app. Test one new scratch list before design. |
+| USB-assisted export | Desktop space is large; transfer is slow and stops the Python app. | **Observed supported path:** `evo_usb_py` documents list retrieval. `tools/evo_cold_export.py` provides a read-only, collision-safe `X` list export with a SHA-256 manifest. Restore/sync and Arch84 integration are not implemented. |
+| Lightweight compression | Good for repetitive text, weak for already compressed or random data; CPU and temporary buffers cost heap. | Existing `A84CY` LZ codec is lazy and used for snapshots. Per-file compression needs a versioned format and bounded decode test before adoption. |
+| Hybrid desktop cache | Desktop capacity with current calculator hot files. | Requires a consistent version/manifest protocol and recovery when PC is absent. Current network bridge may support a future explicit sync command, but durability must be designed first. |
+
+The optional `research/EVOSCR.py` writes **one** 16-element list `Z84P` only
+when `run("WRITE_Z84P")` is called. It checks `recall_list` first, refuses
+collision or uncertain reads (a missing-list `NameError` is accepted), verifies the result, and never deletes the
+variable. Importing it does not write. This scratch write was **not run**.
+Before any device use, check the directory for `Z84P` and record available
+RAM; exit Arch84. To clean up after a successful test, inspect the list and
+delete exactly `Z84P` with the supported USB command only after confirming
+its content and ownership. Never bulk-clear lists.
+
+**Observed USB export proof:** after exiting the Python app, the guarded
+desktop utility fetched existing list `X0002` as a 1,410-byte Evo container
+without deleting or rewriting it. The [manifest](../research/results/evo-phase2-export.json)
+records its SHA-256. The exported container size includes USB wrapper bytes;
+the directory had reported 1,314 bytes for this variable, so these sizes
+measure different layers. The local copy remains outside the repository at
+`/tmp/evo-phase2-X0002.evo`. This demonstrates read-only backup of one list,
+not a tested restore or an increase in live on-device capacity.
+
+### Native execution and firmware evidence
+
+TI's [Evo product comparison](https://education.ti.com/en/customer-support/knowledge-base/ti-83-84-plus-family/general-information/40502)
+**verifies** a 156 MHz processor, but does not publish the core or memory
+map. The Evo-T [teardown](https://tiplanet.org/forum/viewtopic.php?p=280662)
+and [community firmware analysis](https://www.reddit.com/r/calculators/comments/1vzew7f/ti84_inside_the_evo/)
+suggest Cortex-M33, TrustZone-M and signed MCUboot images. Those details are
+**unverified on this US device**. No firmware image was downloaded or parsed
+in this phase. TI's [OS 7.1 page](https://education.ti.com/en/products/calculators/graphing-calculators/ti-84-evo/update)
+confirms a newer OS exists; this device remains on 7.0.0.3996.
+
+The current [Evo-specific USB library README](https://github.com/Evo-Programming/evo_usb_py/blob/main/README.md)
+reports type-15 `.8xpy2` MicroPython bytecode containers on 7.0 and type-18
+`.8mp2` on 7.1+. Its author reports byte-exact transfer/readback on 7.1,
+explicitly without proving calculator-side execution. **Inferred:** `.mpy`
+is interpreter bytecode, not arbitrary native ARM execution. Precompiled
+module loading might reduce Python compile peaks, but needs a separate safe
+OS-7.0 device experiment with a unique program name and a known-good recovery
+path. The library's own transfer routines overwrite existing variables by
+default; all research transfers here use the collision-checking wrapper.
+
+For future native-execution research, first obtain an authentic TI-distributed
+update with documented provenance, hash it, identify its container and
+signature layout by static analysis, and compare with independent Evo-specific
+reports. A chip datasheet or CE jailbreak does not establish a usable Evo
+privilege boundary. Firmware flashing, bootloader modification and payload
+execution remain outside this phase. Recovery from a failed firmware change
+is **Unknown**, so the risk is high.
+
+### Phase 3 priorities
+
+1. **Low risk:** deploy the tested memory change with `--no-bak` only after a
+   controlled baseline of `free -l` and startup commands on the existing
+   build. Verify boot, file operations, `fsck`, and a fresh-boot `selftest 2`;
+   then repeat the same measurements. Backup variables stay untouched until
+   the new build passes on-device validation.
+2. **Low risk:** repeat `EVOPROF` from fresh Python sessions and measure
+   variance. Extend the emulator benchmark with package peak metrics only
+   when the instrumentation overhead and package fixture are controlled.
+3. **Opt-in write:** run the one-list `Z84P` benchmark after a second directory
+   preflight. Measure the firmware free-RAM delta and readback, then perform
+   explicit targeted cleanup. Do not perform a fill-to-capacity experiment.
+4. **Low risk:** test read-only export of one existing `X` list through the
+   desktop companion, hash it, and compare its data format with `A84BL`.
+   Design restore/conflict rules before any bidirectional sync.
+5. **Research only:** inspect a publicly distributed, authenticated Evo OS
+   bundle statically; seek independent evidence for RAM, privilege, signing
+   and supported execution formats before considering invasive work.

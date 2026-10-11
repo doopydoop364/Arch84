@@ -60,14 +60,15 @@ def evo_only(devices):
 
 
 def parse_probe(text):
-    result = {"memory": {}, "storage": {}}
-    prefixes = {"EVO_MEM": "memory", "EVO_STORAGE": "storage"}
+    result = {"memory": {}, "storage": {}, "profile": {}, "experiments": {}}
+    prefixes = {"EVO_MEM": "memory", "EVO_STORAGE": "storage",
+                "EVO_PROFILE": "profile", "EVO_MEM_EXP": "experiments"}
     for line in text.splitlines():
         parts = line.strip().split(" ", 1)
         if len(parts) != 2 or parts[0] not in prefixes or "=" not in parts[1]:
             continue
         key, value = parts[1].split("=", 1)
-        if not re.fullmatch(r"[a-z][a-z0-9_]*", key):
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", key):
             continue
         target = result[prefixes[parts[0]]]
         if key in target:
@@ -177,7 +178,7 @@ def main(argv=None):
     send = sub.add_parser("send", help="preflight and transfer a new Python source program")
     send.add_argument("path", type=Path)
     send.add_argument("--name", help="calculator program name; defaults to filename stem")
-    parse = sub.add_parser("parse", help="convert EVO_MEM/EVO_STORAGE text to JSON")
+    parse = sub.add_parser("parse", help="convert diagnostic transcript lines to JSON")
     parse.add_argument("path", type=Path)
     diff = sub.add_parser("compare", help="compare two parsed JSON runs")
     diff.add_argument("before", type=Path)

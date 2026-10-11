@@ -98,7 +98,9 @@ def churn():
     return str(before - during) + ",restored=" + str(after - before)
 
 
-def probe():
+def probe(max_probe=MAX_PROBE):
+    if max_probe < 64 or max_probe > MAX_PROBE:
+        raise ValueError("probe cap must be 64..8192 bytes")
     rows = []
     def add(k, v):
         rows.append((k, str(v)))
@@ -130,7 +132,7 @@ def probe():
         lo = cap = "unavailable"
         capped = False
     else:
-        lo, cap, capped = allocation_bound(available)
+        lo, cap, capped = allocation_bound(available, max_probe)
     add("single_object_lower_bound", lo)
     add("single_object_probe_cap", cap)
     add("single_object_cap_reached", int(capped))
@@ -138,6 +140,38 @@ def probe():
     # Fits a 32-column screen: free / allocatable lower bound / probe cap.
     add("sum", str(f) + "/" + str(lo) + "/" + str(cap))
     return rows
+
+
+def experiment(max_probe=4096, rounds=3):
+    """Optional bounded GC/fragmentation experiment; call explicitly.
+
+    At most 24 small bytearrays are live (6 KiB payload). No storage write.
+    A successful block test only proves a lower bound within max_probe.
+    """
+    if max_probe < 64 or max_probe > MAX_PROBE or rounds < 1 or rounds > 5:
+        raise ValueError("cap 64..8192, rounds 1..5 required")
+    for turn in range(rounds):
+        collect()
+        before = free()
+        blocks = None
+        try:
+            blocks = [bytearray((32, 128, 512)[i % 3]) for i in range(24)]
+            peak = free()
+            for i in range(0, 24, 2):
+                blocks[i] = None
+            collect()
+            fragmented = free()
+            lower, cap, reached = allocation_bound(fragmented, max_probe)
+            print("EVO_MEM_EXP round_" + str(turn) + "=" + str(before) + "/"
+                  + str(peak) + "/" + str(fragmented) + "/"
+                  + str(lower) + "/" + str(cap) + "/" + str(int(reached)))
+        except MemoryError:
+            print("EVO_MEM_EXP stopped=MemoryError")
+            return
+        finally:
+            blocks = None
+            collect()
+    print("EVO_MEM_EXP free_final=" + str(free()))
 
 
 def main():

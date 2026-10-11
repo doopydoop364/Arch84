@@ -1,0 +1,535 @@
+{
+  "environment": "32-bit MicroPython unix emulator",
+  "heap_request": 127800,
+  "scenarios": {
+    "boot_commands": {
+      "commands": [
+        "pwd",
+        "ls"
+      ],
+      "imports": [
+        [
+          "A84FS",
+          107120
+        ],
+        [
+          "A84CZ",
+          99968
+        ],
+        [
+          "A84ST",
+          96544
+        ],
+        [
+          "A84KN",
+          90336
+        ],
+        [
+          "A84CD",
+          85200
+        ],
+        [
+          "A84CE",
+          73824
+        ],
+        [
+          "A84UI",
+          68864
+        ],
+        [
+          "A84SH",
+          59568
+        ],
+        [
+          "A84GX",
+          53920
+        ]
+      ],
+      "profile": [
+        [
+          "interpreter",
+          114032,
+          10832,
+          0,
+          0,
+          2
+        ],
+        [
+          "kernel_before",
+          42240,
+          82624,
+          0,
+          0,
+          15
+        ],
+        [
+          "fs_before",
+          40384,
+          84480,
+          0,
+          0,
+          15
+        ],
+        [
+          "fs_after",
+          40352,
+          84512,
+          0,
+          0,
+          15
+        ],
+        [
+          "system_files_before",
+          38704,
+          86160,
+          0,
+          0,
+          15
+        ],
+        [
+          "system_files_after",
+          38656,
+          86208,
+          0,
+          0,
+          15
+        ],
+        [
+          "kernel_after",
+          38160,
+          86704,
+          0,
+          0,
+          15
+        ],
+        [
+          "shell_before",
+          39680,
+          85184,
+          0,
+          0,
+          15
+        ],
+        [
+          "shell_after",
+          39520,
+          85344,
+          0,
+          0,
+          15
+        ],
+        [
+          "shell_run_before",
+          39472,
+          85392,
+          0,
+          0,
+          15
+        ],
+        [
+          "command_before:alias ll='ls -a'",
+          38816,
+          86048,
+          0,
+          0,
+          15
+        ],
+        [
+          "command_after:alias ll='ls -a'",
+          38656,
+          86208,
+          4795,
+          4832,
+          15
+        ],
+        [
+          "greeting_before",
+          38976,
+          85888,
+          0,
+          0,
+          15
+        ],
+        [
+          "greeting_after",
+          36688,
+          88176,
+          4551,
+          4586,
+          16
+        ],
+        [
+          "command_before:pwd",
+          35760,
+          89104,
+          0,
+          0,
+          16
+        ],
+        [
+          "command_after:pwd",
+          35680,
+          89184,
+          4426,
+          4460,
+          16
+        ],
+        [
+          "command_before:ls",
+          35632,
+          89232,
+          0,
+          0,
+          16
+        ],
+        [
+          "command_after:ls",
+          35488,
+          89376,
+          4402,
+          4436,
+          16
+        ],
+        [
+          "command_before:exit",
+          35296,
+          89568,
+          0,
+          0,
+          16
+        ],
+        [
+          "command_after:exit",
+          32336,
+          92528,
+          3979,
+          4042,
+          16
+        ]
+      ],
+      "recalls": 1,
+      "stores": 2,
+      "summary": {
+        "boot_free": 35808,
+        "end_free": 46256,
+        "free_loaded": 53872,
+        "free_start": 114272,
+        "heap_total": 124864,
+        "largest_boot_cap": 4586,
+        "largest_boot_lower_bound": 4551,
+        "min_free_gc": 35280,
+        "ranked_imports": [
+          {
+            "module": "A84CE",
+            "retained_delta": 11376
+          },
+          {
+            "module": "A84SH",
+            "retained_delta": 9296
+          },
+          {
+            "module": "A84FS",
+            "retained_delta": 7152
+          },
+          {
+            "module": "A84CZ",
+            "retained_delta": 7152
+          },
+          {
+            "module": "A84KN",
+            "retained_delta": 6208
+          },
+          {
+            "module": "A84GX",
+            "retained_delta": 5648
+          },
+          {
+            "module": "A84CD",
+            "retained_delta": 5136
+          },
+          {
+            "module": "A84UI",
+            "retained_delta": 4960
+          },
+          {
+            "module": "A84ST",
+            "retained_delta": 3424
+          }
+        ]
+      }
+    },
+    "file_cycle": {
+      "commands": [
+        "echo phase2 > /tmp/phase2",
+        "cat /tmp/phase2",
+        "rm /tmp/phase2"
+      ],
+      "imports": [
+        [
+          "A84FS",
+          107120
+        ],
+        [
+          "A84CZ",
+          99968
+        ],
+        [
+          "A84ST",
+          96544
+        ],
+        [
+          "A84KN",
+          90336
+        ],
+        [
+          "A84CD",
+          85200
+        ],
+        [
+          "A84CE",
+          73824
+        ],
+        [
+          "A84UI",
+          68864
+        ],
+        [
+          "A84SH",
+          59568
+        ],
+        [
+          "A84GX",
+          53920
+        ]
+      ],
+      "profile": [
+        [
+          "interpreter",
+          114032,
+          10832,
+          0,
+          0,
+          2
+        ],
+        [
+          "kernel_before",
+          42240,
+          82624,
+          0,
+          0,
+          15
+        ],
+        [
+          "fs_before",
+          40384,
+          84480,
+          0,
+          0,
+          15
+        ],
+        [
+          "fs_after",
+          40352,
+          84512,
+          0,
+          0,
+          15
+        ],
+        [
+          "system_files_before",
+          38704,
+          86160,
+          0,
+          0,
+          15
+        ],
+        [
+          "system_files_after",
+          38656,
+          86208,
+          0,
+          0,
+          15
+        ],
+        [
+          "kernel_after",
+          38160,
+          86704,
+          0,
+          0,
+          15
+        ],
+        [
+          "shell_before",
+          39680,
+          85184,
+          0,
+          0,
+          15
+        ],
+        [
+          "shell_after",
+          39520,
+          85344,
+          0,
+          0,
+          15
+        ],
+        [
+          "shell_run_before",
+          39472,
+          85392,
+          0,
+          0,
+          15
+        ],
+        [
+          "command_before:alias ll='ls -a'",
+          38816,
+          86048,
+          0,
+          0,
+          15
+        ],
+        [
+          "command_after:alias ll='ls -a'",
+          38656,
+          86208,
+          4795,
+          4832,
+          15
+        ],
+        [
+          "greeting_before",
+          38976,
+          85888,
+          0,
+          0,
+          15
+        ],
+        [
+          "greeting_after",
+          36688,
+          88176,
+          4551,
+          4586,
+          16
+        ],
+        [
+          "command_before:echo phase2 > /tmp/phase2",
+          35696,
+          89168,
+          0,
+          0,
+          16
+        ],
+        [
+          "command_after:echo phase2 > /tmp/phase2",
+          35456,
+          89408,
+          4398,
+          4432,
+          16
+        ],
+        [
+          "command_before:cat /tmp/phase2",
+          35296,
+          89568,
+          0,
+          0,
+          16
+        ],
+        [
+          "command_after:cat /tmp/phase2",
+          35120,
+          89744,
+          4356,
+          4390,
+          16
+        ],
+        [
+          "command_before:rm /tmp/phase2",
+          35024,
+          89840,
+          0,
+          0,
+          16
+        ],
+        [
+          "command_after:rm /tmp/phase2",
+          31104,
+          93760,
+          3098,
+          3888,
+          17
+        ],
+        [
+          "command_before:exit",
+          30976,
+          93888,
+          0,
+          0,
+          17
+        ],
+        [
+          "command_after:exit",
+          32944,
+          91920,
+          4086,
+          4118,
+          15
+        ]
+      ],
+      "recalls": 1,
+      "stores": 2,
+      "summary": {
+        "boot_free": 35808,
+        "end_free": 47216,
+        "free_loaded": 53872,
+        "free_start": 114272,
+        "heap_total": 124864,
+        "largest_boot_cap": 4586,
+        "largest_boot_lower_bound": 4551,
+        "min_free_gc": 30944,
+        "ranked_imports": [
+          {
+            "module": "A84CE",
+            "retained_delta": 11376
+          },
+          {
+            "module": "A84SH",
+            "retained_delta": 9296
+          },
+          {
+            "module": "A84FS",
+            "retained_delta": 7152
+          },
+          {
+            "module": "A84CZ",
+            "retained_delta": 7152
+          },
+          {
+            "module": "A84KN",
+            "retained_delta": 6208
+          },
+          {
+            "module": "A84GX",
+            "retained_delta": 5648
+          },
+          {
+            "module": "A84CD",
+            "retained_delta": 5136
+          },
+          {
+            "module": "A84UI",
+            "retained_delta": 4960
+          },
+          {
+            "module": "A84ST",
+            "retained_delta": 3424
+          }
+        ]
+      }
+    }
+  }
+}

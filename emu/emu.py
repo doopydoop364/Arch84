@@ -81,7 +81,7 @@ class Emu:
         os.makedirs(self.listdir)
 
     def run(self, lines=None, keys=None, heap=None, fresh=False, shots=False, cut=None, meminfo=False, nodraw=False, fail=None,
-            exit_at_end=True):
+            exit_at_end=True, profile=False):
         """Boot Arch84 and type `lines` (+ `exit` unless exit_at_end False).
         Lists persist between calls on this Emu unless fresh=True."""
         ks = list(keys or [])
@@ -96,14 +96,17 @@ class Emu:
                 for f in os.listdir(self.listdir):
                     os.remove(os.path.join(self.listdir, f))
             lf = self.listdir
+            runner = "profile_run.py" if profile else "run.py"
             cmd = [self.mp, "-X", "heapsize=%d" % (heap or self.heap),
-                   os.path.join(HERE, "run.py"), kf, lf, rf]
+                   os.path.join(HERE, runner), kf, lf, rf]
             if shots:
                 cmd.append("shots")
             if nodraw:
                 cmd.append("nodraw")
             if meminfo:
                 cmd.append("meminfo")
+            if profile:
+                cmd.append("profile")
 
             def lim():
                 resource.setrlimit(resource.RLIMIT_CPU, (self.cpu_s, self.cpu_s))
